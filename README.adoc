@@ -1,0 +1,22 @@
+= TLCA
+
+Triacylglycerol List Comparator Application
+
+== Build
+
+=== Web
+
+[source,shell]
+trunk build --release --filehash=false --public-url=https://ippras.github.io/tlca
+
+== Run
+
+=== Native
+
+[source,shell]
+cargo run
+
+=== Web (http://127.0.0.1:8080)
+
+[source,shell]
+trunk serve --release --filehash=false

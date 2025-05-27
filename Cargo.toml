@@ -1,0 +1,86 @@
+[package]
+name = "tlca"
+version = "0.2.0"
+authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+eframe = { version = "0.31.1", features = [
+    "accesskit",
+    "default_fonts",
+    "glow",
+    "persistence",
+    "wayland",
+] }
+egui = "0.31.1"
+egui-phosphor = "0.9.0"
+egui_commonmark = { version = "0.20.0", features = ["macros", "svg"] }
+egui_ext = { git = "https://github.com/kgv/egui_ext" }
+egui_extras = { version = "0.31.1", features = ["datepicker", "serde"] }
+egui_table = "0.3.0"
+egui_tiles = "0.12.0"
+egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
+lipid = { git = "https://github.com/ippras/lipid", branch = "double", features = [
+    "polars",
+    "serde",
+] }
+log = "0.4.27"
+metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
+    "egui",
+] }
+parking_lot = "0.12.3"
+polars = { version = "0.48.1", default-features = false, features = [
+    "cum_agg",
+    "dtype-categorical",
+    "dtype-i8",
+    "dtype-struct",
+    "dtype-u8",
+    "fmt_no_tty",
+    "lazy",
+    "round_series",
+] }
+polars_ext = { git = "https://github.com/kgv/polars_ext" }
+semver = { version = "1.0.26", features = ["serde"] }
+serde = { version = "1.0.219", features = ["derive", "std"] }
+tracing = "0.1.41"
+unic-langid = { version = "0.9.6", features = ["macros"] }
+
+# egui_dnd = "0.12.0"
+# egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
+# metadata = { path = "D:\\git\\ippras\\metadata", features = ["egui"] }
+# re_ui = "0.22.1"
+# ron = "0.10.1"
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+poll-promise = { version = "0.3.0", features = ["tokio"] }
+tokio = { version = "=1.44.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+
+# web
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.7"
+getrandom = { version = "0.3.0", default-features = false, features = [
+    "wasm_js",
+] }
+poll-promise = { version = "0.3.0", features = ["web"] }
+tracing-wasm = "0.2.1"
+wasm-bindgen-futures = "0.4.50"
+web-sys = "0.3.77"
+# js-sys = "0.3.77"
+# wasm-bindgen = "0.2.100"
+# tokio = { version = "1.44.2", features = ["macros", "rt", "sync", "time"] }
+# tokio_with_wasm = { version = "0.8.2", features = [
+#     "macros",
+#     "rt",
+#     "sync",
+#     "time",
+# ] }
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2

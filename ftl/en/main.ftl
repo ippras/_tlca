@@ -1,0 +1,19 @@
+left_panel = left panel
+reset_application = reset application
+reset_gui = reset GUI
+calculation_panel = calculation panel
+composition_panel = composition panel
+configuration_panel = configuration panel
+language = language
+
+unsigned = Unsigned
+    .hover = Round negative values to zero.
+precision = Precision
+round = Round
+    .hover = Round
+properties = Properties
+    .hover = Properties
+relative = Relative
+    .hover = Use relative base
+to_relative = To relative
+    .hover = Convert experimental stereospecific number 2 values to relative

@@ -21,9 +21,10 @@ use tracing::instrument;
 
 const INDEX: Range<usize> = 0..1;
 const TAG: Range<usize> = INDEX.end..INDEX.end + 3;
-const VALUE: Range<usize> = TAG.end..TAG.end + 1;
-const LEN: usize = VALUE.end;
-const TOP: &[Range<usize>] = &[INDEX, TAG, VALUE];
+const LEN: usize = TAG.end;
+// const VALUE: Range<usize> = TAG.end..TAG.end + 1;
+// const LEN: usize = VALUE.end;
+// const TOP: &[Range<usize>] = &[INDEX, TAG, VALUE];
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -67,7 +68,8 @@ impl TableView<'_> {
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         let num_rows = self.target.height() as u64 + 1;
-        let num_columns = LEN;
+        let value = self.target.width() - 1;
+        let num_columns = LEN + value;
         Table::new()
             .id_salt(id_salt)
             .num_rows(num_rows)
@@ -79,7 +81,7 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: TOP.to_vec(),
+                    groups: vec![INDEX, TAG, LEN..num_columns],
                 },
                 HeaderRow::new(height),
             ])
@@ -99,10 +101,11 @@ impl TableView<'_> {
                 // CIRCLES_THREE
                 ui.heading("TAG");
             }
-            (0, VALUE) => {
+            (0, _) => {
                 ui.heading("Value");
             }
             // Bottom
+            (1, INDEX) => {}
             (1, tag::SN1) => {
                 ui.label(LayoutJob::subscripted_text(
                     ui,
@@ -126,6 +129,9 @@ impl TableView<'_> {
                     Some(TextStyle::Heading),
                     None,
                 ));
+            }
+            (1, range) => {
+                ui.heading(self.target[range.start - LEN + 1].name().to_string());
             }
             _ => {}
         };
@@ -206,12 +212,13 @@ impl TableView<'_> {
                     .response
                     .on_hover_text(label.str_value(row)?);
             }
-            (row, &VALUE) => {
+            (row, range) => {
                 // let value = self.target["Value"].f64()?.get(row);
-                // FloatWidget::new(value)
-                //     .precision(Some(self.settings.precision))
-                //     .hover()
-                //     .show(ui);
+                let value = self.target[range.start - LEN + 1].f64()?.get(row);
+                FloatWidget::new(value)
+                    .precision(Some(self.settings.precision))
+                    .hover()
+                    .show(ui);
             }
             _ => {}
         }

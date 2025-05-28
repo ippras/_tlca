@@ -99,20 +99,15 @@ fn to_fatty_acid(column: Column) -> PolarsResult<Option<Column>> {
         let mut bounds = Vec::new();
         for index in 1..carbons {
             let unsaturated_index = unsaturated.struct_()?.field_by_name("Index")?;
-            if unsaturated_index.u8()?.equal(index).any() {
+            let mask = unsaturated_index.u8()?.equal(index);
+            if mask.any() {
                 bounds.push(DC);
             } else {
                 bounds.push(S);
             }
         }
-        // println!("carbons: {carbons:?} unsaturated: {unsaturated:?}");
-        // println!("bounds: {bounds:?}");
-        // println!("fatty_acid: {:#}", fatty_acid.display(Default::default()));
-        // fields.push(fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series());
         let fatty_acid = FattyAcidChunked::try_from(&*bounds)?;
         list.append_series(&fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series())?;
     }
-    // println!("fields: {}", fields.len());
-    // let st = StructChunked::from_columns(column.name().clone(), column.len(), &fields)?;
     Ok(Some(list.finish().into_column()))
 }

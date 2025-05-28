@@ -1,4 +1,5 @@
 use self::{
+    data::Data,
     panes::{Pane, behavior::Behavior},
     widgets::PresetsWidget,
     windows::About,
@@ -21,14 +22,7 @@ use egui_tiles::{ContainerKind, Tile, Tree};
 use egui_tiles_ext::{TilesExt as _, TreeExt as _, VERTICAL};
 use metadata::MetaDataFrame;
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::BorrowMut,
-    fmt::Write,
-    io::Cursor,
-    mem::take,
-    str,
-    sync::mpsc::{Receiver, Sender, channel},
-};
+use std::{borrow::BorrowMut, fmt::Write, io::Cursor, mem::take, str};
 use tracing::{error, info, trace};
 
 /// IEEE 754-2008
@@ -52,6 +46,8 @@ fn custom_visuals<T: BorrowMut<Visuals>>(mut visuals: T) -> T {
 pub struct App {
     // Panels
     left_panel: bool,
+    // Data
+    data: Data,
     // Panes
     tree: Tree<Pane>,
     // Windows
@@ -63,6 +59,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             left_panel: true,
+            data: Default::default(),
             tree: Tree::empty("CentralTree"),
             about: Default::default(),
         }
@@ -137,7 +134,7 @@ impl App {
             .resizable(true)
             .show_animated(ctx, self.left_panel, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
-                    // self.data.show(ui);
+                    self.data.show(ui);
                 });
             });
     }
@@ -328,7 +325,8 @@ impl App {
                 match MetaDataFrame::read_ipc(&mut reader) {
                     Ok(frame) => {
                         trace!(?frame);
-                        self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
+                        self.data.add(frame);
+                        // self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
                     }
                     Err(error) => error!(%error),
                 };
@@ -355,6 +353,7 @@ impl eframe::App for App {
 }
 
 mod computers;
+mod data;
 mod panes;
 mod widgets;
 mod windows;

@@ -1,6 +1,7 @@
 use crate::{
     app::{ICON_SIZE, panes::Pane},
     presets::*,
+    utils::save,
 };
 use anyhow::Result;
 use egui::{Response, RichText, ScrollArea, Separator, Ui, Widget};
@@ -28,6 +29,7 @@ impl PresetsWidget<'_> {
                 .button(RichText::new(format!("{DATABASE} {title}")).heading())
                 .clicked()
             {
+                save("TEMP.ipc", &mut $frame.value.clone()).unwrap();
                 self.tree
                     .insert_pane::<VERTICAL>(Pane::new(vec![$frame.clone()]));
             }
@@ -38,9 +40,12 @@ impl PresetsWidget<'_> {
             ui.hyperlink_to(RichText::new("IPPRAS").heading(), "https://ippras.ru");
             ui.add(Separator::default().horizontal());
         });
-        preset!(ippras::LOBOSPHERA_N_1);
-        preset!(ippras::LOBOSPHERA_N_2);
-        preset!(ippras::LOBOSPHERA_N_3);
+        // preset!(ippras::LOBOSPHERA_N_1);
+        // preset!(ippras::LOBOSPHERA_N_2);
+        // preset!(ippras::LOBOSPHERA_N_3);
+        preset!(ippras::_519_N);
+        preset!(ippras::C108_N);
+        preset!(ippras::C1210_N);
         ui.separator();
     }
 }

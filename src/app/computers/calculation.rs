@@ -1,4 +1,7 @@
-use crate::{app::panes::calculation::settings::Settings, utils::Hashed};
+use crate::{
+    app::panes::calculation::settings::{Kind, Settings},
+    utils::Hashed,
+};
 use egui::util::cache::{ComputerMut, FrameCache};
 use metadata::MetaDataFrame;
 use polars::prelude::*;
@@ -16,31 +19,54 @@ pub(crate) struct Computer;
 impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
-        match key.frames.len() {
-            0 => Ok(DataFrame::empty()),
-            1 => Ok(key.frames[0].data.clone()),
-            _ => {
-                let compute = |frame: &MetaDataFrame| -> PolarsResult<LazyFrame> {
-                    Ok(frame.data.clone().lazy().select([
-                        col("Triacylglycerol"),
-                        col("Value").alias(frame.meta.format(".").to_string()),
-                    ]))
-                };
-                println!("key.frames: {:?}", key.frames);
-                let mut lazy_frame = compute(&key.frames[0])?;
-                for frame in &key.frames[1..] {
-                    lazy_frame = lazy_frame.join(
-                        compute(frame)?,
-                        [col("Triacylglycerol")],
-                        [col("Triacylglycerol")],
-                        JoinArgs::new(JoinType::Full).with_coalesce(JoinCoalesce::CoalesceColumns),
-                    );
-                }
-                // lazy_frame = lazy_frame.drop([col("Hash")]);
-                println!("lazy_frame: {:?}", lazy_frame.clone().collect()?);
-                lazy_frame.collect()
+        if key.frames.is_empty() {
+            return Ok(DataFrame::empty());
+        }
+        let compute = |frame: &MetaDataFrame| -> PolarsResult<LazyFrame> {
+            Ok(frame.data.clone().lazy().select([
+                col("Triacylglycerol"),
+                col("Value").alias(frame.meta.format(".").to_string()),
+            ]))
+        };
+        println!("key.frames: {:?}", key.frames);
+        let mut lazy_frame = compute(&key.frames[0])?;
+        for frame in &key.frames[1..] {
+            lazy_frame = lazy_frame.join(
+                compute(frame)?,
+                [col("Triacylglycerol")],
+                [col("Triacylglycerol")],
+                JoinArgs {
+                    coalesce: JoinCoalesce::CoalesceColumns,
+                    maintain_order: MaintainOrderJoin::LeftRight,
+                    ..JoinArgs::new(JoinType::Full)
+                },
+            );
+        }
+        match key.settings.kind {
+            Kind::Value => {}
+            Kind::Difference => {
+                lazy_frame = lazy_frame.select([
+                    col("Triacylglycerol"),
+                    (dtype_col(&DataType::Float64) - nth(1)).abs(),
+                    // (dtype_col(&DataType::Float64) - nth(1)).abs() / nth(1),
+                ]);
+            }
+            Kind::Jaccard => {
+                // let a = dtype_col(&DataType::Float64).drop_nulls().len();
+                // let b = nth(1).drop_nulls().len();
+                // let c = dtype_col(&DataType::Float64)
+                //     .is_not_null()
+                //     .and(nth(1).is_not_null())
+                //     .sum();
+                // lazy_frame = lazy_frame.select([
+                //     col("Triacylglycerol"),
+                //     c.clone() / (a + b - c).cast(DataType::Float64),
+                // ]);
+                // lazy_frame = lazy_frame.select([col("Triacylglycerol"), c]);
             }
         }
+        println!("lazy_frame: {:?}", lazy_frame.clone().collect()?);
+        lazy_frame.collect()
         // let mut lazy_frame = match settings.index {
         //     Some(index) => {
         //         let frame = &key.frames[index];
@@ -163,6 +189,24 @@ impl Computer {
     }
 }
 
+// /// Jaccard
+// fn jaccard(exp1: Expr, exp2: Expr) -> PolarsResult<f64> {
+//     let (s1, s2) = (exp1.join().unique(), exp1.unique());
+//     let s3 = s1
+//         .to_frame()
+//         .join(s2.to_frame(), how = "inner", on = "")
+//         .to_series();
+//     return s3.len() / (s1.len() + s2.len() - s3.len());
+// }
+
+// def jaccard_similarity(s1: pl.Series, s2: pl.Series):
+//     s1, s2 = s1.unique(), s2.unique()
+//     s3 = s1.to_frame().join(s2.to_frame(), how="inner", on="").to_series()
+//     return s3.len() / (s1.len() + s2.len() - s3.len())
+
+// def jaccard_distance(s1: pl.Series, s2: pl.Series):
+//     return 1 - jaccard_similarity(s1, s2)
+
 impl ComputerMut<Key<'_>, Value> for Computer {
     fn compute(&mut self, key: Key) -> Value {
         self.try_compute(key).unwrap()
@@ -179,6 +223,7 @@ pub(crate) struct Key<'a> {
 impl Hash for Key<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.frames.hash(state);
+        self.settings.kind.hash(state);
     }
 }
 

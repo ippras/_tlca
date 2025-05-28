@@ -1,4 +1,4 @@
-use super::{super::MARGIN, ID_SOURCE, Settings, State};
+use super::{super::MARGIN, ID_SOURCE, Settings, State, settings::Kind};
 use crate::{
     app::{
         computers::{CalculationComputed, CalculationKey},
@@ -213,14 +213,13 @@ impl TableView<'_> {
                     .on_hover_text(label.str_value(row)?);
             }
             (row, range) => {
-                // let value = self.target["Value"].f64()?.get(row);
                 let value = self.target[range.start - LEN + 1].f64()?.get(row);
                 FloatWidget::new(value)
+                    .percent(self.settings.percent)
                     .precision(Some(self.settings.precision))
                     .hover()
                     .show(ui);
             }
-            _ => {}
         }
         Ok(())
     }
@@ -228,7 +227,45 @@ impl TableView<'_> {
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
             INDEX => {}
-            _ => {} // _ => unreachable!(),
+            tag::SN1 => {}
+            tag::SN2 => {}
+            tag::SN3 => {}
+            range => {
+                if self.settings.kind == Kind::Jaccard {
+                    let a = &self.target[range.start - LEN + 1];
+                    let b = &self.target[1];
+                    let c = self.target[range.start - LEN + 1]
+                        .clone()
+                        .with_name(PlSmallStr::EMPTY)
+                        .into_frame()
+                        .inner_join(
+                            &self.target[1]
+                                .clone()
+                                .with_name(PlSmallStr::EMPTY)
+                                .into_frame(),
+                            [PlSmallStr::EMPTY],
+                            [PlSmallStr::EMPTY],
+                        )?;
+                    println!("c: {c}");
+                    // let value = c / (a.drop_nulls().len() + b.drop_nulls().len() - c);
+                    let value = c.height();
+                    ui.label(value.to_string());
+                    // let value = c / (a.drop_nulls().len() + b.drop_nulls().len() - c);
+                    // FloatWidget::new(Some(value as _))
+                    //     .percent(self.settings.percent)
+                    //     .precision(Some(self.settings.precision))
+                    //     .hover()
+                    //     .show(ui);
+                } else {
+                    let value = self.target[range.start - LEN + 1].f64()?;
+                    let sum = value.filter(&value.is_finite())?.sum();
+                    FloatWidget::new(sum)
+                        .percent(self.settings.percent)
+                        .precision(Some(self.settings.precision))
+                        .hover()
+                        .show(ui);
+                }
+            }
         }
         Ok(())
     }

@@ -1,7 +1,10 @@
 use self::{settings::Settings, state::State, table::TableView};
-use crate::utils::Hashed;
+use crate::utils::{Hashed, save};
+use anyhow::Result;
 use egui::{CursorIcon, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash};
-use egui_phosphor::regular::{ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, GEAR, NOTE_PENCIL, PENCIL};
+use egui_phosphor::regular::{
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, TAG,
+};
 use metadata::{MetaDataFrame, egui::MetadataWidget};
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
@@ -76,15 +79,38 @@ impl Pane {
         )
         .on_hover_text("settings");
         ui.separator();
+        // Save
+        if ui
+            .button(RichText::new(FLOPPY_DISK).heading())
+            .on_hover_ui(|ui| {
+                ui.label("save");
+            })
+            .on_hover_text(format!("{}.utca.ipc", self.frames[0].meta.format(".")))
+            .clicked()
+        {
+            let _ = self.save();
+        }
         response
     }
 
     pub(crate) fn central(&mut self, ui: &mut Ui) {
         self.windows(ui);
-        self.body(ui);
+        if self.settings.editable {
+            self.meta(ui);
+        }
+        self.data(ui);
     }
 
-    fn body(&mut self, ui: &mut Ui) {
+    fn meta(&mut self, ui: &mut Ui) {
+        ui.style_mut().visuals.collapsing_header_frame = true;
+        ui.collapsing(RichText::new(format!("{TAG} Metadata")).heading(), |ui| {
+            MetadataWidget::new(&mut self.frames[0].value.meta)
+                .with_writable(true)
+                .show(ui);
+        });
+    }
+
+    fn data(&mut self, ui: &mut Ui) {
         TableView::new(&mut self.frames, &self.settings, &mut self.state).show(ui);
     }
 
@@ -97,6 +123,13 @@ impl Pane {
             .id(ui.auto_id_with(ID_SOURCE))
             .open(&mut self.state.open_settings_window)
             .show(ui.ctx(), |ui| self.settings.show(ui));
+    }
+
+    fn save(&mut self) -> Result<()> {
+        let frame = &mut self.frames[0];
+        let name = format!("{}.tlca.ipc", frame.meta.format(".")).replace(" ", "_");
+        save(&name, &mut frame.value)?;
+        Ok(())
     }
 }
 

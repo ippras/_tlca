@@ -30,7 +30,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
                                 self.close = Some(tile_id);
                             }
                             ui.separator();
-                            pane.header(ui)
+                            pane.top(ui)
                         })
                         .inner
                 })
@@ -38,7 +38,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
             })
             .inner;
         CentralPanel::default().show_inside(ui, |ui| {
-            pane.body(ui);
+            pane.central(ui);
         });
         if response.dragged() {
             UiResponse::DragStarted

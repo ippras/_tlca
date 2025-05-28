@@ -1,3 +1,4 @@
+use crate::utils::Hashed;
 use metadata::MetaDataFrame;
 use polars::prelude::*;
 use std::{io::Cursor, sync::LazyLock};
@@ -5,7 +6,9 @@ use std::{io::Cursor, sync::LazyLock};
 macro preset($name:literal) {
     LazyLock::new(|| {
         let bytes = include_bytes!($name);
-        convert(MetaDataFrame::read_ipc(Cursor::new(bytes)).expect(concat!("preset ", $name)))
+        Hashed::new(convert(
+            MetaDataFrame::read_ipc(Cursor::new(bytes)).expect(concat!("preset ", $name)),
+        ))
     })
 }
 
@@ -13,11 +16,11 @@ macro preset($name:literal) {
 pub(crate) mod ippras {
     use super::*;
 
-    pub(crate) static LOBOSPHERA_N_1: LazyLock<MetaDataFrame> =
+    pub(crate) static LOBOSPHERA_N_1: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/Lobosphera-N.2025-04-24.0.0.1.utca.ipc");
-    pub(crate) static LOBOSPHERA_N_2: LazyLock<MetaDataFrame> =
+    pub(crate) static LOBOSPHERA_N_2: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/Lobosphera-N.2025-04-24.0.0.2.utca.ipc");
-    pub(crate) static LOBOSPHERA_N_3: LazyLock<MetaDataFrame> =
+    pub(crate) static LOBOSPHERA_N_3: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/Lobosphera-N.2025-04-24.0.0.3.utca.ipc");
 }
 

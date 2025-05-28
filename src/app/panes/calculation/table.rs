@@ -4,7 +4,7 @@ use crate::{
         computers::{CalculationComputed, CalculationKey},
         widgets::{FattyAcidWidget, FloatWidget},
     },
-    utils::{AnyValueExt as _, LayoutJobExt},
+    utils::{AnyValueExt as _, Hashed, LayoutJobExt},
 };
 use egui::{
     Context, Frame, Id, Margin, Response, TextFormat, TextStyle, TextWrapMode, Ui, WidgetText,
@@ -13,6 +13,7 @@ use egui::{
 use egui_phosphor::regular::{HASH, MINUS, PLUS};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;
+use metadata::MetaDataFrame;
 use polars::prelude::*;
 use polars_ext::prelude::DataFrameExt as _;
 use std::ops::Range;
@@ -26,7 +27,7 @@ const TOP: &[Range<usize>] = &[INDEX, TAG, VALUE];
 
 /// Table view
 pub(super) struct TableView<'a> {
-    source: &'a mut DataFrame,
+    source: &'a mut [Hashed<MetaDataFrame>],
     target: DataFrame,
     settings: &'a Settings,
     state: &'a mut State,
@@ -34,12 +35,12 @@ pub(super) struct TableView<'a> {
 
 impl<'a> TableView<'a> {
     pub(super) fn new(
-        data_frame: &'a mut DataFrame,
+        frames: &'a mut [Hashed<MetaDataFrame>],
         settings: &'a Settings,
         state: &'a mut State,
     ) -> Self {
         Self {
-            source: data_frame,
+            source: frames,
             target: DataFrame::empty(),
             settings,
             state,
@@ -54,7 +55,7 @@ impl TableView<'_> {
                 .caches
                 .cache::<CalculationComputed>()
                 .get(CalculationKey {
-                    data_frame: self.source,
+                    frames: self.source,
                     settings: self.settings,
                 })
         });
@@ -65,7 +66,7 @@ impl TableView<'_> {
             self.state.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
-        let num_rows = self.source.height() as u64 + 1;
+        let num_rows = self.target.height() as u64 + 1;
         let num_columns = LEN;
         Table::new()
             .id_salt(id_salt)
@@ -83,14 +84,6 @@ impl TableView<'_> {
                 HeaderRow::new(height),
             ])
             .show(ui, self);
-        if self.state.add_table_row {
-            self.source.add_row().unwrap();
-            self.state.add_table_row = false;
-        }
-        if let Some(index) = self.state.delete_table_row {
-            self.source.delete_row(index).unwrap();
-            self.state.delete_table_row = None;
-        }
     }
 
     fn header_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
@@ -146,7 +139,7 @@ impl TableView<'_> {
         column: Range<usize>,
     ) -> PolarsResult<()> {
         if !self.source.is_empty() {
-            if row < self.source.height() {
+            if row < self.target.height() {
                 self.body_cell_content_ui(ui, row, column)?;
             } else {
                 self.footer_cell_content_ui(ui, column)?;
@@ -163,11 +156,6 @@ impl TableView<'_> {
     ) -> PolarsResult<()> {
         match (row, &column) {
             (row, &INDEX) => {
-                if self.settings.editable {
-                    if ui.button(MINUS).clicked() {
-                        self.state.delete_table_row = Some(row);
-                    }
-                }
                 ui.label(row.to_string());
             }
             (row, &tag::SN1) => {
@@ -219,11 +207,11 @@ impl TableView<'_> {
                     .on_hover_text(label.str_value(row)?);
             }
             (row, &VALUE) => {
-                let value = self.target["Value"].f64()?.get(row);
-                FloatWidget::new(value)
-                    .precision(Some(self.settings.precision))
-                    .hover()
-                    .show(ui);
+                // let value = self.target["Value"].f64()?.get(row);
+                // FloatWidget::new(value)
+                //     .precision(Some(self.settings.precision))
+                //     .hover()
+                //     .show(ui);
             }
             _ => {}
         }
@@ -232,92 +220,7 @@ impl TableView<'_> {
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
-            INDEX => {
-                if self.settings.editable {
-                    if ui.button(PLUS).clicked() {
-                        self.state.add_table_row = true;
-                    }
-                }
-            }
-            // experimental::SN123 => {
-            //     FloatWidget::new(self.source["StereospecificNumber123"].f64()?.sum())
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("∑TAG");
-            // }
-            // experimental::SN2 => {
-            //     FloatWidget::new(self.source["StereospecificNumber2"].f64()?.sum())
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("∑MAG");
-            // }
-            // calculated::sn123::D | calculated::sn2::D => {
-            //     let name = match column {
-            //         calculated::sn123::D => "StereospecificNumber123",
-            //         calculated::sn2::D => "StereospecificNumber2",
-            //         _ => unreachable!(),
-            //     };
-            //     FloatWidget::new(
-            //         self.target[name]
-            //             .struct_()?
-            //             .field_by_name("Meta")?
-            //             .struct_()?
-            //             .field_by_name("Sum")?
-            //             .f64()?
-            //             .first(),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("∑D");
-            // }
-            // calculated::sn123::E => {
-            //     FloatWidget::new(
-            //         self.target["StereospecificNumber123"]
-            //             .struct_()?
-            //             .field_by_name("Data")?
-            //             .struct_()?
-            //             .field_by_name("E")?
-            //             .f64()?
-            //             .sum()
-            //             .map(|e| 50.0 - e),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("50 - ∑E");
-            // }
-            // calculated::sn2::E => {
-            //     FloatWidget::new(
-            //         self.target["StereospecificNumber2"]
-            //             .struct_()?
-            //             .field_by_name("Data")?
-            //             .struct_()?
-            //             .field_by_name("E")?
-            //             .f64()?
-            //             .sum()
-            //             .map(|e| 50.0 - e),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("50 - ∑E");
-            // }
-            // calculated::F => {
-            //     FloatWidget::new(self.target["F"].f64()?.sum().map(|f| 100.0 - f))
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("100 - ∑F");
-            // }
+            INDEX => {}
             _ => {} // _ => unreachable!(),
         }
         Ok(())

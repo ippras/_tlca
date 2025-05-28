@@ -1,11 +1,10 @@
-use crate::app::panes::calculation::settings::Settings;
+use crate::{app::panes::calculation::settings::Settings, utils::Hashed};
 use egui::util::cache::{ComputerMut, FrameCache};
+use metadata::MetaDataFrame;
 use polars::prelude::*;
 use polars_ext::{prelude::ExprExt, series::column};
-use std::{
-    hash::{Hash, Hasher},
-    iter::zip,
-};
+use std::hash::{Hash, Hasher};
+use tracing::instrument;
 
 /// Calculation computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -15,14 +14,63 @@ pub(crate) type Computed = FrameCache<Value, Computer>;
 pub(crate) struct Computer;
 
 impl Computer {
+    #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
-        let mut lazy_frame = key.data_frame.clone().lazy();
-        // let other = MATURE_MILK.data.clone().lazy().select([
-        //     col("FattyAcid").hash(),
-        //     col("FattyAcid"),
-        //     col("StereospecificNumber123").alias("Target123"),
-        //     col("StereospecificNumber2").alias("Target2"),
-        // ]);
+        match key.frames.len() {
+            0 => Ok(DataFrame::empty()),
+            1 => Ok(key.frames[0].data.clone()),
+            _ => {
+                let compute = |frame: &MetaDataFrame| -> PolarsResult<LazyFrame> {
+                    Ok(frame.data.clone().lazy().select([
+                        col("Triacylglycerol"),
+                        col("Value").alias(frame.meta.format(".").to_string()),
+                    ]))
+                };
+                println!("key.frames: {:?}", key.frames);
+                let mut lazy_frame = compute(&key.frames[0])?;
+                for frame in &key.frames[1..] {
+                    lazy_frame = lazy_frame.join(
+                        compute(frame)?,
+                        [col("Triacylglycerol")],
+                        [col("Triacylglycerol")],
+                        JoinArgs::new(JoinType::Full).with_coalesce(JoinCoalesce::CoalesceColumns),
+                    );
+                }
+                // lazy_frame = lazy_frame.drop([col("Hash")]);
+                println!("lazy_frame: {:?}", lazy_frame.clone().collect()?);
+                lazy_frame.collect()
+            }
+        }
+        // let mut lazy_frame = match settings.index {
+        //     Some(index) => {
+        //         let frame = &key.frames[index];
+        //         let mut lazy_frame = frame.data.clone().lazy();
+        //         lazy_frame = compute(lazy_frame, settings)?;
+        //         lazy_frame
+        //     }
+        //     None => {
+        //         let compute = |frame: &MetaDataFrame| -> PolarsResult<LazyFrame> {
+        //             Ok(compute(frame.data.clone().lazy(), settings)?.select([
+        //                 col("Keys").hash(),
+        //                 col("Keys"),
+        //                 col("Values").alias(frame.meta.title()),
+        //             ]))
+        //         };
+        //         let mut lazy_frame = compute(&key.frames[0])?;
+        //         for frame in &key.frames[1..] {
+        //             lazy_frame = lazy_frame.join(
+        //                 compute(frame)?,
+        //                 [col("Hash"), col("Keys")],
+        //                 [col("Hash"), col("Keys")],
+        //                 JoinArgs::new(JoinType::Full).with_coalesce(JoinCoalesce::CoalesceColumns),
+        //             );
+        //         }
+        //         lazy_frame = lazy_frame.drop([col("Hash")]);
+        //         lazy_frame = meta(lazy_frame, settings)?;
+        //         lazy_frame
+        //     }
+        // };
+
         // if !key.data_frame.is_empty() {
         //     lazy_frame = lazy_frame
         //         .select([
@@ -112,7 +160,6 @@ impl Computer {
         //         col("F"),
         //     ]);
         // }
-        lazy_frame.collect()
     }
 }
 
@@ -125,18 +172,13 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 /// Calculation key
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Key<'a> {
-    pub(crate) data_frame: &'a DataFrame,
+    pub(crate) frames: &'a [Hashed<MetaDataFrame>],
     pub(crate) settings: &'a Settings,
 }
 
 impl Hash for Key<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for series in self.data_frame.iter() {
-            for value in series.iter() {
-                value.hash(state);
-            }
-        }
-        self.settings.hash(state);
+        self.frames.hash(state);
     }
 }
 

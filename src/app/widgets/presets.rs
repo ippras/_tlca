@@ -28,7 +28,8 @@ impl PresetsWidget<'_> {
                 .button(RichText::new(format!("{DATABASE} {title}")).heading())
                 .clicked()
             {
-                self.tree.insert_pane::<VERTICAL>(Pane::new($frame.clone()));
+                self.tree
+                    .insert_pane::<VERTICAL>(Pane::new(vec![$frame.clone()]));
             }
         }
 

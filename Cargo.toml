@@ -41,6 +41,7 @@ polars = { version = "0.48.1", default-features = false, features = [
     "lazy",
     "round_series",
 ] }
+polars-utils = { version = "0.48.1", features = ["nightly"] }
 polars_ext = { git = "https://github.com/kgv/polars_ext" }
 semver = { version = "1.0.26", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive", "std"] }

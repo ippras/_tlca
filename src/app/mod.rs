@@ -1,3 +1,5 @@
+use crate::utils::Hashed;
+
 use self::{
     data::Data,
     panes::{Pane, behavior::Behavior},
@@ -283,6 +285,14 @@ impl App {
 
 // Copy/Paste, Drag&Drop
 impl App {
+    fn unite(&mut self, ctx: &Context) {
+        if let Some(frames) =
+            ctx.data_mut(|data| data.remove_temp::<Vec<Hashed<MetaDataFrame>>>(Id::new("Unite")))
+        {
+            self.tree.insert_pane::<VERTICAL>(Pane::new(frames));
+        }
+    }
+
     fn drag_and_drop(&mut self, ctx: &Context) {
         // Preview hovering files
         if let Some(text) = ctx.input(|input| {
@@ -325,7 +335,7 @@ impl App {
                 match MetaDataFrame::read_ipc(&mut reader) {
                     Ok(frame) => {
                         trace!(?frame);
-                        self.data.add(frame);
+                        self.data.add(Hashed::new(frame));
                         // self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
                     }
                     Err(error) => error!(%error),
@@ -344,6 +354,7 @@ impl eframe::App for App {
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        self.unite(ctx);
         // Pre update
         self.panels(ctx);
         self.windows(ctx);

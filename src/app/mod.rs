@@ -1,4 +1,7 @@
+use crate::utils::Hashed;
+
 use self::{
+    data::Data,
     panes::{Pane, behavior::Behavior},
     widgets::PresetsWidget,
     windows::About,
@@ -21,14 +24,7 @@ use egui_tiles::{ContainerKind, Tile, Tree};
 use egui_tiles_ext::{TilesExt as _, TreeExt as _, VERTICAL};
 use metadata::MetaDataFrame;
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::BorrowMut,
-    fmt::Write,
-    io::Cursor,
-    mem::take,
-    str,
-    sync::mpsc::{Receiver, Sender, channel},
-};
+use std::{borrow::BorrowMut, fmt::Write, io::Cursor, mem::take, str};
 use tracing::{error, info, trace};
 
 /// IEEE 754-2008
@@ -52,6 +48,8 @@ fn custom_visuals<T: BorrowMut<Visuals>>(mut visuals: T) -> T {
 pub struct App {
     // Panels
     left_panel: bool,
+    // Data
+    data: Data,
     // Panes
     tree: Tree<Pane>,
     // Windows
@@ -63,6 +61,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             left_panel: true,
+            data: Default::default(),
             tree: Tree::empty("CentralTree"),
             about: Default::default(),
         }
@@ -136,9 +135,7 @@ impl App {
         SidePanel::left("LeftPanel")
             .resizable(true)
             .show_animated(ctx, self.left_panel, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    // self.data.show(ui);
-                });
+                self.data.show(ui);
             });
     }
 
@@ -286,6 +283,14 @@ impl App {
 
 // Copy/Paste, Drag&Drop
 impl App {
+    fn unite(&mut self, ctx: &Context) {
+        if let Some(frames) =
+            ctx.data_mut(|data| data.remove_temp::<Vec<Hashed<MetaDataFrame>>>(Id::new("Unite")))
+        {
+            self.tree.insert_pane::<VERTICAL>(Pane::new(frames));
+        }
+    }
+
     fn drag_and_drop(&mut self, ctx: &Context) {
         // Preview hovering files
         if let Some(text) = ctx.input(|input| {
@@ -325,10 +330,11 @@ impl App {
                 };
                 trace!(?bytes);
                 let mut reader = Cursor::new(bytes);
-                match MetaDataFrame::read_ipc(&mut reader) {
+                match MetaDataFrame::read_parquet(&mut reader) {
                     Ok(frame) => {
                         trace!(?frame);
-                        self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
+                        self.data.add(Hashed::new(frame));
+                        // self.tree.insert_pane::<VERTICAL>(Pane::new(frame));
                     }
                     Err(error) => error!(%error),
                 };
@@ -346,6 +352,7 @@ impl eframe::App for App {
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        self.unite(ctx);
         // Pre update
         self.panels(ctx);
         self.windows(ctx);
@@ -355,6 +362,7 @@ impl eframe::App for App {
 }
 
 mod computers;
+mod data;
 mod panes;
 mod widgets;
 mod windows;

@@ -1,18 +1,19 @@
-use super::{super::MARGIN, ID_SOURCE, Settings, State};
+use super::{super::MARGIN, ID_SOURCE, Settings, State, settings::Kind};
 use crate::{
     app::{
         computers::{CalculationComputed, CalculationKey},
         widgets::{FattyAcidWidget, FloatWidget},
     },
-    utils::{AnyValueExt as _, LayoutJobExt},
+    utils::{AnyValueExt as _, Hashed, LayoutJobExt},
 };
 use egui::{
     Context, Frame, Id, Margin, Response, TextFormat, TextStyle, TextWrapMode, Ui, WidgetText,
-    text::LayoutJob,
+    text::LayoutJob, util::hash,
 };
 use egui_phosphor::regular::{HASH, MINUS, PLUS};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;
+use metadata::MetaDataFrame;
 use polars::prelude::*;
 use polars_ext::prelude::DataFrameExt as _;
 use std::ops::Range;
@@ -20,13 +21,11 @@ use tracing::instrument;
 
 const INDEX: Range<usize> = 0..1;
 const TAG: Range<usize> = INDEX.end..INDEX.end + 3;
-const VALUE: Range<usize> = TAG.end..TAG.end + 1;
-const LEN: usize = VALUE.end;
-const TOP: &[Range<usize>] = &[INDEX, TAG, VALUE];
+const LEN: usize = TAG.end;
 
 /// Table view
 pub(super) struct TableView<'a> {
-    source: &'a mut DataFrame,
+    source: &'a mut [Hashed<MetaDataFrame>],
     target: DataFrame,
     settings: &'a Settings,
     state: &'a mut State,
@@ -34,12 +33,12 @@ pub(super) struct TableView<'a> {
 
 impl<'a> TableView<'a> {
     pub(super) fn new(
-        data_frame: &'a mut DataFrame,
+        frames: &'a mut [Hashed<MetaDataFrame>],
         settings: &'a Settings,
         state: &'a mut State,
     ) -> Self {
         Self {
-            source: data_frame,
+            source: frames,
             target: DataFrame::empty(),
             settings,
             state,
@@ -54,7 +53,7 @@ impl TableView<'_> {
                 .caches
                 .cache::<CalculationComputed>()
                 .get(CalculationKey {
-                    data_frame: self.source,
+                    frames: self.source,
                     settings: self.settings,
                 })
         });
@@ -65,8 +64,9 @@ impl TableView<'_> {
             self.state.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
-        let num_rows = self.source.height() as u64 + 1;
-        let num_columns = LEN;
+        let num_rows = self.target.height() as u64 + 1;
+        let value = self.target.width() - 1;
+        let num_columns = LEN + value;
         Table::new()
             .id_salt(id_salt)
             .num_rows(num_rows)
@@ -78,18 +78,30 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: TOP.to_vec(),
+                    groups: vec![INDEX, TAG, LEN..num_columns],
                 },
                 HeaderRow::new(height),
             ])
             .show(ui, self);
         if self.state.add_table_row {
-            self.source.add_row().unwrap();
+            self.source[0].value.data.add_row().unwrap();
+            self.source[0].hash = hash(&self.source[0].value);
             self.state.add_table_row = false;
         }
         if let Some(index) = self.state.delete_table_row {
-            self.source.delete_row(index).unwrap();
+            self.source[0].value.data.delete_row(index).unwrap();
+            self.source[0].hash = hash(&self.source[0].value);
             self.state.delete_table_row = None;
+        }
+        if let Some(index) = self.state.take_firts_table_rows {
+            self.source[0].value.data.firts_rows_to(index);
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.add_table_row = false;
+        }
+        if let Some(index) = self.state.take_last_table_rows {
+            self.source[0].value.data.last_rows_from(index);
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.add_table_row = false;
         }
     }
 
@@ -106,10 +118,11 @@ impl TableView<'_> {
                 // CIRCLES_THREE
                 ui.heading("TAG");
             }
-            (0, VALUE) => {
+            (0, _) => {
                 ui.heading("Value");
             }
             // Bottom
+            (1, INDEX) => {}
             (1, tag::SN1) => {
                 ui.label(LayoutJob::subscripted_text(
                     ui,
@@ -134,6 +147,9 @@ impl TableView<'_> {
                     None,
                 ));
             }
+            (1, range) => {
+                ui.heading(self.target[range.start - LEN + 1].name().to_string());
+            }
             _ => {}
         };
     }
@@ -146,7 +162,7 @@ impl TableView<'_> {
         column: Range<usize>,
     ) -> PolarsResult<()> {
         if !self.source.is_empty() {
-            if row < self.source.height() {
+            if row < self.target.height() {
                 self.body_cell_content_ui(ui, row, column)?;
             } else {
                 self.footer_cell_content_ui(ui, column)?;
@@ -168,23 +184,55 @@ impl TableView<'_> {
                         self.state.delete_table_row = Some(row);
                     }
                 }
-                ui.label(row.to_string());
+                let response = ui.label(row.to_string());
+                if self.settings.editable {
+                    response.context_menu(|ui| {
+                        if ui.button("Firts rows to").clicked() {
+                            self.state.take_firts_table_rows = Some(row);
+                        }
+                        if ui.button("Last rows from").clicked() {
+                            self.state.take_last_table_rows = Some(row);
+                        }
+                    });
+                }
             }
             (row, &tag::SN1) => {
                 let stereospecific_number = self.target["Triacylglycerol"]
                     .struct_()?
-                    .field_by_name("StereospecificNumber2")?;
+                    .field_by_name("StereospecificNumber1")?;
                 let fatty_acid = stereospecific_number
                     .struct_()?
                     .field_by_name("FattyAcid")?
                     .try_fatty_acid_list()?
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
-                FattyAcidWidget::new(fatty_acid)
+                let mut inner_response = FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
-                    .show(ui)
-                    .response
-                    .on_hover_text(label.str_value(row)?);
+                    .show(ui);
+                inner_response.response =
+                    inner_response.response.on_hover_text(label.str_value(row)?);
+                // if inner_response.response.changed() {
+                //     self.source[0]
+                //         .value
+                //         .data
+                //         .try_apply("Triacylglycerol", |series| {
+                //             let stereospecific_number =
+                //                 series.struct_()?.field_by_name("StereospecificNumber1")?;
+                //             let fatty_acid = stereospecific_number
+                //                 .struct_()?
+                //                 .field_by_name("FattyAcid")?;
+                //             let l = fatty_acid.fatty_acid_list().into_list().set();
+                //             Ok(fatty_acid)
+                //         })?;
+                //     stereospecific_number
+                //         .struct_()?
+                //         .try_apply_fields(|s| s)
+                //         .field_by_name("FattyAcid")?
+                //         .apply(|s| s);
+                //     // fatty_acid.apply
+                //     self.source[0].hash = hash(&self.source[0].value);
+                // }
             }
             (row, &tag::SN2) => {
                 let stereospecific_number = self.target["Triacylglycerol"]
@@ -197,6 +245,7 @@ impl TableView<'_> {
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
                 FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
                     .show(ui)
                     .response
@@ -213,19 +262,21 @@ impl TableView<'_> {
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
                 FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
                     .show(ui)
                     .response
                     .on_hover_text(label.str_value(row)?);
             }
-            (row, &VALUE) => {
-                let value = self.target["Value"].f64()?.get(row);
+            (row, range) => {
+                let value = self.target[range.start - LEN + 1].f64()?.get(row);
                 FloatWidget::new(value)
+                    .editable(self.settings.editable)
+                    .percent(self.settings.percent)
                     .precision(Some(self.settings.precision))
                     .hover()
                     .show(ui);
             }
-            _ => {}
         }
         Ok(())
     }
@@ -239,86 +290,10 @@ impl TableView<'_> {
                     }
                 }
             }
-            // experimental::SN123 => {
-            //     FloatWidget::new(self.source["StereospecificNumber123"].f64()?.sum())
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("∑TAG");
-            // }
-            // experimental::SN2 => {
-            //     FloatWidget::new(self.source["StereospecificNumber2"].f64()?.sum())
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("∑MAG");
-            // }
-            // calculated::sn123::D | calculated::sn2::D => {
-            //     let name = match column {
-            //         calculated::sn123::D => "StereospecificNumber123",
-            //         calculated::sn2::D => "StereospecificNumber2",
-            //         _ => unreachable!(),
-            //     };
-            //     FloatWidget::new(
-            //         self.target[name]
-            //             .struct_()?
-            //             .field_by_name("Meta")?
-            //             .struct_()?
-            //             .field_by_name("Sum")?
-            //             .f64()?
-            //             .first(),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("∑D");
-            // }
-            // calculated::sn123::E => {
-            //     FloatWidget::new(
-            //         self.target["StereospecificNumber123"]
-            //             .struct_()?
-            //             .field_by_name("Data")?
-            //             .struct_()?
-            //             .field_by_name("E")?
-            //             .f64()?
-            //             .sum()
-            //             .map(|e| 50.0 - e),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("50 - ∑E");
-            // }
-            // calculated::sn2::E => {
-            //     FloatWidget::new(
-            //         self.target["StereospecificNumber2"]
-            //             .struct_()?
-            //             .field_by_name("Data")?
-            //             .struct_()?
-            //             .field_by_name("E")?
-            //             .f64()?
-            //             .sum()
-            //             .map(|e| 50.0 - e),
-            //     )
-            //     .precision(Some(self.settings.precision))
-            //     .hover()
-            //     .show(ui)
-            //     .response
-            //     .on_hover_text("50 - ∑E");
-            // }
-            // calculated::F => {
-            //     FloatWidget::new(self.target["F"].f64()?.sum().map(|f| 100.0 - f))
-            //         .precision(Some(self.settings.precision))
-            //         .hover()
-            //         .show(ui)
-            //         .response
-            //         .on_hover_text("100 - ∑F");
-            // }
-            _ => {} // _ => unreachable!(),
+            tag::SN1 => {}
+            tag::SN2 => {}
+            tag::SN3 => {}
+            range => {}
         }
         Ok(())
     }
@@ -350,6 +325,31 @@ impl TableDelegate for TableView<'_> {
         row as f32 * (ctx.style().spacing.interact_size.y + 2.0 * MARGIN.y)
     }
 }
+
+// fn update_triacylglycerol(
+//     row: usize,
+//     value: Option<FattyAcidChunked>,
+// ) -> impl FnMut(&Series) -> PolarsResult<Series> + 'static {
+//     move |series| {
+//         let out = series
+//             .fatty_acid_list()
+//             .iter()
+//             .enumerate()
+//             .map(|(index, fatty_acid)| {
+//                 Ok(if index == row {
+//                     println!("value: {value:?}");
+//                     match value.clone() {
+//                         Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+//                         None => None,
+//                     }
+//                 } else {
+//                     Some(fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series())
+//                 })
+//             })
+//             .collect::<PolarsResult<ListChunked>>()?;
+//         Ok(out.into_series())
+//     }
+// }
 
 mod tag {
     use super::*;

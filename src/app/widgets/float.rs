@@ -6,6 +6,7 @@ pub(crate) struct FloatWidget {
     pub(crate) value: Option<f64>,
     pub(crate) editable: bool,
     pub(crate) hover: bool,
+    pub(crate) percent: bool,
     pub(crate) precision: Option<usize>,
 }
 
@@ -15,6 +16,7 @@ impl FloatWidget {
             value,
             editable: false,
             hover: false,
+            percent: false,
             precision: None,
         }
     }
@@ -30,14 +32,24 @@ impl FloatWidget {
         }
     }
 
+    pub(crate) fn percent(mut self, percent: bool) -> Self {
+        self.percent = percent;
+        self
+    }
+
     pub(crate) fn precision(self, precision: Option<usize>) -> Self {
         Self { precision, ..self }
     }
 
     pub(crate) fn show(self, ui: &mut Ui) -> InnerResponse<Option<f64>> {
-        let format = |value: f64| match self.precision {
-            Some(precision) => format!("{value:.precision$}"),
-            None => AnyValue::from(value).to_string(),
+        let format = |mut value: f64| {
+            if self.percent {
+                value *= 100.0;
+            }
+            match self.precision {
+                Some(precision) => format!("{value:.precision$}"),
+                None => AnyValue::from(value).to_string(),
+            }
         };
         let mut inner = None;
         // None

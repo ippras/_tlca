@@ -29,14 +29,14 @@ impl Data {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         // Header
         bar(ui, |ui| {
-            ui.heading(ui.localize("loaded-files"))
-                .on_hover_localized("loaded-files.hover");
+            ui.heading("loaded-files")
+                .on_hover_text("loaded-files.hover");
             ui.separator();
             // Toggle all
             if ui
                 .button(RichText::new(CHECK).heading())
-                .on_hover_localized("toggle-all")
-                .on_hover_localized("toggle-all.hover")
+                .on_hover_text("toggle-all")
+                .on_hover_text("toggle-all.hover")
                 .clicked()
             {
                 if self.selected.is_empty() {
@@ -49,23 +49,23 @@ impl Data {
             // Delete all
             if ui
                 .button(RichText::new(TRASH).heading())
-                .on_hover_localized("delete-all")
+                .on_hover_text("delete-all")
                 .clicked()
             {
                 *self = Default::default();
             }
             ui.separator();
-            // Configuration
-            let frames = self.selected();
-            ui.add_enabled_ui(!frames.is_empty(), |ui| {
-                if ui
-                    .button(RichText::new(ConfigurationPane::icon()).heading())
-                    .on_hover_localized("configuration")
-                    .clicked()
-                {
-                    ui.data_mut(|data| data.insert_temp(Id::new("Configure"), frames));
-                }
-            });
+            // // Configuration
+            // let frames = self.selected();
+            // ui.add_enabled_ui(!frames.is_empty(), |ui| {
+            //     if ui
+            //         .button(RichText::new(ConfigurationPane::icon()).heading())
+            //         .on_hover_text("configuration")
+            //         .clicked()
+            //     {
+            //         ui.data_mut(|data| data.insert_temp(Id::new("Configure"), frames));
+            //     }
+            // });
             ui.separator();
         });
         // Body
@@ -124,7 +124,7 @@ impl Data {
                             });
                             // Label
                             row.col(|ui| {
-                                let text = title(&frame.meta, " ");
+                                let text = frame.meta.format(" ").to_string();
                                 let response = ui
                                     .add(Label::new(text).sense(Sense::click()).truncate())
                                     .on_hover_ui(|ui| {

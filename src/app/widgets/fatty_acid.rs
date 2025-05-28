@@ -100,44 +100,10 @@ impl FattyAcidWidget {
         if self.hover {
             response = response.on_hover_text(text);
         }
+        if let Some(fatty_acid) = inner.clone() {
+            fatty_acid.into_struct(PlSmallStr::EMPTY).unwrap();
+        }
         InnerResponse::new(inner, response)
-
-        // let fatty_acid = (self.value)()?;
-        // let text = match &fatty_acid {
-        //     Some(fatty_acid) => &format!("{:#}", fatty_acid.display(Default::default())),
-        //     None => "",
-        // };
-        // let mut inner = None;
-        // let mut response = if self.editable {
-        //     let current_value = fatty_acid.unwrap_or_default();
-        //     let response = ComboBox::from_id_salt(ui.next_auto_id())
-        //         .width(ui.available_width())
-        //         .selected_text(text)
-        //         .show_ui(ui, |ui| -> PolarsResult<()> {
-        //             let mature_milk = MATURE_MILK.data.try_fatty_acid_list()?;
-        //             for selected_value in mature_milk.iter() {
-        //                 let text = format!("{:#}", selected_value.display(Default::default()));
-        //                 // if let Some(selected_value) = mature_milk.get(index) {
-        //                 //     let text = format!("{:#}", selected_value.display(Default::default()));
-        //                 //     // if ui
-        //                 //     //     .selectable_value(current_value, *selected_value, text)
-        //                 //     //     .changed()
-        //                 //     // {
-        //                 //     //     inner = Some(current_value.clone())
-        //                 //     // }
-        //                 // }
-        //             }
-        //             Ok(())
-        //         });
-        //     response.response
-        // } else {
-        //     ui.label(text)
-        // };
-        // if self.hover {
-        //     response = response.on_hover_text(text);
-        // }
-        // Ok(InnerResponse::new(inner, response))
-        // Ok(InnerResponse::new(None, ui.response()))
     }
 }
 

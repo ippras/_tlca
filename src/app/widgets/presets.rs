@@ -1,13 +1,14 @@
 use crate::{
     app::{ICON_SIZE, panes::Pane},
     presets::*,
+    utils::save,
 };
 use anyhow::Result;
 use egui::{Response, RichText, ScrollArea, Separator, Ui, Widget};
 use egui_phosphor::regular::DATABASE;
 use egui_tiles::Tree;
 use egui_tiles_ext::{TreeExt, VERTICAL};
-use metadata::MetaDataFrame;
+use metadata::{MetaDataFrame, write_parquet};
 use std::fs::File;
 
 /// Presets
@@ -28,7 +29,9 @@ impl PresetsWidget<'_> {
                 .button(RichText::new(format!("{DATABASE} {title}")).heading())
                 .clicked()
             {
-                self.tree.insert_pane::<VERTICAL>(Pane::new($frame.clone()));
+                save("TEMP.ipc", &mut $frame.value.clone()).unwrap();
+                self.tree
+                    .insert_pane::<VERTICAL>(Pane::new(vec![$frame.clone()]));
             }
         }
 
@@ -38,8 +41,10 @@ impl PresetsWidget<'_> {
             ui.add(Separator::default().horizontal());
         });
         preset!(ippras::LOBOSPHERA_N_1);
-        preset!(ippras::LOBOSPHERA_N_2);
-        preset!(ippras::LOBOSPHERA_N_3);
+        preset!(ippras::_519_N);
+        preset!(ippras::C108_N);
+        preset!(ippras::C1210_N);
+        preset!(ippras::H626_N);
         ui.separator();
     }
 }
@@ -66,11 +71,17 @@ fn doi_separator(doi: &str) -> impl Fn(&mut Ui) -> Response {
     }
 }
 
-fn ipc(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
+fn parquet(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
     let file = File::create(name)?;
-    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_ipc(file)?;
+    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_parquet(file)?;
     Ok(())
 }
+
+// fn ipc(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
+//     let file = File::create(name)?;
+//     MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_ipc(file)?;
+//     Ok(())
+// }
 
 // fn ron(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
 //     let file = File::create(name)?;

@@ -19,6 +19,7 @@ pub(crate) struct Settings {
     pub(crate) truncate: bool,
     pub(crate) properties: bool,
     pub(crate) kind: Kind,
+    pub(crate) statistics: bool,
 }
 
 impl Settings {
@@ -32,6 +33,7 @@ impl Settings {
             truncate: false,
             properties: true,
             kind: Kind::Value,
+            statistics: true,
         }
     }
 
@@ -75,6 +77,14 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(self.kind.hover_text());
+            ui.end_row();
+
+            // Statistics
+            let mut response = ui.label("statistics");
+            response |= ui.checkbox(&mut self.statistics, "");
+            response.on_hover_ui(|ui| {
+                ui.label("statistics.hover");
+            });
             ui.end_row();
         });
     }

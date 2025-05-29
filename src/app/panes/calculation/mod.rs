@@ -1,13 +1,29 @@
+use std::f64::EPSILON;
+
 use self::{settings::Settings, state::State, table::TableView};
-use crate::utils::{Hashed, save};
+use crate::{
+    app::computers::{CalculationComputed, CalculationKey},
+    utils::{AnyValueExt as _, Hashed, save},
+};
 use anyhow::Result;
-use egui::{CursorIcon, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash};
+use egui::{
+    CursorIcon, Grid, Label, Response, RichText, TextStyle, TextWrapMode, Ui, Widget, Window,
+    util::hash,
+};
+use egui_extras::{Size, StripBuilder};
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, TAG,
 };
 use metadata::{MetaDataFrame, egui::MetadataWidget};
+use polars::{
+    error::{PolarsError, PolarsResult},
+    lazy::dsl::{max_horizontal, min_horizontal},
+    prelude::*,
+};
+use polars_ext::expr::ExprExt;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 const ID_SOURCE: &str = "Calculation";
 
@@ -99,6 +115,113 @@ impl Pane {
             self.meta(ui);
         }
         self.data(ui);
+    }
+
+    #[instrument(skip(self, ui), err)]
+    pub(crate) fn bottom(&mut self, ui: &mut Ui) -> PolarsResult<()> {
+        let target = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<CalculationComputed>()
+                .get(CalculationKey {
+                    frames: &self.frames,
+                    settings: &self.settings,
+                })
+        });
+        let mut data_frame = target
+            .clone()
+            .lazy()
+            .select([
+                nth(1).fill_null(0).alias("Source"),
+                nth(2).fill_null(0).alias("Target"),
+            ])
+            .select([
+                (col("Source") - col("Target"))
+                    .pow(2)
+                    .sum()
+                    .sqrt()
+                    .alias("EuclideanDistance"),
+                (col("Source") - col("Target"))
+                    .abs()
+                    .sum()
+                    .alias("ManhattanDistance"),
+                (lit(1)
+                    - (col("Source") * col("Target")).sum()
+                        / (col("Source").pow(2).sum().sqrt() * col("Target").pow(2).sum().sqrt()))
+                .alias("CosineDistance"),
+                ((col("Source") - col("Target")).abs().sum()
+                    / (col("Source") + col("Target")).sum())
+                .alias("BrayCurtisDissimilarity"),
+                (lit(1)
+                    - min_horizontal([col("Source"), col("Target")])?.sum()
+                        / max_horizontal([col("Source"), col("Target")])?.sum())
+                .alias("RuzickaDistance"),
+            ])
+            .collect()?;
+        let m = (col("Source") + col("Target")) / lit(2);
+        let lazy_frame = target
+            .lazy()
+            .select([
+                (nth(1) + lit(EPSILON)).normalize().alias("Source"),
+                (nth(2) + lit(EPSILON)).normalize().alias("Target"),
+            ])
+            .select([
+                (lit(0.5) * (col("Source") * (col("Source") / m.clone()).log1p()).sum()
+                    + lit(0.5) * (col("Target") * (col("Target") / m).log1p()).sum())
+                .alias("JensenShannonDivergence"),
+            ]);
+        data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
+        // println!("data_frame: {data_frame}");
+        let euclidean_distance = data_frame["EuclideanDistance"].get(0)?.display();
+        let manhattan_distance = data_frame["ManhattanDistance"].get(0)?.display();
+        let cosine_distance = data_frame["CosineDistance"].get(0)?.display();
+        let bray_curtis_dissimilarity = data_frame["BrayCurtisDissimilarity"].get(0)?.display();
+        let ruzicka_distance = data_frame["RuzickaDistance"].get(0)?.display();
+        let jensen_shannon_divergence = data_frame["JensenShannonDivergence"].get(0)?.display();
+        ui.heading("Метрики, основанные на геометрическом расстоянии");
+        ui.small("Чувствительны к абсолютным значениям");
+        Grid::new(ui.next_auto_id()).show(ui, |ui| {
+            ui.label("Euclidean distance")
+                .on_hover_text("Евклидово расстояние");
+            ui.label(euclidean_distance);
+            ui.end_row();
+            ui.label("Manhattan distance")
+                .on_hover_text("Манхэттенское расстояние");
+            ui.label(manhattan_distance);
+            ui.end_row();
+        });
+        ui.heading("Метрики, основанные на схожести формы/профиля");
+        ui.small("Менее чувствительны к абсолютным значениям, больше к относительным пропорциям");
+        Grid::new(ui.next_auto_id()).show(ui, |ui| {
+            ui.label("Cosine distance")
+                .on_hover_text("Косинусное расстояние")
+                .on_hover_text("Расстояние 0 означает идеальное совпадение профилей. Расстояние 1 означает максимальную непохожесть (ортогональность для неотрицательных векторов).");
+            ui.label(cosine_distance);
+            ui.end_row();
+        });
+        ui.heading("Метрики, учитывающие наличие/отсутствие и величины");
+        ui.small("Часто используются в экологии и для сравнения распределений");
+        Grid::new(ui.next_auto_id()).show(ui, |ui| {
+            ui.label("Bray-Curtis dissimilarity")
+                .on_hover_text("Расстояние Брея-Кёртиса")
+                .on_hover_text("Варьируется от 0 (полное совпадение) до 1 (полное различие).");
+            ui.label(bray_curtis_dissimilarity);
+            ui.end_row();
+            ui.label("Ruzicka distance")
+                .on_hover_text("Ruzicka distance or weighted Jaccard distance")
+                .on_hover_text("Расстояние Ружички")
+                .on_hover_text("Варьируется от 0 (полное совпадение) до 1 (полное различие).");
+            ui.label(ruzicka_distance);
+            ui.end_row();
+        });
+        ui.heading("Информационно-теоретические метрики");
+        Grid::new(ui.next_auto_id()).show(ui, |ui| {
+            ui.label("Jensen-Shannon divergence")
+                .on_hover_text("Дивергенция Дженсена-Шеннона").on_hover_text("Варьируется от 0 (одинаковые распределения) до log(2) (для натурального логарифма) или 1 (для логарифма по основанию 2).");
+            ui.label(jensen_shannon_divergence);
+            ui.end_row();
+        });
+        Ok(())
     }
 
     fn meta(&mut self, ui: &mut Ui) {

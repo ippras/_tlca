@@ -1,6 +1,7 @@
 use super::{MARGIN, Pane};
 use egui::{
-    CentralPanel, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText, menu::bar,
+    CentralPanel, Frame, Margin, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText,
+    menu::bar,
 };
 use egui_phosphor::regular::X;
 use egui_tiles::{TileId, UiResponse};
@@ -40,6 +41,16 @@ impl egui_tiles::Behavior<Pane> for Behavior {
         CentralPanel::default().show_inside(ui, |ui| {
             pane.central(ui);
         });
+        if pane.settings.statistics {
+            TopBottomPanel::bottom(ui.auto_id_with("Pane"))
+                .show_inside(ui, |ui| {
+                    ui.style_mut().visuals.collapsing_header_frame = false;
+                    ui.collapsing(RichText::new("Statistics").heading(), |ui| {
+                        pane.bottom(ui);
+                    });
+                })
+                .inner;
+        }
         if response.dragged() {
             UiResponse::DragStarted
         } else {

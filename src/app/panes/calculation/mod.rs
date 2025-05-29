@@ -158,18 +158,16 @@ impl Pane {
                 .alias("RuzickaDistance"),
             ])
             .collect()?;
-        let m = (col("Source") + col("Target")) / lit(2);
+        let m = || (col("Source") + col("Target")) / lit(2);
+        let kl = |name: &str| (col(name) * (col(name) / m()).log1p()).sum();
         let lazy_frame = target
             .lazy()
             .select([
                 (nth(1) + lit(EPSILON)).normalize().alias("Source"),
                 (nth(2) + lit(EPSILON)).normalize().alias("Target"),
             ])
-            .select([
-                (lit(0.5) * (col("Source") * (col("Source") / m.clone()).log1p()).sum()
-                    + lit(0.5) * (col("Target") * (col("Target") / m).log1p()).sum())
-                .alias("JensenShannonDivergence"),
-            ]);
+            .select([(lit(0.5) * kl("Source") + lit(0.5) * kl("Target"))
+                .alias("JensenShannonDivergence")]);
         data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
         // println!("data_frame: {data_frame}");
         let euclidean_distance = data_frame["EuclideanDistance"].get(0)?.display();

@@ -72,8 +72,6 @@ impl Settings {
                         .on_hover_text(Kind::Value.hover_text());
                     ui.selectable_value(&mut self.kind, Kind::Difference, Kind::Difference.text())
                         .on_hover_text(Kind::Difference.hover_text());
-                    ui.selectable_value(&mut self.kind, Kind::Jaccard, Kind::Jaccard.text())
-                        .on_hover_text(Kind::Jaccard.hover_text());
                 })
                 .response
                 .on_hover_text(self.kind.hover_text());
@@ -101,7 +99,6 @@ pub(crate) enum Kind {
     #[default]
     Value,
     Difference,
-    Jaccard,
 }
 
 impl Kind {
@@ -109,7 +106,6 @@ impl Kind {
         match self {
             Self::Value => "Value",
             Self::Difference => "Difference",
-            Self::Jaccard => "Jaccard",
         }
     }
 
@@ -117,7 +113,6 @@ impl Kind {
         match self {
             Self::Value => "Value",
             Self::Difference => "Difference",
-            Self::Jaccard => "Jaccard",
         }
     }
 }

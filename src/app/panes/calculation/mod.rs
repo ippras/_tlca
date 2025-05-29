@@ -166,8 +166,10 @@ impl Pane {
                 (nth(1) + lit(EPSILON)).normalize().alias("Source"),
                 (nth(2) + lit(EPSILON)).normalize().alias("Target"),
             ])
-            .select([(lit(0.5) * kl("Source") + lit(0.5) * kl("Target"))
+            .select([m().sum()
                 .alias("JensenShannonDivergence")]);
+            // .select([(lit(0.5) * kl("Source") + lit(0.5) * kl("Target"))
+            //     .alias("JensenShannonDivergence")]);
         data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
         // println!("data_frame: {data_frame}");
         let euclidean_distance = data_frame["EuclideanDistance"].get(0)?.display();

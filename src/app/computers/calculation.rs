@@ -42,28 +42,11 @@ impl Computer {
                 },
             );
         }
-        match key.settings.kind {
-            Kind::Value => {}
-            Kind::Difference => {
-                lazy_frame = lazy_frame.select([
-                    col("Triacylglycerol"),
-                    (dtype_col(&DataType::Float64) - nth(1)).abs(),
-                    // (dtype_col(&DataType::Float64) - nth(1)).abs() / nth(1),
-                ]);
-            }
-            Kind::Jaccard => {
-                // let a = dtype_col(&DataType::Float64).drop_nulls().len();
-                // let b = nth(1).drop_nulls().len();
-                // let c = dtype_col(&DataType::Float64)
-                //     .is_not_null()
-                //     .and(nth(1).is_not_null())
-                //     .sum();
-                // lazy_frame = lazy_frame.select([
-                //     col("Triacylglycerol"),
-                //     c.clone() / (a + b - c).cast(DataType::Float64),
-                // ]);
-                // lazy_frame = lazy_frame.select([col("Triacylglycerol"), c]);
-            }
+        if key.settings.kind == Kind::Difference {
+            lazy_frame = lazy_frame.select([
+                col("Triacylglycerol"),
+                (dtype_col(&DataType::Float64) - nth(1)).abs(),
+            ]);
         }
         println!("lazy_frame: {:?}", lazy_frame.clone().collect()?);
         lazy_frame.collect()

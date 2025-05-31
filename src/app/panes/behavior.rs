@@ -43,7 +43,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
             ui.add_space(1000.0);
         });
         if pane.settings.statistics {
-            TopBottomPanel::bottom(ui.auto_id_with("Pane"))
+            TopBottomPanel::bottom(ui.auto_id_with("Pane")).resizable(true)
                 .show_inside(ui, |ui| {
                     ui.style_mut().visuals.collapsing_header_frame = false;
                     ui.collapsing(RichText::new("Statistics").heading(), |ui| {

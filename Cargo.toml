@@ -32,6 +32,7 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "map", feature
 ] }
 parking_lot = "0.12.3"
 polars = { version = "0.48.1", default-features = false, features = [
+    "cov",
     "cum_agg",
     "dtype-categorical",
     "dtype-i8",
@@ -39,6 +40,8 @@ polars = { version = "0.48.1", default-features = false, features = [
     "dtype-u8",
     "fmt_no_tty",
     "lazy",
+    "propagate_nans",
+    "rank",
     "round_series",
 ] }
 polars-utils = { version = "0.48.1", features = ["nightly"] }

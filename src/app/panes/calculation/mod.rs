@@ -1,9 +1,8 @@
-use std::f64::{EPSILON, consts::E};
-
-use self::{settings::Settings, state::State, table::TableView};
+use self::{settings::Settings, state::State, statistics::Statistics, table::TableView};
 use crate::{
-    app::computers::{CalculationComputed, CalculationKey},
-    utils::{AnyValueExt as _, Hashed, LayoutJobExt as _, save},
+    app::computers::{CalculationComputed, CalculationKey, StatisticsComputed, StatisticsKey},
+    markdown::*,
+    utils::{AnyValueExt as _, Hashed, LayoutJobExt as _, UiExt, save},
 };
 use anyhow::Result;
 use egui::{
@@ -12,7 +11,7 @@ use egui::{
 };
 use egui_extras::{Size, StripBuilder};
 use egui_phosphor::regular::{
-    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, TAG,
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, INFO, NOTE_PENCIL, PENCIL, SIGMA, TAG,
 };
 use metadata::{MetaDataFrame, egui::MetadataWidget};
 use polars::{
@@ -23,6 +22,7 @@ use polars::{
 use polars_ext::expr::ExprExt;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
+use std::f64::{EPSILON, consts::E};
 use tracing::instrument;
 
 const ID_SOURCE: &str = "Calculation";
@@ -95,6 +95,13 @@ impl Pane {
         )
         .on_hover_text("settings");
         ui.separator();
+        // Statistics
+        ui.toggle_value(
+            &mut self.state.open_statistics_window,
+            RichText::new(SIGMA).heading(),
+        )
+        .on_hover_text("statistics");
+        ui.separator();
         // Save
         if ui
             .button(RichText::new(FLOPPY_DISK).heading())
@@ -128,149 +135,85 @@ impl Pane {
                     settings: &self.settings,
                 })
         });
+        let statistics = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<StatisticsComputed>()
+                .get(StatisticsKey {
+                    frame: &Hashed {
+                        value: target,
+                        hash: hash((&self.frames, &self.settings)),
+                    },
+                    settings: &self.settings,
+                })
+        });
+        let _ = Statistics::new(&statistics).show(ui);
 
-        const LEFT: &str = "Left";
-        const RIGHT: &str = "Right";
-
-        let mut data_frame = target
-            .clone()
-            .lazy()
-            .select([
-                nth(1).fill_null(0).alias(LEFT),
-                nth(2).fill_null(0).alias(RIGHT),
-            ])
-            .select([
-                (col(LEFT) - col(RIGHT))
-                    .pow(2)
-                    .sum()
-                    .sqrt()
-                    .alias("EuclideanDistance"),
-                (col(LEFT) - col(RIGHT))
-                    .abs()
-                    .sum()
-                    .alias("ManhattanDistance"),
-                (lit(1)
-                    - (col(LEFT) * col(RIGHT)).sum()
-                        / (col(LEFT).pow(2).sum().sqrt() * col(RIGHT).pow(2).sum().sqrt()))
-                .alias("CosineDistance"),
-                ((col(LEFT) - col(RIGHT)).abs().sum() / (col(LEFT) + col(RIGHT)).sum())
-                    .alias("BrayCurtisDissimilarity"),
-                (lit(1)
-                    - min_horizontal([col(LEFT), col(RIGHT)])?.sum()
-                        / max_horizontal([col(LEFT), col(RIGHT)])?.sum())
-                .alias("RuzickaDistance"),
-            ])
-            .collect()?;
-        let m = || (col(LEFT) + col(RIGHT)) / lit(2);
-        let kld = |left, rigth| (col(left) * (col(left) / m()).log(E)).fill_nan(0).sum();
-        let jsd = || (lit(0.5) * (kld(LEFT) + kld(RIGHT)));
-        let lazy_frame = target
-            .lazy()
-            .select([
-                nth(1).fill_null(0).alias(LEFT),
-                nth(2).fill_null(0).alias(RIGHT),
-            ])
-            .select([
-                (col(LEFT) / col(LEFT).sum()),
-                (col(RIGHT) / col(RIGHT).sum()),
-            ])
-            .select([
-                as_struct(vec![
-                    kld(LEFT).alias("LeftRight"),
-                    kld(RIGHT).alias("RightLeft"),
-                ])
-                .alias("KullbackLeiblerDivergence"),
-                as_struct(vec![
-                    jsd().alias("Divergence"),
-                    jsd().sqrt().alias("Distance"),
-                ])
-                .alias("JensenShannon"),
-            ]);
+        // const LEFT: &str = "Left";
+        // const RIGHT: &str = "Right";
+        // let mut data_frame = target
+        //     .clone()
+        //     .slice(0, 12)
+        //     .lazy()
+        //     .select([
+        //         nth(1).fill_null(0).alias(LEFT),
+        //         nth(2).fill_null(0).alias(RIGHT),
+        //     ])
+        //     .select([
+        //         (col(LEFT) - col(RIGHT))
+        //             .pow(2)
+        //             .sum()
+        //             .sqrt()
+        //             .alias("EuclideanDistance"),
+        //         (col(LEFT) - col(RIGHT)).max().alias("ChebyshevDistance"),
+        //         (col(LEFT) - col(RIGHT))
+        //             .abs()
+        //             .sum()
+        //             .alias("ManhattanDistance"),
+        //         (lit(1)
+        //             - (col(LEFT) * col(RIGHT)).sum()
+        //                 / (col(LEFT).pow(2).sum().sqrt() * col(RIGHT).pow(2).sum().sqrt()))
+        //         .alias("CosineDistance"),
+        //         ((col(LEFT) - col(RIGHT)).abs().sum() / (col(LEFT) + col(RIGHT)).sum())
+        //             .alias("BrayCurtisDissimilarity"),
+        //         (lit(1)
+        //             - min_horizontal([col(LEFT), col(RIGHT)])?.sum()
+        //                 / max_horizontal([col(LEFT), col(RIGHT)])?.sum())
+        //         .alias("RuzickaDistance"),
+        //         pearson_corr(col(LEFT), col(RIGHT)).alias("PearsonCorrelation"),
+        //         spearman_rank_corr(col(LEFT), col(RIGHT), false).alias("SpearmanCorrelation"),
+        //     ])
+        //     .collect()?;
+        // // Pearson and Spearman distances correlation
+        // // 1-0.000351=0.999649
+        // let m = || (col(LEFT) + col(RIGHT)) / lit(2);
+        // let kld = |left: Expr, rigth| (left.clone() * (left / rigth).log(E)).fill_nan(0).sum();
+        // let jsd = || (lit(0.5) * (kld(col(LEFT), m()) + kld(col(RIGHT), m())));
+        // let lazy_frame = target
+        //     .clone()
+        //     .lazy()
+        //     .select([
+        //         nth(1).fill_null(0).alias(LEFT),
+        //         nth(2).fill_null(0).alias(RIGHT),
+        //     ])
+        //     .select([
+        //         (col(LEFT) / col(LEFT).sum()),
+        //         (col(RIGHT) / col(RIGHT).sum()),
+        //     ])
+        //     .select([
+        //         as_struct(vec![
+        //             kld(col(LEFT), col(RIGHT)).alias("LeftRight"),
+        //             kld(col(RIGHT), col(LEFT)).alias("RightLeft"),
+        //         ])
+        //         .alias("KullbackLeiblerDivergence"),
+        //         jsd().sqrt().alias("JensenShannonDistance"),
+        //     ]);
         // unsafe { std::env::set_var("POLARS_FMT_MAX_ROWS", 256.to_string()) };
         // println!("target.slice: {}", target.slice(0, 12));
         // println!("->lazy_frame: {}", lazy_frame.clone().collect()?);
-        data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
+        // data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
         // println!("data_frame: {data_frame}");
-        let euclidean_distance = data_frame["EuclideanDistance"].get(0)?.display();
-        let manhattan_distance = data_frame["ManhattanDistance"].get(0)?.display();
-        let cosine_distance = data_frame["CosineDistance"].get(0)?.display();
-        let bray_curtis_dissimilarity = data_frame["BrayCurtisDissimilarity"].get(0)?.display();
-        let ruzicka_distance = data_frame["RuzickaDistance"].get(0)?.display();
-        let kullback_leibler_divergence = data_frame["KullbackLeiblerDivergence"].struct_()?;
-        let kullback_leibler_divergence_left_right = kullback_leibler_divergence
-            .field_by_name("Divergence")?
-            .get(0)?
-            .display();
-        let jensen_shannon = data_frame["JensenShannon"].struct_()?;
-        let jensen_shannon_divergence = jensen_shannon
-            .field_by_name("Divergence")?
-            .get(0)?
-            .display();
-        let jensen_shannon_distance = jensen_shannon.field_by_name("Distance")?.get(0)?.display();
-        ui.heading("Метрики, основанные на геометрическом расстоянии");
-        ui.small("Чувствительны к абсолютным значениям");
-        Grid::new(ui.next_auto_id()).show(ui, |ui| {
-            ui.label("Euclidean distance")
-                .on_hover_text("Евклидово расстояние");
-            ui.label(euclidean_distance);
-            ui.end_row();
-            ui.label("Manhattan distance")
-                .on_hover_text("Манхэттенское расстояние");
-            ui.label(manhattan_distance);
-            ui.end_row();
-        });
-        ui.heading("Метрики, основанные на схожести формы/профиля");
-        ui.small("Менее чувствительны к абсолютным значениям, больше к относительным пропорциям");
-        Grid::new(ui.next_auto_id()).show(ui, |ui| {
-            ui.label("Cosine distance")
-                .on_hover_text("Косинусное расстояние")
-                .on_hover_text("Расстояние 0 означает идеальное совпадение профилей. Расстояние 1 означает максимальную непохожесть (ортогональность для неотрицательных векторов).");
-            ui.label(cosine_distance);
-            ui.end_row();
-        });
-        ui.heading("Метрики, учитывающие наличие/отсутствие и величины");
-        ui.small("Часто используются в экологии и для сравнения распределений");
-        Grid::new(ui.next_auto_id()).show(ui, |ui| {
-            ui.label("Bray-Curtis dissimilarity")
-                .on_hover_text("Расстояние Брея-Кёртиса")
-                .on_hover_text("Варьируется от 0 (полное совпадение) до 1 (полное различие).");
-            ui.label(bray_curtis_dissimilarity);
-            ui.end_row();
-            ui.label("Ruzicka distance")
-                .on_hover_text("Ruzicka distance or weighted Jaccard distance")
-                .on_hover_text("Расстояние Ружички")
-                .on_hover_text("Варьируется от 0 (полное совпадение) до 1 (полное различие).");
-            ui.label(ruzicka_distance);
-            ui.end_row();
-        });
-        ui.heading("Информационно-теоретические метрики");
-        Grid::new(ui.next_auto_id()).show(ui, |ui| {
-            ui.label("Kullback-Leibler divergence");
-            ui.end_row();
-            ui.label(LayoutJob::subscripted_text(
-                ui,
-                "D_KL",
-                Some(TextStyle::Heading),
-                None,
-            ));
-            // ui.end_row();
-            // ui.label("Divergence")
-            //     .on_hover_text("Jensen-Shannon divergence")
-            //     .on_hover_text("Дивергенция Дженсена-Шеннона").on_hover_text("Варьируется от 0 (одинаковые распределения) до log(2) (для натурального логарифма) или 1 (для логарифма по основанию 2).");
-            // ui.label(jensen_shannon_divergence);
-            // ui.end_row();
-            ui.label("Jensen-Shannon distance")
-                .on_hover_text("Jensen-Shannon distance")
-                .on_hover_text("Расстояние Дженсена-Шеннона")
-                .on_hover_text("");
-            ui.label(jensen_shannon_distance).on_hover_ui(|ui| {
-                Grid::new(ui.next_auto_id()).show(ui, |ui| {
-                    ui.label("Jensen-Shannon divergence");
-                    ui.label(jensen_shannon_divergence);
-                });
-            });
-            ui.end_row();
-        });
+
         Ok(())
     }
 
@@ -293,9 +236,37 @@ impl Pane {
 
     pub(crate) fn windows(&mut self, ui: &mut Ui) {
         Window::new(format!("{GEAR} Settings"))
-            .id(ui.auto_id_with(ID_SOURCE))
+            .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .open(&mut self.state.open_settings_window)
             .show(ui.ctx(), |ui| self.settings.show(ui));
+        Window::new(format!("{SIGMA} Statistics"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Statistics"))
+            .open(&mut self.state.open_statistics_window)
+            .show(ui.ctx(), |ui| {
+                let target = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<CalculationComputed>()
+                        .get(CalculationKey {
+                            frames: &self.frames,
+                            settings: &self.settings,
+                        })
+                });
+                let statistics = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<StatisticsComputed>()
+                        .get(StatisticsKey {
+                            frame: &Hashed {
+                                value: target,
+                                hash: hash((&self.frames, &self.settings)),
+                            },
+                            settings: &self.settings,
+                        })
+                });
+                let _ = Statistics::new(&statistics).show(ui);
+                // self.bottom(ui)
+            });
     }
 
     fn save(&mut self) -> Result<()> {
@@ -307,6 +278,7 @@ impl Pane {
 }
 
 pub(crate) mod settings;
+pub(crate) mod statistics;
 
 mod state;
 mod table;

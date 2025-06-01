@@ -8,7 +8,7 @@ use crate::{
 };
 use egui::{
     Context, Frame, Id, Margin, Response, TextFormat, TextStyle, TextWrapMode, Ui, WidgetText,
-    text::LayoutJob,
+    text::LayoutJob, util::hash,
 };
 use egui_phosphor::regular::{HASH, MINUS, PLUS};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
@@ -83,6 +83,21 @@ impl TableView<'_> {
                 HeaderRow::new(height),
             ])
             .show(ui, self);
+        if self.state.add_table_row {
+            self.source[0].value.data.add_row().unwrap();
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.add_table_row = false;
+        }
+        if let Some(index) = self.state.delete_table_row {
+            self.source[0].value.data.delete_row(index).unwrap();
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.delete_table_row = None;
+        }
+        if let Some(index) = self.state.slice_table_rows {
+            self.source[0].value.data.slice_rows(index);
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.add_table_row = false;
+        }
     }
 
     fn header_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
@@ -159,12 +174,24 @@ impl TableView<'_> {
     ) -> PolarsResult<()> {
         match (row, &column) {
             (row, &INDEX) => {
-                ui.label(row.to_string());
+                if self.settings.editable {
+                    if ui.button(MINUS).clicked() {
+                        self.state.delete_table_row = Some(row);
+                    }
+                }
+                let response = ui.label(row.to_string());
+                if self.settings.editable {
+                    response.context_menu(|ui| {
+                        if ui.button("Slice").clicked() {
+                            self.state.slice_table_rows = Some(row);
+                        }
+                    });
+                }
             }
             (row, &tag::SN1) => {
                 let stereospecific_number = self.target["Triacylglycerol"]
                     .struct_()?
-                    .field_by_name("StereospecificNumber2")?;
+                    .field_by_name("StereospecificNumber1")?;
                 let fatty_acid = stereospecific_number
                     .struct_()?
                     .field_by_name("FattyAcid")?
@@ -172,6 +199,7 @@ impl TableView<'_> {
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
                 FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
                     .show(ui)
                     .response
@@ -188,6 +216,7 @@ impl TableView<'_> {
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
                 FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
                     .show(ui)
                     .response
@@ -204,6 +233,7 @@ impl TableView<'_> {
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
                 FattyAcidWidget::new(fatty_acid)
+                    .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
                     .show(ui)
                     .response
@@ -212,6 +242,7 @@ impl TableView<'_> {
             (row, range) => {
                 let value = self.target[range.start - LEN + 1].f64()?.get(row);
                 FloatWidget::new(value)
+                    .editable(self.settings.editable)
                     .percent(self.settings.percent)
                     .precision(Some(self.settings.precision))
                     .hover()
@@ -223,7 +254,13 @@ impl TableView<'_> {
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
-            INDEX => {}
+            INDEX => {
+                if self.settings.editable {
+                    if ui.button(PLUS).clicked() {
+                        self.state.add_table_row = true;
+                    }
+                }
+            }
             tag::SN1 => {}
             tag::SN2 => {}
             tag::SN3 => {}

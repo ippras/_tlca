@@ -135,9 +135,7 @@ impl App {
         SidePanel::left("LeftPanel")
             .resizable(true)
             .show_animated(ctx, self.left_panel, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    self.data.show(ui);
-                });
+                self.data.show(ui);
             });
     }
 

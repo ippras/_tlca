@@ -43,6 +43,7 @@ polars = { version = "0.48.1", default-features = false, features = [
     "propagate_nans",
     "rank",
     "round_series",
+    # "row_hash",
 ] }
 polars-utils = { version = "0.48.1", features = ["nightly"] }
 polars_ext = { git = "https://github.com/kgv/polars_ext" }

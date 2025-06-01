@@ -1,17 +1,15 @@
 use crate::{
     markdown::{
         BRAY_CURTIS_DISSIMILARITY, CHEBYSHEV_DISTANCE, COSINE_DISTANCE, EUCLIDEAN_DISTANCE,
-        JENSEN_SHANNON_DISTANCE, KULLBACK_LEIBLER_DIVERGENCE, MANHATTAN_DISTANCE, PEARSON_DISTANCE,
-        RUZICKA_DISTANCE, SPEARMAN_DISTANCE,
+        JENSEN_SHANNON_DISTANCE, MANHATTAN_DISTANCE, PEARSON_DISTANCE, RUZICKA_DISTANCE,
+        SPEARMAN_DISTANCE,
     },
     utils::{AnyValueExt as _, UiExt as _},
 };
-use egui::{Grid, Id, Label, Response, RichText, Ui, Widget};
+use egui::{Grid, Label, RichText, Ui};
 use egui_phosphor::regular::INFO;
 use polars::prelude::*;
 use tracing::instrument;
-
-use super::ID_SOURCE;
 
 /// Statistics
 pub(crate) struct Statistics<'a> {
@@ -27,7 +25,6 @@ impl<'a> Statistics<'a> {
 impl Statistics<'_> {
     #[instrument(skip(self, ui), err)]
     pub(crate) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
-        // ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
         let cosine_distance = self.data_frame["CosineDistance"].get(0)?.display();
         let bray_curtis_dissimilarity =
             self.data_frame["BrayCurtisDissimilarity"].get(0)?.display();

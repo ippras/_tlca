@@ -36,11 +36,13 @@ impl Data {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         TopBottomPanel::top(ui.auto_id_with("LeftPane")).show_inside(ui, |ui| {
             bar(ui, |ui| {
-                ScrollArea::horizontal().show(ui, |ui| self.top(ui));
+                self.top(ui);
             });
         });
         CentralPanel::default().show_inside(ui, |ui| {
-            self.central(ui);
+            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                self.central(ui);
+            });
         });
     }
 

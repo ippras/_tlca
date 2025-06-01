@@ -17,7 +17,7 @@ pub(crate) struct Settings {
     pub(crate) truncate: bool,
     pub(crate) properties: bool,
     pub(crate) kind: Kind,
-    pub(crate) view: View,
+    pub(crate) view: Content,
 }
 
 impl Settings {
@@ -31,7 +31,7 @@ impl Settings {
             truncate: true,
             properties: true,
             kind: Kind::Value,
-            view: View::Data,
+            view: Content::Data,
         }
     }
 
@@ -88,10 +88,10 @@ impl Settings {
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
                 .selected_text(self.view.text())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.view, View::Data, View::Data.text())
-                        .on_hover_text(View::Data.hover_text());
-                    ui.selectable_value(&mut self.view, View::Statistics, View::Statistics.text())
-                        .on_hover_text(View::Statistics.hover_text());
+                    ui.selectable_value(&mut self.view, Content::Data, Content::Data.text())
+                        .on_hover_text(Content::Data.hover_text());
+                    ui.selectable_value(&mut self.view, Content::Statistics, Content::Statistics.text())
+                        .on_hover_text(Content::Statistics.hover_text());
                 })
                 .response
                 .on_hover_text(self.kind.hover_text());
@@ -130,13 +130,13 @@ impl Kind {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum View {
+pub(crate) enum Content {
     #[default]
     Data,
     Statistics,
 }
 
-impl View {
+impl Content {
     pub(crate) fn text(&self) -> &'static str {
         match self {
             Self::Data => "Data",

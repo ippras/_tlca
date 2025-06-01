@@ -18,10 +18,10 @@ pub(crate) mod ippras {
 
     pub(crate) static LOBOSPHERA_N_1: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/Lobosphera-N.2025-04-24.0.0.1.utca.ipc");
-    pub(crate) static LOBOSPHERA_N_2: LazyLock<Hashed<MetaDataFrame>> =
-        preset!("ippras/Lobosphera-N.2025-04-24.0.0.2.utca.ipc");
-    pub(crate) static LOBOSPHERA_N_3: LazyLock<Hashed<MetaDataFrame>> =
-        preset!("ippras/Lobosphera-N.2025-04-24.0.0.3.utca.ipc");
+    // pub(crate) static LOBOSPHERA_N_2: LazyLock<Hashed<MetaDataFrame>> =
+    //     preset!("ippras/Lobosphera-N.2025-04-24.0.0.2.utca.ipc");
+    // pub(crate) static LOBOSPHERA_N_3: LazyLock<Hashed<MetaDataFrame>> =
+    //     preset!("ippras/Lobosphera-N.2025-04-24.0.0.3.utca.ipc");
 
     pub(crate) static _519_N: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/519-N.2025-04-23.0.0.1.utca.ipc");
@@ -29,6 +29,8 @@ pub(crate) mod ippras {
         preset!("ippras/C108-N.2025-04-23.0.0.1.utca.ipc");
     pub(crate) static C1210_N: LazyLock<Hashed<MetaDataFrame>> =
         preset!("ippras/C1210-N.2025-04-24.0.0.1.utca.ipc");
+    pub(crate) static H626_N: LazyLock<Hashed<MetaDataFrame>> =
+        preset!("ippras/H626-N.2025-04-24.utca.ipc");
 }
 
 use lipid::{

@@ -40,12 +40,11 @@ impl PresetsWidget<'_> {
             ui.hyperlink_to(RichText::new("IPPRAS").heading(), "https://ippras.ru");
             ui.add(Separator::default().horizontal());
         });
-        // preset!(ippras::LOBOSPHERA_N_1);
-        // preset!(ippras::LOBOSPHERA_N_2);
-        // preset!(ippras::LOBOSPHERA_N_3);
+        preset!(ippras::LOBOSPHERA_N_1);
         preset!(ippras::_519_N);
         preset!(ippras::C108_N);
         preset!(ippras::C1210_N);
+        preset!(ippras::H626_N);
         ui.separator();
     }
 }

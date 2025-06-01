@@ -22,9 +22,6 @@ use tracing::instrument;
 const INDEX: Range<usize> = 0..1;
 const TAG: Range<usize> = INDEX.end..INDEX.end + 3;
 const LEN: usize = TAG.end;
-// const VALUE: Range<usize> = TAG.end..TAG.end + 1;
-// const LEN: usize = VALUE.end;
-// const TOP: &[Range<usize>] = &[INDEX, TAG, VALUE];
 
 /// Table view
 pub(super) struct TableView<'a> {

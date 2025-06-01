@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::app::MAX_PRECISION;
 use egui::{ComboBox, Grid, Id, Slider, Ui, Widget};
 use serde::{Deserialize, Serialize};
@@ -19,7 +17,7 @@ pub(crate) struct Settings {
     pub(crate) truncate: bool,
     pub(crate) properties: bool,
     pub(crate) kind: Kind,
-    pub(crate) statistics: bool,
+    pub(crate) view: View,
 }
 
 impl Settings {
@@ -28,12 +26,12 @@ impl Settings {
             resizable: false,
             editable: false,
             precision: 2,
-            percent: false,
+            percent: true,
             sticky: 0,
-            truncate: false,
+            truncate: true,
             properties: true,
             kind: Kind::Value,
-            statistics: true,
+            view: View::Data,
         }
     }
 
@@ -50,6 +48,14 @@ impl Settings {
             response |= ui.checkbox(&mut self.percent, "");
             response.on_hover_ui(|ui| {
                 ui.label("percent.hover");
+            });
+            ui.end_row();
+
+            // Truncate
+            let mut response = ui.label("truncate");
+            response |= ui.checkbox(&mut self.truncate, "");
+            response.on_hover_ui(|ui| {
+                ui.label("truncate.hover");
             });
             ui.end_row();
 
@@ -78,11 +84,17 @@ impl Settings {
             ui.end_row();
 
             // Statistics
-            let mut response = ui.label("statistics");
-            response |= ui.checkbox(&mut self.statistics, "");
-            response.on_hover_ui(|ui| {
-                ui.label("statistics.hover");
-            });
+            ui.label("statistics");
+            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+                .selected_text(self.view.text())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.view, View::Data, View::Data.text())
+                        .on_hover_text(View::Data.hover_text());
+                    ui.selectable_value(&mut self.view, View::Statistics, View::Statistics.text())
+                        .on_hover_text(View::Statistics.hover_text());
+                })
+                .response
+                .on_hover_text(self.kind.hover_text());
             ui.end_row();
         });
     }
@@ -102,17 +114,40 @@ pub(crate) enum Kind {
 }
 
 impl Kind {
-    fn text(&self) -> &'static str {
+    pub(crate) fn text(&self) -> &'static str {
         match self {
             Self::Value => "Value",
             Self::Difference => "Difference",
         }
     }
 
-    fn hover_text(&self) -> &'static str {
+    pub(crate) fn hover_text(&self) -> &'static str {
         match self {
             Self::Value => "Value",
             Self::Difference => "Difference",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) enum View {
+    #[default]
+    Data,
+    Statistics,
+}
+
+impl View {
+    pub(crate) fn text(&self) -> &'static str {
+        match self {
+            Self::Data => "Data",
+            Self::Statistics => "Statistics",
+        }
+    }
+
+    pub(crate) fn hover_text(&self) -> &'static str {
+        match self {
+            Self::Data => "Data",
+            Self::Statistics => "Statistics",
         }
     }
 }

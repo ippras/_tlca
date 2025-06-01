@@ -38,20 +38,11 @@ impl egui_tiles::Behavior<Pane> for Behavior {
                 .inner
             })
             .inner;
-        CentralPanel::default().show_inside(ui, |ui| {
-            pane.central(ui);
-            ui.add_space(1000.0);
-        });
-        if pane.settings.statistics {
-            TopBottomPanel::bottom(ui.auto_id_with("Pane")).resizable(true)
-                .show_inside(ui, |ui| {
-                    ui.style_mut().visuals.collapsing_header_frame = false;
-                    ui.collapsing(RichText::new("Statistics").heading(), |ui| {
-                        let _ = pane.bottom(ui);
-                    });
-                })
-                .inner;
-        }
+        CentralPanel::default()
+            .frame(Frame::central_panel(&ui.style()))
+            .show_inside(ui, |ui| {
+                pane.central(ui);
+            });
         if response.dragged() {
             UiResponse::DragStarted
         } else {

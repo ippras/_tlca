@@ -6,7 +6,7 @@ use crate::{
     },
     utils::{AnyValueExt as _, UiExt as _},
 };
-use egui::{Grid, Id, Response, Ui, Widget};
+use egui::{Grid, Id, Label, Response, RichText, Ui, Widget};
 use egui_phosphor::regular::INFO;
 use polars::prelude::*;
 use tracing::instrument;
@@ -27,13 +27,16 @@ impl<'a> Statistics<'a> {
 impl Statistics<'_> {
     #[instrument(skip(self, ui), err)]
     pub(crate) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
+        // ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
         let cosine_distance = self.data_frame["CosineDistance"].get(0)?.display();
         let bray_curtis_dissimilarity =
             self.data_frame["BrayCurtisDissimilarity"].get(0)?.display();
         let ruzicka_distance = self.data_frame["RuzickaDistance"].get(0)?.display();
 
-        ui.label("Метрики, основанные на Lp-нормах");
-        ui.small("Чувствительны к абсолютным значениям");
+        ui.header(
+            "Метрики, основанные на Lp-нормах",
+            "Чувствительны к абсолютным значениям",
+        );
         let euclidean_distance = self.data_frame["EuclideanDistance"].get(0)?.display();
         let chebyshev_distance = self.data_frame["ChebyshevDistance"].get(0)?.display();
         let manhattan_distance = self.data_frame["ManhattanDistance"].get(0)?.display();
@@ -63,8 +66,10 @@ impl Statistics<'_> {
             ui.end_row();
         });
 
-        ui.label("Метрики, основанные на схожести формы/профиля");
-        ui.small("Менее чувствительны к абсолютным значениям, больше к относительным пропорциям");
+        ui.header(
+            "Метрики, основанные на схожести формы/профиля",
+            "Менее чувствительны к абсолютным значениям, больше к относительным пропорциям",
+        );
         Grid::new(ui.next_auto_id()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button(INFO, |ui| ui.markdown(COSINE_DISTANCE));
@@ -75,8 +80,10 @@ impl Statistics<'_> {
             ui.end_row();
         });
 
-        ui.label("Метрики, учитывающие наличие/отсутствие и величины");
-        ui.small("Часто используются в экологии и для сравнения распределений");
+        ui.header(
+            "Метрики, учитывающие наличие/отсутствие и величины",
+            "Часто используются в экологии и для сравнения распределений",
+        );
         Grid::new(ui.next_auto_id()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.menu_button(INFO, |ui| ui.markdown(BRAY_CURTIS_DISSIMILARITY));
@@ -95,8 +102,10 @@ impl Statistics<'_> {
             ui.end_row();
         });
 
-        ui.label("Метрики для сравнения вероятностных распределений");
-        ui.small("используют нормализованные векторы P, Q (вероятностные распределения)");
+        ui.header(
+            "Метрики для сравнения вероятностных распределений",
+            "используют нормализованные векторы P, Q (вероятностные распределения)",
+        );
         let jensen_shannon_distance = self.data_frame["JensenShannonDistance"].get(0)?.display();
         Grid::new(ui.next_auto_id()).show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -109,8 +118,10 @@ impl Statistics<'_> {
             ui.end_row();
         });
 
-        ui.label("Метрики, основанные на корреляции");
-        ui.small("оценивают сходство формы/тренда");
+        ui.header(
+            "Метрики, основанные на корреляции",
+            "оценивают сходство формы/тренда",
+        );
         let pearson_correlation = self.data_frame["PearsonCorrelation"].get(0)?.display();
         let spearman_correlation = self.data_frame["SpearmanCorrelation"].get(0)?.display();
         Grid::new(ui.next_auto_id()).show(ui, |ui| {
@@ -138,3 +149,15 @@ impl Statistics<'_> {
 //         ui
 //     }
 // }
+
+/// Extension methods for [`Ui`]
+trait UiExt {
+    fn header(&mut self, h1: &str, h2: &str);
+}
+
+impl UiExt for Ui {
+    fn header(&mut self, h1: &str, h2: &str) {
+        self.add(Label::new(h1).truncate());
+        self.add(Label::new(RichText::new(h2).small()).truncate());
+    }
+}

@@ -6,12 +6,13 @@ use crate::{
 };
 use anyhow::Result;
 use egui::{
-    CursorIcon, Grid, Label, Response, RichText, TextStyle, TextWrapMode, Ui, Widget, Window,
-    text::LayoutJob, util::hash,
+    CursorIcon, Grid, Label, Response, RichText, ScrollArea, TextStyle, TextWrapMode, Ui, Widget,
+    Window, text::LayoutJob, util::hash,
 };
 use egui_extras::{Size, StripBuilder};
 use egui_phosphor::regular::{
-    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, INFO, NOTE_PENCIL, PENCIL, SIGMA, TAG,
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, INFO, NOTE_PENCIL, PENCIL, SIGMA,
+    TABLE, TAG,
 };
 use metadata::{MetaDataFrame, egui::MetadataWidget};
 use polars::{
@@ -22,6 +23,7 @@ use polars::{
 use polars_ext::expr::ExprExt;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
+use settings::View;
 use std::f64::{EPSILON, consts::E};
 use tracing::instrument;
 
@@ -96,11 +98,25 @@ impl Pane {
         .on_hover_text("settings");
         ui.separator();
         // Statistics
-        ui.toggle_value(
-            &mut self.state.open_statistics_window,
-            RichText::new(SIGMA).heading(),
-        )
-        .on_hover_text("statistics");
+        let text = match self.settings.view {
+            View::Data => TABLE,
+            View::Statistics => SIGMA,
+        };
+        ui.menu_button(RichText::new(text).heading(), |ui| {
+            let mut response = ui
+                .selectable_value(&mut self.settings.view, View::Data, View::Data.text())
+                .on_hover_text(View::Data.hover_text());
+            response |= ui
+                .selectable_value(
+                    &mut self.settings.view,
+                    View::Statistics,
+                    View::Statistics.text(),
+                )
+                .on_hover_text(View::Statistics.hover_text());
+            if response.clicked() {
+                ui.close_menu();
+            }
+        });
         ui.separator();
         // Save
         if ui
@@ -121,11 +137,13 @@ impl Pane {
         if self.settings.editable {
             self.meta(ui);
         }
-        self.data(ui);
+        match self.settings.view {
+            View::Data => self.data(ui),
+            View::Statistics => self.statistics(ui),
+        }
     }
 
-    #[instrument(skip(self, ui), err)]
-    pub(crate) fn bottom(&mut self, ui: &mut Ui) -> PolarsResult<()> {
+    pub(crate) fn statistics(&mut self, ui: &mut Ui) {
         let target = ui.memory_mut(|memory| {
             memory
                 .caches
@@ -148,73 +166,6 @@ impl Pane {
                 })
         });
         let _ = Statistics::new(&statistics).show(ui);
-
-        // const LEFT: &str = "Left";
-        // const RIGHT: &str = "Right";
-        // let mut data_frame = target
-        //     .clone()
-        //     .slice(0, 12)
-        //     .lazy()
-        //     .select([
-        //         nth(1).fill_null(0).alias(LEFT),
-        //         nth(2).fill_null(0).alias(RIGHT),
-        //     ])
-        //     .select([
-        //         (col(LEFT) - col(RIGHT))
-        //             .pow(2)
-        //             .sum()
-        //             .sqrt()
-        //             .alias("EuclideanDistance"),
-        //         (col(LEFT) - col(RIGHT)).max().alias("ChebyshevDistance"),
-        //         (col(LEFT) - col(RIGHT))
-        //             .abs()
-        //             .sum()
-        //             .alias("ManhattanDistance"),
-        //         (lit(1)
-        //             - (col(LEFT) * col(RIGHT)).sum()
-        //                 / (col(LEFT).pow(2).sum().sqrt() * col(RIGHT).pow(2).sum().sqrt()))
-        //         .alias("CosineDistance"),
-        //         ((col(LEFT) - col(RIGHT)).abs().sum() / (col(LEFT) + col(RIGHT)).sum())
-        //             .alias("BrayCurtisDissimilarity"),
-        //         (lit(1)
-        //             - min_horizontal([col(LEFT), col(RIGHT)])?.sum()
-        //                 / max_horizontal([col(LEFT), col(RIGHT)])?.sum())
-        //         .alias("RuzickaDistance"),
-        //         pearson_corr(col(LEFT), col(RIGHT)).alias("PearsonCorrelation"),
-        //         spearman_rank_corr(col(LEFT), col(RIGHT), false).alias("SpearmanCorrelation"),
-        //     ])
-        //     .collect()?;
-        // // Pearson and Spearman distances correlation
-        // // 1-0.000351=0.999649
-        // let m = || (col(LEFT) + col(RIGHT)) / lit(2);
-        // let kld = |left: Expr, rigth| (left.clone() * (left / rigth).log(E)).fill_nan(0).sum();
-        // let jsd = || (lit(0.5) * (kld(col(LEFT), m()) + kld(col(RIGHT), m())));
-        // let lazy_frame = target
-        //     .clone()
-        //     .lazy()
-        //     .select([
-        //         nth(1).fill_null(0).alias(LEFT),
-        //         nth(2).fill_null(0).alias(RIGHT),
-        //     ])
-        //     .select([
-        //         (col(LEFT) / col(LEFT).sum()),
-        //         (col(RIGHT) / col(RIGHT).sum()),
-        //     ])
-        //     .select([
-        //         as_struct(vec![
-        //             kld(col(LEFT), col(RIGHT)).alias("LeftRight"),
-        //             kld(col(RIGHT), col(LEFT)).alias("RightLeft"),
-        //         ])
-        //         .alias("KullbackLeiblerDivergence"),
-        //         jsd().sqrt().alias("JensenShannonDistance"),
-        //     ]);
-        // unsafe { std::env::set_var("POLARS_FMT_MAX_ROWS", 256.to_string()) };
-        // println!("target.slice: {}", target.slice(0, 12));
-        // println!("->lazy_frame: {}", lazy_frame.clone().collect()?);
-        // data_frame = data_frame.hstack(lazy_frame.collect()?.get_columns())?;
-        // println!("data_frame: {data_frame}");
-
-        Ok(())
     }
 
     fn meta(&mut self, ui: &mut Ui) {
@@ -239,34 +190,6 @@ impl Pane {
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .open(&mut self.state.open_settings_window)
             .show(ui.ctx(), |ui| self.settings.show(ui));
-        Window::new(format!("{SIGMA} Statistics"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Statistics"))
-            .open(&mut self.state.open_statistics_window)
-            .show(ui.ctx(), |ui| {
-                let target = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<CalculationComputed>()
-                        .get(CalculationKey {
-                            frames: &self.frames,
-                            settings: &self.settings,
-                        })
-                });
-                let statistics = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<StatisticsComputed>()
-                        .get(StatisticsKey {
-                            frame: &Hashed {
-                                value: target,
-                                hash: hash((&self.frames, &self.settings)),
-                            },
-                            settings: &self.settings,
-                        })
-                });
-                let _ = Statistics::new(&statistics).show(ui);
-                // self.bottom(ui)
-            });
     }
 
     fn save(&mut self) -> Result<()> {

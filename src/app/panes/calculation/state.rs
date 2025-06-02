@@ -6,7 +6,8 @@ pub(crate) struct State {
     pub(crate) delete_table_row: Option<usize>,
     pub(crate) open_settings_window: bool,
     pub(crate) reset_table_state: bool,
-    pub(crate) slice_table_rows: Option<usize>,
+    pub(crate) take_firts_table_rows: Option<usize>,
+    pub(crate) take_last_table_rows: Option<usize>,
 }
 
 impl State {
@@ -16,7 +17,8 @@ impl State {
             delete_table_row: None,
             open_settings_window: false,
             reset_table_state: false,
-            slice_table_rows: None,
+            take_firts_table_rows: None,
+            take_last_table_rows: None,
         }
     }
 }

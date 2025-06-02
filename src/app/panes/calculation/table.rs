@@ -93,8 +93,13 @@ impl TableView<'_> {
             self.source[0].hash = hash(&self.source[0].value);
             self.state.delete_table_row = None;
         }
-        if let Some(index) = self.state.slice_table_rows {
-            self.source[0].value.data.slice_rows(index);
+        if let Some(index) = self.state.take_firts_table_rows {
+            self.source[0].value.data.firts_rows_to(index);
+            self.source[0].hash = hash(&self.source[0].value);
+            self.state.add_table_row = false;
+        }
+        if let Some(index) = self.state.take_last_table_rows {
+            self.source[0].value.data.last_rows_from(index);
             self.source[0].hash = hash(&self.source[0].value);
             self.state.add_table_row = false;
         }
@@ -182,8 +187,11 @@ impl TableView<'_> {
                 let response = ui.label(row.to_string());
                 if self.settings.editable {
                     response.context_menu(|ui| {
-                        if ui.button("Slice").clicked() {
-                            self.state.slice_table_rows = Some(row);
+                        if ui.button("Firts rows to").clicked() {
+                            self.state.take_firts_table_rows = Some(row);
+                        }
+                        if ui.button("Last rows from").clicked() {
+                            self.state.take_last_table_rows = Some(row);
                         }
                     });
                 }
@@ -198,12 +206,33 @@ impl TableView<'_> {
                     .try_fatty_acid_list()?
                     .get(row);
                 let label = stereospecific_number.struct_()?.field_by_name("Label")?;
-                FattyAcidWidget::new(fatty_acid)
+                let mut inner_response = FattyAcidWidget::new(fatty_acid)
                     .editable(self.settings.editable && self.source.len() == 1)
                     .hover()
-                    .show(ui)
-                    .response
-                    .on_hover_text(label.str_value(row)?);
+                    .show(ui);
+                inner_response.response =
+                    inner_response.response.on_hover_text(label.str_value(row)?);
+                // if inner_response.response.changed() {
+                //     self.source[0]
+                //         .value
+                //         .data
+                //         .try_apply("Triacylglycerol", |series| {
+                //             let stereospecific_number =
+                //                 series.struct_()?.field_by_name("StereospecificNumber1")?;
+                //             let fatty_acid = stereospecific_number
+                //                 .struct_()?
+                //                 .field_by_name("FattyAcid")?;
+                //             let l = fatty_acid.fatty_acid_list().into_list().set();
+                //             Ok(fatty_acid)
+                //         })?;
+                //     stereospecific_number
+                //         .struct_()?
+                //         .try_apply_fields(|s| s)
+                //         .field_by_name("FattyAcid")?
+                //         .apply(|s| s);
+                //     // fatty_acid.apply
+                //     self.source[0].hash = hash(&self.source[0].value);
+                // }
             }
             (row, &tag::SN2) => {
                 let stereospecific_number = self.target["Triacylglycerol"]
@@ -296,6 +325,31 @@ impl TableDelegate for TableView<'_> {
         row as f32 * (ctx.style().spacing.interact_size.y + 2.0 * MARGIN.y)
     }
 }
+
+// fn update_triacylglycerol(
+//     row: usize,
+//     value: Option<FattyAcidChunked>,
+// ) -> impl FnMut(&Series) -> PolarsResult<Series> + 'static {
+//     move |series| {
+//         let out = series
+//             .fatty_acid_list()
+//             .iter()
+//             .enumerate()
+//             .map(|(index, fatty_acid)| {
+//                 Ok(if index == row {
+//                     println!("value: {value:?}");
+//                     match value.clone() {
+//                         Some(value) => Some(value.into_struct(PlSmallStr::EMPTY)?.into_series()),
+//                         None => None,
+//                     }
+//                 } else {
+//                     Some(fatty_acid.into_struct(PlSmallStr::EMPTY)?.into_series())
+//                 })
+//             })
+//             .collect::<PolarsResult<ListChunked>>()?;
+//         Ok(out.into_series())
+//     }
+// }
 
 mod tag {
     use super::*;

@@ -1,8 +1,10 @@
-use crate::app::MAX_PRECISION;
-use egui::{ComboBox, Grid, Id, Slider, Ui, Widget};
-use serde::{Deserialize, Serialize};
-
 use super::ID_SOURCE;
+use crate::app::{
+    MAX_PRECISION,
+    parameters::{Filter, Parameters, Sort, composition::COMPOSITIONS},
+};
+use egui::{ComboBox, Grid, Id, Key, Slider, Ui, Widget};
+use serde::{Deserialize, Serialize};
 
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
@@ -15,13 +17,13 @@ pub(crate) struct Settings {
     pub(crate) percent: bool,
     pub(crate) sticky: usize,
     pub(crate) truncate: bool,
-    pub(crate) properties: bool,
     pub(crate) kind: Kind,
-    pub(crate) view: Content,
+
+    pub(crate) parameters: Parameters,
 }
 
 impl Settings {
-    pub(crate) const fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             resizable: false,
             editable: false,
@@ -29,9 +31,8 @@ impl Settings {
             percent: true,
             sticky: 0,
             truncate: true,
-            properties: true,
-            kind: Kind::Value,
-            view: Content::Data,
+            kind: Kind::Absolute,
+            parameters: Parameters::new(),
         }
     }
 
@@ -63,39 +64,109 @@ impl Settings {
             ui.separator();
             ui.end_row();
 
-            // Properties
-            ui.label("properties");
-            ui.checkbox(&mut self.properties, "")
-                .on_hover_text("properties.hover");
-            ui.end_row();
-
-            // Kind
-            ui.label("Kind");
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(self.kind.text())
+            // Composition
+            ui.label("Composition");
+            ComboBox::from_id_salt(ui.auto_id_with("Composition"))
+                .selected_text(self.parameters.composition.text())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.kind, Kind::Value, Kind::Value.text())
-                        .on_hover_text(Kind::Value.hover_text());
-                    ui.selectable_value(&mut self.kind, Kind::Difference, Kind::Difference.text())
-                        .on_hover_text(Kind::Difference.hover_text());
+                    for selected_value in COMPOSITIONS {
+                        ui.selectable_value(
+                            &mut self.parameters.composition,
+                            selected_value,
+                            selected_value.text(),
+                        )
+                        .on_hover_ui(|ui| {
+                            ui.label(selected_value.hover_text());
+                        });
+                    }
                 })
                 .response
-                .on_hover_text(self.kind.hover_text());
+                .on_hover_text(self.parameters.composition.hover_text());
             ui.end_row();
 
-            // Statistics
-            ui.label("statistics");
+            // Filter
+            ui.label("Filter");
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(self.view.text())
+                .selected_text(self.parameters.filter.text())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.view, Content::Data, Content::Data.text())
-                        .on_hover_text(Content::Data.hover_text());
-                    ui.selectable_value(&mut self.view, Content::Statistics, Content::Statistics.text())
-                        .on_hover_text(Content::Statistics.hover_text());
+                    ui.selectable_value(
+                        &mut self.parameters.filter,
+                        Filter::And,
+                        Filter::And.text(),
+                    )
+                    .on_hover_text(Filter::And.hover_text());
+                    ui.selectable_value(&mut self.parameters.filter, Filter::Or, Filter::Or.text())
+                        .on_hover_text(Filter::Or.hover_text());
+                    ui.selectable_value(
+                        &mut self.parameters.filter,
+                        Filter::Xor,
+                        Filter::Xor.text(),
+                    )
+                    .on_hover_text(Filter::Xor.hover_text());
                 })
                 .response
-                .on_hover_text(self.kind.hover_text());
+                .on_hover_text(self.parameters.filter.hover_text());
             ui.end_row();
+
+            // Threshold
+            ui.label("Threshold");
+            let number_formatter = ui.style().number_formatter.clone();
+            let mut threshold = self.parameters.threshold;
+            let response = Slider::new(&mut threshold, 0.0..=1.0)
+                .custom_formatter(|mut value, decimals| {
+                    if self.percent {
+                        value *= 100.0;
+                    }
+                    number_formatter.format(value, decimals)
+                })
+                .custom_parser(|value| {
+                    let mut value = value.parse().ok()?;
+                    if self.percent {
+                        value /= 100.0;
+                    }
+                    Some(value)
+                })
+                .logarithmic(true)
+                .update_while_editing(false)
+                .ui(ui);
+            if response.drag_stopped()
+                || (response.lost_focus() && !ui.input(|input| input.key_pressed(Key::Escape)))
+            {
+                self.parameters.threshold = threshold;
+            }
+            ui.end_row();
+
+            // Sort
+            ui.label("Sort");
+            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+                .selected_text(self.parameters.sort.text())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.parameters.sort, Sort::Key, Sort::Key.text())
+                        .on_hover_text(Sort::Key.hover_text());
+                    ui.selectable_value(&mut self.parameters.sort, Sort::Value, Sort::Value.text())
+                        .on_hover_text(Sort::Value.hover_text());
+                })
+                .response
+                .on_hover_text(self.parameters.sort.hover_text());
+            ui.end_row();
+
+            // ui.separator();
+            // ui.separator();
+            // ui.end_row();
+
+            // // Kind
+            // ui.label("Kind");
+            // ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            //     .selected_text(self.kind.text())
+            //     .show_ui(ui, |ui| {
+            //         ui.selectable_value(&mut self.kind, Kind::Absolute, Kind::Absolute.text())
+            //             .on_hover_text(Kind::Absolute.hover_text());
+            //         ui.selectable_value(&mut self.kind, Kind::Difference, Kind::Difference.text())
+            //             .on_hover_text(Kind::Difference.hover_text());
+            //     })
+            //     .response
+            //     .on_hover_text(self.kind.hover_text());
+            // ui.end_row();
         });
     }
 }
@@ -109,45 +180,22 @@ impl Default for Settings {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum Kind {
     #[default]
-    Value,
+    Absolute,
     Difference,
 }
 
 impl Kind {
     pub(crate) fn text(&self) -> &'static str {
         match self {
-            Self::Value => "Value",
+            Self::Absolute => "Value",
             Self::Difference => "Difference",
         }
     }
 
     pub(crate) fn hover_text(&self) -> &'static str {
         match self {
-            Self::Value => "Value",
+            Self::Absolute => "Value",
             Self::Difference => "Difference",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum Content {
-    #[default]
-    Data,
-    Statistics,
-}
-
-impl Content {
-    pub(crate) fn text(&self) -> &'static str {
-        match self {
-            Self::Data => "Data",
-            Self::Statistics => "Statistics",
-        }
-    }
-
-    pub(crate) fn hover_text(&self) -> &'static str {
-        match self {
-            Self::Data => "Data",
-            Self::Statistics => "Statistics",
         }
     }
 }

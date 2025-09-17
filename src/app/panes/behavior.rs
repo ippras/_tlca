@@ -1,7 +1,6 @@
 use super::{MARGIN, Pane};
 use egui::{
-    CentralPanel, Frame, Margin, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText,
-    menu::bar,
+    CentralPanel, Frame, MenuBar, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText,
 };
 use egui_phosphor::regular::X;
 use egui_tiles::{TileId, UiResponse};
@@ -20,22 +19,23 @@ impl egui_tiles::Behavior<Pane> for Behavior {
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
-                bar(ui, |ui| {
-                    ScrollArea::horizontal()
-                        .show(ui, |ui| {
-                            ui.set_height(
-                                ui.text_style_height(&TextStyle::Heading) + 4.0 * MARGIN.y,
-                            );
-                            ui.visuals_mut().button_frame = false;
-                            if ui.button(RichText::new(X).heading()).clicked() {
-                                self.close = Some(tile_id);
-                            }
-                            ui.separator();
-                            pane.top(ui)
-                        })
-                        .inner
-                })
-                .inner
+                MenuBar::new()
+                    .ui(ui, |ui| {
+                        ScrollArea::horizontal()
+                            .show(ui, |ui| {
+                                ui.set_height(
+                                    ui.text_style_height(&TextStyle::Heading) + 4.0 * MARGIN.y,
+                                );
+                                ui.visuals_mut().button_frame = false;
+                                if ui.button(RichText::new(X).heading()).clicked() {
+                                    self.close = Some(tile_id);
+                                }
+                                ui.separator();
+                                pane.top(ui)
+                            })
+                            .inner
+                    })
+                    .inner
             })
             .inner;
         CentralPanel::default()

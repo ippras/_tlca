@@ -1,60 +1,56 @@
 use crate::{
-    app::{ICON_SIZE, panes::Pane},
+    app::{HashedMetaDataFrame, ICON_SIZE},
     presets::*,
-    utils::save,
 };
 use anyhow::Result;
-use egui::{Response, RichText, ScrollArea, Separator, Ui, Widget};
+use egui::{
+    Id, PopupCloseBehavior, Response, RichText, ScrollArea, Separator, Ui, Widget,
+    containers::menu::{MenuConfig, SubMenuButton},
+};
+use egui_ext::LabeledSeparator as _;
 use egui_phosphor::regular::DATABASE;
-use egui_tiles::Tree;
-use egui_tiles_ext::{TreeExt, VERTICAL};
-use metadata::{MetaDataFrame, write_parquet};
+use metadata::MetaDataFrame;
 use std::fs::File;
 
 /// Presets
-pub(crate) struct PresetsWidget<'a> {
-    tree: &'a mut Tree<Pane>,
-}
-impl<'a> PresetsWidget<'a> {
-    pub(crate) fn new(tree: &'a mut Tree<Pane>) -> Self {
-        Self { tree }
-    }
-}
+pub struct PresetsWidget;
 
-impl PresetsWidget<'_> {
+impl PresetsWidget {
     fn content(&mut self, ui: &mut Ui) {
-        macro preset($frame:path) {
-            let title = $frame.meta.format(" ");
-            if ui
-                .button(RichText::new(format!("{DATABASE} {title}")).heading())
-                .clicked()
-            {
-                save("TEMP.ipc", &mut $frame.value.clone()).unwrap();
-                self.tree
-                    .insert_pane::<VERTICAL>(Pane::new(vec![$frame.clone()]));
-            }
-        }
-
         // IPPRAS
-        ui.horizontal(|ui| {
-            ui.hyperlink_to(RichText::new("IPPRAS").heading(), "https://ippras.ru");
-            ui.add(Separator::default().horizontal());
-        });
-        preset!(ippras::LOBOSPHERA_N_1);
-        preset!(ippras::_519_N);
-        preset!(ippras::C108_N);
-        preset!(ippras::C1210_N);
-        preset!(ippras::H626_N);
-        ui.separator();
+        ui.hyperlink_to(RichText::new("IPPRAS").heading(), "https://ippras.ru");
+        SubMenuButton::new("Microalgae")
+            .config(MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside))
+            .ui(ui, |ui| {
+                ui.labeled_separator(RichText::new("C-108 (Chromochloris zofingiensis)").heading());
+                preset(ui, &ippras::C108_N);
+                ui.labeled_separator(RichText::new("C-1210 (Neochlorella semenenkoi)").heading());
+                preset(ui, &ippras::C1210_N);
+                ui.labeled_separator(RichText::new("C-1540 (Lobosphaera sp.)").heading());
+                preset(ui, &ippras::C1540_N);
+                // ui.labeled_separator(RichText::new("H-242 (Vischeria punctata)").heading());
+                ui.labeled_separator(RichText::new("H-626 (Coelastrella affinis)").heading());
+                preset(ui, &ippras::H626_N);
+                ui.labeled_separator(RichText::new("P-519 (Porphyridium purpureum)").heading());
+                preset(ui, &ippras::P519_N);
+            });
+        // ui.separator();
     }
 }
 
-impl Widget for PresetsWidget<'_> {
+impl Widget for PresetsWidget {
     fn ui(mut self, ui: &mut Ui) -> Response {
         ui.menu_button(RichText::new(DATABASE).size(ICON_SIZE), |ui| {
             ScrollArea::new([false, true]).show(ui, |ui| self.content(ui));
         })
         .response
+    }
+}
+
+fn preset(ui: &mut Ui, frame: &HashedMetaDataFrame) {
+    let title = frame.meta.format(" ");
+    if ui.button(format!("{DATABASE} {title}")).clicked() {
+        ui.data_mut(|data| data.insert_temp(Id::new("Data"), frame.clone()));
     }
 }
 

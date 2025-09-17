@@ -1,5 +1,13 @@
 ## 1. Метрики, основанные на Lp-нормах (геометрические расстояния, обобщение Евклидова и Манхэттенского)
 
+[47 regression metrics, 20 classification metrics, 44 clustering metrics](https://permetrics.readthedocs.io/en/v1.4.2/pages/clustering.html)
+
+Similarity between two data points
+* Euclidean distance
+* Manhattan distance
+* Minkowski distance
+* Chebyshev distance
+
 ### 1.1. Евклидово расстояние (Euclidean Distance)
 
 * **Диапазон:** `[0, +∞)`

@@ -13,7 +13,7 @@ async fn main() -> eframe::Result<()> {
     eframe::run_native(
         "TLCA",
         Default::default(),
-        Box::new(|context| Ok(Box::new(App::new(context)))),
+        Box::new(|cc| Ok(Box::new(App::new(cc)))),
     )
 }
 

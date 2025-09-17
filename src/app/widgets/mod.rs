@@ -1,5 +1,3 @@
-pub(super) use self::{fatty_acid::FattyAcidWidget, float::FloatWidget, presets::PresetsWidget};
+pub(super) use self::presets::PresetsWidget;
 
-mod fatty_acid;
-mod float;
 mod presets;

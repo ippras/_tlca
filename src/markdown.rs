@@ -1,18 +1,28 @@
 #![rustfmt::skip]
 
-pub(crate) const METRICS: &str = include_str!("../doc/metrics.md");
-pub(crate) const BRAY_CURTIS_DISSIMILARITY: &str = include_str!("../doc/metrics/bray_curtis_dissimilarity.md");
-pub(crate) const CANBERRA_DISTANCE: &str = include_str!("../doc/metrics/canberra_distance.md");
-pub(crate) const CHEBYSHEV_DISTANCE: &str = include_str!("../doc/metrics/chebyshev_distance.md");
-pub(crate) const COSINE_DISTANCE: &str = include_str!("../doc/metrics/cosine_distance.md");
-pub(crate) const EUCLIDEAN_DISTANCE: &str = include_str!("../doc/metrics/euclidean_distance.md");
-pub(crate) const HELLINGER_DISTANCE: &str = include_str!("../doc/metrics/hellinger_distance.md");
-pub(crate) const JENSEN_SHANNON_DISTANCE: &str = include_str!("../doc/metrics/jensen_shannon_distance.md");
-pub(crate) const KULLBACK_LEIBLER_DIVERGENCE: &str = include_str!("../doc/metrics/kullback_leibler_divergence.md");
-pub(crate) const MANHATTAN_DISTANCE: &str = include_str!("../doc/metrics/manhattan_distance.md");
-pub(crate) const MINKOWSKI_DISTANCE: &str = include_str!("../doc/metrics/minkowski_distance.md");
-pub(crate) const PEARSON_DISTANCE: &str = include_str!("../doc/metrics/pearson_distance.md");
-pub(crate) const RUZICKA_DISTANCE: &str = include_str!("../doc/metrics/ruzicka_distance.md");
-pub(crate) const SØRENSEN_DICE_DISTANCE: &str = include_str!("../doc/metrics/sørensen_dice_distance.md");
-pub(crate) const SPEARMAN_DISTANCE: &str = include_str!("../doc/metrics/spearman_distance.md");
-pub(crate) const WASSERSTEIN_DISTANCE: &str = include_str!("../doc/metrics/wasserstein_distance.md");
+pub const METRICS: &str = include_str!("../doc/metrics.md");
+
+// Correlation
+pub const PEARSON_CORRELATION_COEFFICIENT: &str = include_str!("../doc/ru/Correlation/PearsonCorrelation.md");
+pub const SPEARMAN_RANK_CORRELATION_COEFFICIENT: &str = include_str!("../doc/ru/Correlation/SpearmanCorrelation.md");
+// Similarity between two points
+pub const CHEBYSHEV_DISTANCE: &str = include_str!("../doc/ru/Similarity/BetweenTwoPoints/Chebyshev.md");
+pub const EUCLIDEAN_DISTANCE: &str = include_str!("../doc/ru/Similarity/BetweenTwoPoints/Euclidean.md");
+pub const MANHATTAN_DISTANCE: &str = include_str!("../doc/ru/Similarity/BetweenTwoPoints/Manhattan.md");
+pub const CANBERRA_DISTANCE: &str = include_str!("../doc/ru/Similarity/BetweenTwoPoints/Canberra.md");
+pub const MINKOWSKI_DISTANCE: &str = include_str!("../doc/ru/Similarity/BetweenTwoPoints/Minkowski.md");
+// Similarity between two sets
+pub const BRAUN_BLANQUET_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Braun-Blanquet.md");
+pub const COSINE_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Cosine.md");
+pub const JACCARD_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Jaccard.md");
+pub const KULCZYNSKI_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Kulczynski.md");
+pub const OVERLAP_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Overlap.md");
+pub const SØRENSEN_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoSets/Sørensen.md");
+// Similarity between two discrete probability distributions
+pub const BHATTACHARYYA_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoDiscreteProbabilityDistributions/Bhattacharyya.md");
+pub const HELLINGER_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoDiscreteProbabilityDistributions/Hellinger.md");
+pub const JENSEN_SHANNON_COEFFICIENT: &str = include_str!("../doc/ru/Similarity/BetweenTwoDiscreteProbabilityDistributions/JensenShannon.md");
+
+// pub const BRAY_CURTIS_DISSIMILARITY: &str = include_str!("../doc/metrics/ru/BrayCurtisDissimilarity.md");
+// pub const KULLBACK_LEIBLER_DIVERGruCE: &str = include_str!("../doc/metrics/ru/KullbackLeiblerDivergruce.md");
+// pub const WASSERSTEIN_DISTANCE: &str = include_str!("../doc/metrics/ru/WassersteinDistance.md");

@@ -1,31 +1,32 @@
-use crate::utils::Hashed;
-use egui::{
-    CentralPanel, Color32, Frame, Grid, Id, Label, RichText, ScrollArea, Sense, Stroke,
-    TopBottomPanel, Ui, menu::bar,
-};
+use crate::{app::HashedMetaDataFrame, utils::Hashed};
+use egui::{CentralPanel, Grid, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
 use egui_dnd::dnd;
-use egui_extras::{Column, TableBuilder};
-use egui_phosphor::regular::{ARROWS_OUT_CARDINAL, CHECK, TRASH, UNITE};
-use metadata::{MetaDataFrame, egui::MetadataWidget};
+use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, TRASH, UNITE};
+use polars::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
+
+pub(crate) static EMPTY_DATA_FRAME: LazyLock<Hashed<DataFrame>> = LazyLock::new(|| Hashed {
+    value: DataFrame::empty(),
+    hash: 0,
+});
 
 /// Data
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub(crate) struct Data {
-    pub(crate) frames: Vec<Hashed<MetaDataFrame>>,
-    pub(crate) selected: HashSet<Hashed<MetaDataFrame>>,
+    pub(crate) frames: Vec<HashedMetaDataFrame>,
+    pub(crate) selected: HashSet<HashedMetaDataFrame>,
 }
 
 impl Data {
-    pub(crate) fn selected(&self) -> Vec<Hashed<MetaDataFrame>> {
+    pub(crate) fn selected(&self) -> Vec<HashedMetaDataFrame> {
         self.frames
             .iter()
             .filter_map(|frame| self.selected.contains(frame).then_some(frame.clone()))
             .collect()
     }
 
-    pub(crate) fn add(&mut self, frame: Hashed<MetaDataFrame>) {
+    pub(crate) fn add(&mut self, frame: HashedMetaDataFrame) {
         if !self.frames.contains(&frame) {
             self.frames.push(frame);
         }
@@ -35,7 +36,7 @@ impl Data {
 impl Data {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         TopBottomPanel::top(ui.auto_id_with("LeftPane")).show_inside(ui, |ui| {
-            bar(ui, |ui| {
+            MenuBar::new().ui(ui, |ui| {
                 self.top(ui);
             });
         });
@@ -89,8 +90,11 @@ impl Data {
     }
 
     fn central(&mut self, ui: &mut Ui) {
-        dnd(ui, ui.next_auto_id()).show_vec(&mut self.frames, |ui, frame, handle, state| {
+        dnd(ui, ui.next_auto_id()).show_vec(&mut self.frames, |ui, frame, handle, _state| {
             ui.horizontal(|ui| {
+                handle.ui(ui, |ui| {
+                    ui.label(DOTS_SIX_VERTICAL);
+                });
                 let mut checked = self.selected.contains(frame);
                 if ui.checkbox(&mut checked, "").changed() {
                     if checked {
@@ -99,13 +103,11 @@ impl Data {
                         self.selected.remove(frame);
                     }
                 }
-                handle.ui(ui, |ui| {
-                    let text = frame.meta.format(" ").to_string();
-                    ui.add(Label::new(text).truncate()).on_hover_ui(|ui| {
-                        Grid::new(ui.next_auto_id()).show(ui, |ui| {
-                            ui.label("Rows");
-                            ui.label(frame.data.height().to_string());
-                        });
+                let text = frame.meta.format(" ").to_string();
+                ui.add(Label::new(text).truncate()).on_hover_ui(|ui| {
+                    Grid::new(ui.next_auto_id()).show(ui, |ui| {
+                        ui.label("Rows");
+                        ui.label(frame.data.height().to_string());
                     });
                 });
             });

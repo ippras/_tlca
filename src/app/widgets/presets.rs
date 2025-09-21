@@ -28,13 +28,12 @@ impl PresetsWidget {
                 preset(ui, &ippras::C1210_N);
                 ui.labeled_separator(RichText::new("C-1540 (Lobosphaera sp.)").heading());
                 preset(ui, &ippras::C1540_N);
-                // ui.labeled_separator(RichText::new("H-242 (Vischeria punctata)").heading());
+                ui.labeled_separator(RichText::new("H-242 (Vischeria punctata)").heading());
                 ui.labeled_separator(RichText::new("H-626 (Coelastrella affinis)").heading());
                 preset(ui, &ippras::H626_N);
                 ui.labeled_separator(RichText::new("P-519 (Porphyridium purpureum)").heading());
                 preset(ui, &ippras::P519_N);
             });
-        // ui.separator();
     }
 }
 

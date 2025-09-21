@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Metrics &lpar;Or&comma; Threshold&equals;1&period;0&rpar;</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="metrics-or-threshold10">Metrics (Or, Threshold=1.0)</h1>
+<h2 id="species-composition-positionalspecific">Species composition, positionalspecific</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">HellingerDistance</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#1E90FF">0.47</font></td>
+<td style="text-align:left"><font color="#00008B">0.92</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.17</font></td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#1E90FF">0.47</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.93</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.42</font></td>
+<td style="text-align:left"><font color="#0000FF">0.78</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.92</font></td>
+<td style="text-align:left"><font color="#00008B">0.93</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left"><font color="#0000FF">0.67</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.17</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.42</font></td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.82</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+<td style="text-align:left"><font color="#0000FF">0.78</font></td>
+<td style="text-align:left"><font color="#0000FF">0.67</font></td>
+<td style="text-align:left"><font color="#00008B">0.82</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">PearsonCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.23</font></td>
+<td style="text-align:left"><font color="#F08080">-0.17</font></td>
+<td style="text-align:left"><font color="#00008B">0.82</font></td>
+<td style="text-align:left"><font color="#F08080">-0.13</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00BFFF">0.23</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#F08080">-0.16</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.22</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#F08080">-0.17</font></td>
+<td style="text-align:left"><font color="#F08080">-0.16</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.21</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.08</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.82</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.21</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#F08080">-0.14</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#F08080">-0.13</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.22</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.08</font></td>
+<td style="text-align:left"><font color="#F08080">-0.14</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">SpearmanRankCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#0000FF">0.62</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.55</font></td>
+<td style="text-align:left"><font color="#00008B">0.94</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.35</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#0000FF">0.62</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#B22222">-0.62</font></td>
+<td style="text-align:left"><font color="#0000FF">0.65</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.45</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#FF0000">-0.55</font></td>
+<td style="text-align:left"><font color="#B22222">-0.62</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.53</font></td>
+<td style="text-align:left"><font color="#0000FF">0.77</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.94</font></td>
+<td style="text-align:left"><font color="#0000FF">0.65</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.53</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.36</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#CD5C5C">-0.35</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.45</font></td>
+<td style="text-align:left"><font color="#0000FF">0.77</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.36</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<h2 id="type-composition-positionalspecific">Type composition, positionalspecific</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">HellingerDistance</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.26</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.12</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.34</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#1E90FF">0.54</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.24</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.05</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00BFFF">0.26</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.54</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.56</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.12</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.24</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00BFFF">0.25</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00BFFF">0.34</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.05</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.56</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.25</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">PearsonCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.57</font></td>
+<td style="text-align:left"><font color="#00008B">0.86</font></td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.48</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#1E90FF">0.57</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.15</font></td>
+<td style="text-align:left"><font color="#0000FF">0.77</font></td>
+<td style="text-align:left"><font color="#00008B">0.99</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.86</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.15</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#0000FF">0.77</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#0000FF">0.70</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#1E90FF">0.48</font></td>
+<td style="text-align:left"><font color="#00008B">0.99</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+<td style="text-align:left"><font color="#0000FF">0.70</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">SpearmanRankCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<h2 id="mass-composition-non-stereospecific">Mass composition, non-stereospecific</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">HellingerDistance</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00BFFF">0.33</font></td>
+<td style="text-align:left"><font color="#00008B">0.87</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.13</font></td>
+<td style="text-align:left"><font color="#0000FF">0.61</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00BFFF">0.33</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.57</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.87</font></td>
+<td style="text-align:left"><font color="#00008B">0.89</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.87</font></td>
+<td style="text-align:left"><font color="#0000FF">0.65</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.13</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+<td style="text-align:left"><font color="#00008B">0.87</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#1E90FF">0.60</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#0000FF">0.61</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.57</font></td>
+<td style="text-align:left"><font color="#0000FF">0.65</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.60</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">PearsonCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.56</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.24</font></td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#1E90FF">0.56</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.27</font></td>
+<td style="text-align:left"><font color="#0000FF">0.70</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.32</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#CD5C5C">-0.24</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.27</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.28</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left"><font color="#0000FF">0.70</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.28</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.32</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">SpearmanRankCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.35</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.43</font></td>
+<td style="text-align:left"><font color="#00008B">0.86</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.04</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#CD5C5C">-0.35</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.43</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.34</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00008B">0.86</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.34</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.04</font></td>
+<td style="text-align:left"><font color="#0000FF">0.66</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.07</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<h2 id="equivalent-carbon-number-composition-non-stereospecific">Equivalent carbon number composition, non-stereospecific</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">HellingerDistance</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#0000FF">0.68</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.16</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.25</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left"><font color="#0000FF">0.68</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.52</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.16</font></td>
+<td style="text-align:left"><font color="#0000FF">0.71</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00BFFF">0.31</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.25</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.52</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.36</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">PearsonCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.38</font></td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.58</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.33</font></td>
+<td style="text-align:left"><font color="#00008B">0.90</font></td>
+<td style="text-align:left"><font color="#0000FF">0.72</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#CD5C5C">-0.38</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.33</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.37</font></td>
+<td style="text-align:left"><font color="#F08080">-0.03</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#00008B">0.90</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.37</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.40</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#1E90FF">0.58</font></td>
+<td style="text-align:left"><font color="#0000FF">0.72</font></td>
+<td style="text-align:left"><font color="#F08080">-0.03</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.40</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">SpearmanRankCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.12</font></td>
+<td style="text-align:left"><font color="#00008B">0.94</font></td>
+<td style="text-align:left"><font color="#0000FF">0.73</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.95</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.26</font></td>
+<td style="text-align:left"><font color="#00008B">0.85</font></td>
+<td style="text-align:left"><font color="#0000FF">0.78</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.12</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.26</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#F08080">-0.05</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.55</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.94</font></td>
+<td style="text-align:left"><font color="#00008B">0.85</font></td>
+<td style="text-align:left"><font color="#F08080">-0.05</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.58</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#0000FF">0.73</font></td>
+<td style="text-align:left"><font color="#0000FF">0.78</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.55</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.58</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<h2 id="unsaturation-composition-non-stereospecific">Unsaturation composition, non-stereospecific</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">HellingerDistance</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#ADD8E6">0.14</font></td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.50</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.14</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.48</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.83</font></td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left"><font color="#0000FF">0.61</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#ADD8E6">0.10</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.06</font></td>
+<td style="text-align:left"><font color="#00008B">0.84</font></td>
+<td style="text-align:left">0.00</td>
+<td style="text-align:left"><font color="#1E90FF">0.49</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#1E90FF">0.50</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.48</font></td>
+<td style="text-align:left"><font color="#0000FF">0.61</font></td>
+<td style="text-align:left"><font color="#1E90FF">0.49</font></td>
+<td style="text-align:left">0.00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">PearsonCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.45</font></td>
+<td style="text-align:left"><font color="#00008B">0.97</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.18</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.91</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.52</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.30</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#FF0000">-0.45</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.52</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.50</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.26</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.97</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.50</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.24</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#ADD8E6">0.18</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.30</font></td>
+<td style="text-align:left"><font color="#CD5C5C">-0.26</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.24</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">SpearmanRankCorrelation</th>
+<th style="text-align:left">C108-N.2025-04-23</th>
+<th style="text-align:left">C1210-N.2025-04-24</th>
+<th style="text-align:left">Lobosphera-N.2025-04-24</th>
+<th style="text-align:left">H626-N.2025-04-24</th>
+<th style="text-align:left">519-N.2025-04-23</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">C108-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#FF0000">-0.58</font></td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.40</font></td>
+</tr>
+<tr>
+<td style="text-align:left">C1210-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#B22222">-0.66</font></td>
+<td style="text-align:left"><font color="#00008B">0.99</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+</tr>
+<tr>
+<td style="text-align:left">Lobosphera-N.2025-04-24</td>
+<td style="text-align:left"><font color="#FF0000">-0.58</font></td>
+<td style="text-align:left"><font color="#B22222">-0.66</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#B22222">-0.65</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.08</font></td>
+</tr>
+<tr>
+<td style="text-align:left">H626-N.2025-04-24</td>
+<td style="text-align:left"><font color="#00008B">0.98</font></td>
+<td style="text-align:left"><font color="#00008B">0.99</font></td>
+<td style="text-align:left"><font color="#B22222">-0.65</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+</tr>
+<tr>
+<td style="text-align:left">519-N.2025-04-23</td>
+<td style="text-align:left"><font color="#00BFFF">0.40</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+<td style="text-align:left"><font color="#ADD8E6">0.08</font></td>
+<td style="text-align:left"><font color="#00BFFF">0.27</font></td>
+<td style="text-align:left"><font color="#00008B">1.00</font></td>
+</tr>
+</tbody>
+</table>
+
+            
+            
+        </body>
+        </html>

@@ -68,10 +68,10 @@ pub struct App {
     // Panels
     left_panel: bool,
     // Data
-    // #[serde(skip)]
+    #[serde(skip)]
     data: Data,
     // Panes
-    // #[serde(skip)]
+    #[serde(skip)]
     tree: Tree<Pane>,
     // Windows
     #[serde(skip)]

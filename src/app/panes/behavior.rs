@@ -1,4 +1,4 @@
-use super::{MARGIN, Pane};
+use super::{MARGIN, Pane, calculation::state::State};
 use egui::{
     CentralPanel, Frame, MenuBar, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText,
 };
@@ -17,6 +17,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
     }
 
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        let mut state = State::load(ui.ctx(), pane.id);
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
@@ -31,7 +32,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
                                     self.close = Some(tile_id);
                                 }
                                 ui.separator();
-                                pane.top(ui)
+                                pane.top(ui, &mut state)
                             })
                             .inner
                     })
@@ -41,8 +42,9 @@ impl egui_tiles::Behavior<Pane> for Behavior {
         CentralPanel::default()
             .frame(Frame::central_panel(&ui.style()))
             .show_inside(ui, |ui| {
-                pane.central(ui);
+                pane.central(ui, &mut state);
             });
+        state.store(ui.ctx(), pane.id);
         if response.dragged() {
             UiResponse::DragStarted
         } else {

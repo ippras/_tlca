@@ -48,7 +48,7 @@ polars = { version = "0.51.0", default-features = false, features = [
 ] }
 polars-utils = { version = "0.51.0", features = ["nightly"] }
 semver = { version = "1.0.27", features = ["serde"] }
-serde = { version = "1.0.225", features = ["derive", "std"] }
+serde = { version = "1.0.226", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 

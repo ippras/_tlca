@@ -1,25 +1,24 @@
-use super::{super::MARGIN, ID_SOURCE, Settings, State};
+use super::{super::MARGIN, ID_SOURCE, state::State};
 use crate::{
     app::{
-        HashedMetaDataFrame, MAX_PRECISION,
+        HashedMetaDataFrame,
         computers::{
             CalculationComputed, CalculationKey, DisplayComputed, DisplayKey, DisplayKind,
         },
         data::EMPTY_DATA_FRAME,
     },
-    utils::{Hashed, hash_data_frame},
+    utils::Hashed,
 };
 use egui::{
     Context, Frame, Grid, Id, Label, Margin, Popup, PopupCloseBehavior, Response, ScrollArea,
     Sense, TextStyle, TextWrapMode, Ui, Widget,
 };
 use egui_ext::{InnerResponseExt as _, ResponseExt as _};
-use egui_phosphor::regular::{HASH, MINUS, PLUS};
+use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use itertools::Itertools as _;
 use lipid::prelude::*;
 use polars::prelude::*;
-use polars_ext::prelude::DataFrameExt as _;
 use std::ops::Range;
 use tracing::instrument;
 
@@ -31,20 +30,14 @@ const LEN: usize = TAG.end;
 pub(super) struct TableView<'a> {
     source: &'a mut [HashedMetaDataFrame],
     target: Hashed<DataFrame>,
-    settings: &'a Settings,
     state: &'a mut State,
 }
 
 impl<'a> TableView<'a> {
-    pub(super) fn new(
-        frames: &'a mut [HashedMetaDataFrame],
-        settings: &'a Settings,
-        state: &'a mut State,
-    ) -> Self {
+    pub(super) fn new(frames: &'a mut [HashedMetaDataFrame], state: &'a mut State) -> Self {
         Self {
             source: frames,
             target: EMPTY_DATA_FRAME.clone(),
-            settings,
             state,
         }
     }
@@ -59,7 +52,7 @@ impl TableView<'_> {
                 .cache::<CalculationComputed>()
                 .get(CalculationKey {
                     frames: self.source,
-                    parameters: &self.settings.parameters,
+                    parameters: &self.state.settings.parameters,
                 })
         });
         let id_salt = Id::new(ID_SOURCE).with("Table");
@@ -76,10 +69,11 @@ impl TableView<'_> {
             .id_salt(id_salt)
             .num_rows(num_rows)
             .columns(vec![
-                Column::default().resizable(self.settings.resizable);
+                Column::default()
+                    .resizable(self.state.settings.resizable);
                 num_columns
             ])
-            .num_sticky_cols(self.settings.sticky)
+            .num_sticky_cols(self.state.settings.sticky)
             .headers([
                 HeaderRow {
                     height,
@@ -88,31 +82,11 @@ impl TableView<'_> {
                 HeaderRow::new(height),
             ])
             .show(ui, self);
-        if self.state.add_table_row {
-            self.source[0].data.value.add_row()?;
-            self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-            self.state.add_table_row = false;
-        }
-        if let Some(index) = self.state.delete_table_row {
-            self.source[0].data.value.delete_row(index)?;
-            self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-            self.state.delete_table_row = None;
-        }
-        if let Some(index) = self.state.take_firts_table_rows {
-            self.source[0].data.value.firts_rows_to(index);
-            self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-            self.state.add_table_row = false;
-        }
-        if let Some(index) = self.state.take_last_table_rows {
-            self.source[0].data.value.last_rows_from(index);
-            self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-            self.state.add_table_row = false;
-        }
         Ok(())
     }
 
     fn header_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
-        if self.settings.truncate {
+        if self.state.settings.truncate {
             ui.style_mut().wrap_mode = Some(TextWrapMode::Truncate);
         }
         match (row, column) {
@@ -167,31 +141,16 @@ impl TableView<'_> {
     ) -> PolarsResult<()> {
         match (row, &column) {
             (row, &INDEX) => {
-                if self.settings.editable {
-                    if ui.button(MINUS).clicked() {
-                        self.state.delete_table_row = Some(row);
-                    }
-                }
-                let response = ui.label(row.to_string());
-                if self.settings.editable {
-                    response.context_menu(|ui| {
-                        if ui.button("Firts rows to").clicked() {
-                            self.state.take_firts_table_rows = Some(row);
-                        }
-                        if ui.button("Last rows from").clicked() {
-                            self.state.take_last_table_rows = Some(row);
-                        }
-                    });
-                }
+                ui.label(row.to_string());
             }
             (row, &TAG) => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
                         data_frame: &self.target,
                         kind: DisplayKind::Composition {
-                            composition: self.settings.parameters.composition,
+                            composition: self.state.settings.parameters.composition,
                         },
-                        percent: self.settings.percent,
+                        percent: self.state.settings.percent,
                     })
                 });
                 if let Some(label) = data_frame[LABEL].str()?.get(row) {
@@ -208,13 +167,13 @@ impl TableView<'_> {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
                         data_frame: &self.target,
                         kind: DisplayKind::Value { index: range.start },
-                        percent: self.settings.percent,
+                        percent: self.state.settings.percent,
                     })
                 });
                 let value = data_frame.into_struct(PlSmallStr::EMPTY);
                 if let Some(mean) = value.field_by_name("Mean")?.f64()?.get(row) {
                     let response = ui
-                        .label(format!("{mean:.0$}", self.settings.precision))
+                        .label(format!("{mean:.0$}", self.state.settings.precision))
                         .on_hover_text(mean.to_string());
                     // if response.hovered() {
                     //     response
@@ -232,11 +191,11 @@ impl TableView<'_> {
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
             INDEX => {
-                if self.settings.editable {
-                    if ui.button(PLUS).clicked() {
-                        self.state.add_table_row = true;
-                    }
-                }
+                // if self.settings.editable {
+                //     if ui.button(PLUS).clicked() {
+                //         self.state.add_table_row = true;
+                //     }
+                // }
             }
             TAG => {}
             range => {
@@ -244,13 +203,13 @@ impl TableView<'_> {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
                         data_frame: &self.target,
                         kind: DisplayKind::Value { index: range.start },
-                        percent: self.settings.percent,
+                        percent: self.state.settings.percent,
                     })
                 });
                 let value = data_frame.into_struct(PlSmallStr::EMPTY);
                 if let Some(mean) = value.field_by_name("Mean")?.f64()?.sum() {
                     let response = ui
-                        .label(format!("{mean:.0$}", self.settings.precision))
+                        .label(format!("{mean:.0$}", self.state.settings.precision))
                         .on_hover_text(mean.to_string());
                     // if response.hovered() {
                     //     let standard_deviation = value.field_by_name("StandardDeviation")?;

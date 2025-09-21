@@ -1,9 +1,9 @@
 pub(crate) use self::{
     calculation::{Computed as CalculationComputed, Key as CalculationKey},
     display::{Computed as DisplayComputed, Key as DisplayKey, Kind as DisplayKind},
-    statistics::{Computed as StatisticsComputed, Key as StatisticsKey},
+    metrics::{Computed as MetricsComputed, Key as MetricsKey},
 };
 
 mod calculation;
 mod display;
-mod statistics;
+mod metrics;

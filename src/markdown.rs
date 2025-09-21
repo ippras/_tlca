@@ -1,6 +1,6 @@
 #![rustfmt::skip]
 
-pub const METRICS: &str = include_str!("../doc/metrics.md");
+pub const METRICS: &str = include_str!("../doc/ru/Metrics.md");
 
 // Correlation
 pub const PEARSON_CORRELATION_COEFFICIENT: &str = include_str!("../doc/ru/Correlation/PearsonCorrelation.md");

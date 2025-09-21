@@ -1,19 +1,18 @@
 use self::{
-    settings::Settings,
-    state::{State, Windows},
-    statistics::Statistics,
+    metrics::Metrics,
+    state::{Settings, State},
     table::TableView,
 };
 use crate::{
     app::{
         HashedMetaDataFrame,
-        computers::{CalculationComputed, CalculationKey, StatisticsComputed, StatisticsKey},
+        computers::{CalculationComputed, CalculationKey, MetricsComputed, MetricsKey},
     },
     utils::{Hashed, save},
 };
 use anyhow::Result;
 use egui::{
-    CursorIcon, Id, Label, Pos2, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash,
+    CursorIcon, Id, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash,
 };
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, SIGMA,
@@ -32,20 +31,13 @@ const ID_SOURCE: &str = "Calculation";
 #[derive(Deserialize, Serialize)]
 pub struct Pane {
     pub frames: Vec<HashedMetaDataFrame>,
-    pub settings: Settings,
-    id: Id,
-    state: State,
+    pub id: Id,
 }
 
 impl Pane {
     pub fn new(frames: Vec<HashedMetaDataFrame>) -> Self {
         let id = Id::new(ID_SOURCE).with(&frames);
-        Self {
-            frames,
-            settings: Settings::new(),
-            state: State::new(),
-            id,
-        }
+        Self { frames, id }
     }
 
     pub fn id(mut self, id_salt: impl Hash) -> Self {
@@ -61,8 +53,7 @@ impl Pane {
         format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
     }
 
-    pub fn top(&mut self, ui: &mut Ui) -> Response {
-        let mut windows = Windows::load(ui.ctx(), self.id);
+    pub fn top(&mut self, ui: &mut Ui, state: &mut State) -> Response {
         let mut response = ui.heading(Self::icon()).on_hover_text("configuration");
         response |= ui.heading(self.title());
         response = response
@@ -86,29 +77,38 @@ impl Pane {
             .button(RichText::new(ARROWS_CLOCKWISE).heading())
             .clicked()
         {
-            self.state.reset_table_state = true;
+            state.reset_table_state = true;
         }
         // Resize
         ui.toggle_value(
-            &mut self.settings.resizable,
+            &mut state.settings.resizable,
             RichText::new(ARROWS_HORIZONTAL).heading(),
         )
         .on_hover_text("resize");
         // Edit
         ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
-            ui.toggle_value(&mut self.settings.editable, RichText::new(PENCIL).heading())
-                .on_hover_text("edit")
+            ui.toggle_value(
+                &mut state.settings.editable,
+                RichText::new(PENCIL).heading(),
+            )
+            .on_hover_text("edit")
         });
         ui.separator();
         // Settings
-        ui.toggle_value(&mut windows.open_settings, RichText::new(GEAR).heading())
-            .on_hover_text("settings");
-        // Statistics
-        ui.toggle_value(&mut windows.open_statistics, RichText::new(SIGMA).heading())
-            .on_hover_ui(|ui| {
-                ui.label("Statistics");
-            });
+        ui.toggle_value(
+            &mut state.windows.open_settings,
+            RichText::new(GEAR).heading(),
+        )
+        .on_hover_text("settings");
         ui.separator();
+        // Metrics
+        ui.toggle_value(
+            &mut state.windows.open_metrics,
+            RichText::new(SIGMA).heading(),
+        )
+        .on_hover_ui(|ui| {
+            ui.label("Metrics");
+        });
         ui.separator();
         // Save
         if ui
@@ -122,16 +122,15 @@ impl Pane {
             let _ = self.save();
         }
         ui.separator();
-        windows.store(ui.ctx(), self.id);
         response
     }
 
-    pub fn central(&mut self, ui: &mut Ui) {
-        self.windows(ui);
-        if self.settings.editable {
+    pub fn central(&mut self, ui: &mut Ui, state: &mut State) {
+        self.windows(ui, state);
+        if state.settings.editable {
             self.meta(ui);
         }
-        self.data(ui);
+        self.data(ui, state);
     }
 
     fn meta(&mut self, ui: &mut Ui) {
@@ -143,8 +142,8 @@ impl Pane {
         });
     }
 
-    fn data(&mut self, ui: &mut Ui) {
-        let _ = TableView::new(&mut self.frames, &self.settings, &mut self.state).show(ui);
+    fn data(&mut self, ui: &mut Ui, state: &mut State) {
+        let _ = TableView::new(&mut self.frames, state).show(ui);
     }
 
     pub(super) fn hash(&self) -> u64 {
@@ -160,83 +159,47 @@ impl Pane {
 }
 
 impl Pane {
-    pub fn windows(&mut self, ui: &mut Ui) {
-        let windows = &mut Windows::load(ui.ctx(), self.id);
-        self.settings(ui, windows);
-        self.statistics(ui, windows);
-        windows.store(ui.ctx(), self.id);
+    pub fn windows(&mut self, ui: &mut Ui, state: &mut State) {
+        self.settings(ui, state);
+        self.metrics(ui, state);
     }
 
-    fn settings(&mut self, ui: &mut Ui, windows: &mut Windows) {
+    fn settings(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .default_pos(ui.next_widget_position())
-            .open(&mut windows.open_settings)
+            .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
-                self.settings.show(ui);
+                state.settings.show(ui);
             });
     }
 
-    fn statistics(&mut self, ui: &mut Ui, windows: &mut Windows) {
-        Window::new(format!("{SIGMA} Statistics"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Statistics"))
+    fn metrics(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} Metrics"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
-            .open(&mut windows.open_statistics)
-            .show(ui.ctx(), |ui| self.statistics_content(ui));
+            .open(&mut state.windows.open_metrics)
+            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings));
     }
 
-    // fn statistics(&mut self, ui: &mut Ui) {
-    //     let target = ui.memory_mut(|memory| {
-    //         memory
-    //             .caches
-    //             .cache::<CalculationComputed>()
-    //             .get(CalculationKey {
-    //                 frames: &self.frames,
-    //                 parameters: &self.settings.parameters,
-    //             })
-    //     });
-    //     let statistics = ui.memory_mut(|memory| {
-    //         memory
-    //             .caches
-    //             .cache::<StatisticsComputed>()
-    //             .get(StatisticsKey {
-    //                 frame: &target,
-    //                 settings: &self.settings,
-    //             })
-    //     });
-    //     let _ = Statistics::new(&statistics).show(ui);
-    // }
     #[instrument(skip_all, err)]
-    fn statistics_content(&mut self, ui: &mut Ui) -> PolarsResult<()> {
-        let target = ui.memory_mut(|memory| {
+    fn metrics_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
+        let frame = ui.memory_mut(|memory| {
             memory
                 .caches
                 .cache::<CalculationComputed>()
                 .get(CalculationKey {
                     frames: &self.frames,
-                    parameters: &self.settings.parameters,
+                    parameters: &settings.parameters,
                 })
         });
-        let statistics = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<StatisticsComputed>()
-                .get(StatisticsKey {
-                    frame: &target,
-                    settings: &self.settings,
-                })
+        let data_frame = ui.memory_mut(|memory| {
+            memory.caches.cache::<MetricsComputed>().get(MetricsKey {
+                frame: &frame,
+                parameters: &settings.parameters,
+            })
         });
-        let _ = Statistics::new(&statistics).show(ui);
-        // let data_frame = ui.memory_mut(|memory| {
-        //     memory
-        //         .caches
-        //         .cache::<StatisticsComputed>()
-        //         .get(StatisticsKey {
-        //             // data_frame: &self.target,
-        //             // from: self.parameters.from,
-        //             // ddof: self.parameters.ddof,
-        //         })
-        // });
+        let _ = Metrics::new(&data_frame, settings).show(ui);
         // let settings = Settings::load(ui.ctx());
         // IndicesWidget::new(&data_frame)
         //     .precision(settings.precision)
@@ -250,15 +213,12 @@ impl Default for Pane {
     fn default() -> Self {
         Self {
             frames: Default::default(),
-            settings: Default::default(),
-            state: Default::default(),
             id: Id::new(ID_SOURCE),
         }
     }
 }
 
-pub mod settings;
-pub mod statistics;
+pub mod state;
 
-mod state;
+mod metrics;
 mod table;

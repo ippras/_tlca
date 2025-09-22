@@ -8,10 +8,12 @@ use crate::{
         HashedMetaDataFrame,
         computers::{CalculationComputed, CalculationKey, MetricsComputed, MetricsKey},
     },
-    utils::{Hashed, save},
+    utils::save,
 };
 use anyhow::Result;
-use egui::{CursorIcon, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash};
+use egui::{
+    Button, CursorIcon, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash,
+};
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, SIGMA, SLIDERS_HORIZONTAL,
     TAG,
@@ -98,8 +100,12 @@ impl Pane {
         });
         ui.separator();
         // Save
+
         if ui
-            .button(RichText::new(FLOPPY_DISK).heading())
+            .add_enabled(
+                self.frames.len() == 1,
+                Button::new(RichText::new(FLOPPY_DISK).heading()),
+            )
             .on_hover_ui(|ui| {
                 ui.label("Save");
             })

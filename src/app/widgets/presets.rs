@@ -2,15 +2,12 @@ use crate::{
     app::{HashedMetaDataFrame, ICON_SIZE},
     presets::*,
 };
-use anyhow::Result;
 use egui::{
     Id, PopupCloseBehavior, Response, RichText, ScrollArea, Separator, Ui, Widget,
     containers::menu::{MenuConfig, SubMenuButton},
 };
 use egui_ext::LabeledSeparator as _;
 use egui_phosphor::regular::DATABASE;
-use metadata::MetaDataFrame;
-use std::fs::File;
 
 /// Presets
 pub struct PresetsWidget;
@@ -66,11 +63,11 @@ fn doi_separator(doi: &str) -> impl Fn(&mut Ui) -> Response {
     }
 }
 
-fn parquet(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
-    let file = File::create(name)?;
-    MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_parquet(file)?;
-    Ok(())
-}
+// fn parquet(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
+//     let file = File::create(name)?;
+//     MetaDataFrame::new(frame.meta.clone(), &mut frame.data).write_parquet(file)?;
+//     Ok(())
+// }
 
 // fn ipc(name: &str, frame: &mut MetaDataFrame) -> Result<()> {
 //     let file = File::create(name)?;

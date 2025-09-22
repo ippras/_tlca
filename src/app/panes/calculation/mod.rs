@@ -103,7 +103,7 @@ impl Pane {
             .on_hover_ui(|ui| {
                 ui.label("Save");
             })
-            .on_hover_text(format!("{}.utca.ipc", self.frames[0].meta.format(".")))
+            .on_hover_text(format!("{}.tlca.parquet", self.frames[0].meta.format(".")))
             .clicked()
         {
             let _ = self.save();
@@ -139,8 +139,8 @@ impl Pane {
 
     fn save(&mut self) -> Result<()> {
         let frame = &mut self.frames[0];
-        let name = format!("{}.tlca.ipc", frame.meta.format(".")).replace(" ", "_");
-        // save(&name, &mut frame.value)?;
+        let name = format!("{}.tlca.parquet", frame.meta.format(".")).replace(" ", "_");
+        save(&name, frame)?;
         Ok(())
     }
 }

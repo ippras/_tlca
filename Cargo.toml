@@ -1,6 +1,6 @@
 [package]
 name = "tlca"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 

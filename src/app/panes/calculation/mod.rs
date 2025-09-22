@@ -11,18 +11,15 @@ use crate::{
     utils::{Hashed, save},
 };
 use anyhow::Result;
-use egui::{
-    CursorIcon, Id, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash,
-};
+use egui::{CursorIcon, Label, Response, RichText, TextWrapMode, Ui, Widget, Window, util::hash};
 use egui_phosphor::regular::{
-    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, PENCIL, SIGMA,
-    SLIDERS_HORIZONTAL, TAG,
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, SIGMA, SLIDERS_HORIZONTAL,
+    TAG,
 };
 use metadata::egui::MetadataWidget;
 use polars::prelude::*;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
-use std::hash::Hash;
 use tracing::instrument;
 
 const ID_SOURCE: &str = "Calculation";
@@ -31,18 +28,11 @@ const ID_SOURCE: &str = "Calculation";
 #[derive(Deserialize, Serialize)]
 pub struct Pane {
     pub frames: Vec<HashedMetaDataFrame>,
-    pub id: Id,
 }
 
 impl Pane {
     pub fn new(frames: Vec<HashedMetaDataFrame>) -> Self {
-        let id = Id::new(ID_SOURCE).with(&frames);
-        Self { frames, id }
-    }
-
-    pub fn id(mut self, id_salt: impl Hash) -> Self {
-        self.id = Id::new(ID_SOURCE).with(id_salt);
-        self
+        Self { frames }
     }
 
     pub const fn icon() -> &'static str {
@@ -84,14 +74,11 @@ impl Pane {
             &mut state.settings.resizable,
             RichText::new(ARROWS_HORIZONTAL).heading(),
         )
-        .on_hover_text("resize");
-        // Edit
+        .on_hover_text("ResizeTableColumns");
+        // Edit metadata
         ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
-            ui.toggle_value(
-                &mut state.settings.editable,
-                RichText::new(PENCIL).heading(),
-            )
-            .on_hover_text("edit")
+            ui.toggle_value(&mut state.settings.editable, RichText::new(TAG).heading())
+                .on_hover_text("EditMetadata")
         });
         ui.separator();
         // Settings
@@ -99,7 +86,7 @@ impl Pane {
             &mut state.windows.open_settings,
             RichText::new(GEAR).heading(),
         )
-        .on_hover_text("settings");
+        .on_hover_text("ShowSettings");
         ui.separator();
         // Metrics
         ui.toggle_value(
@@ -107,14 +94,14 @@ impl Pane {
             RichText::new(SIGMA).heading(),
         )
         .on_hover_ui(|ui| {
-            ui.label("Metrics");
+            ui.label("ShowMetrics");
         });
         ui.separator();
         // Save
         if ui
             .button(RichText::new(FLOPPY_DISK).heading())
             .on_hover_ui(|ui| {
-                ui.label("save");
+                ui.label("Save");
             })
             .on_hover_text(format!("{}.utca.ipc", self.frames[0].meta.format(".")))
             .clicked()
@@ -213,7 +200,6 @@ impl Default for Pane {
     fn default() -> Self {
         Self {
             frames: Default::default(),
-            id: Id::new(ID_SOURCE),
         }
     }
 }

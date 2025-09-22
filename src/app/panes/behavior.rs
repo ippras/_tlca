@@ -1,6 +1,7 @@
 use super::{MARGIN, Pane, calculation::state::State};
 use egui::{
-    CentralPanel, Frame, MenuBar, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui, WidgetText,
+    CentralPanel, Frame, Id, MenuBar, RichText, ScrollArea, TextStyle, TopBottomPanel, Ui,
+    WidgetText,
 };
 use egui_phosphor::regular::X;
 use egui_tiles::{TileId, UiResponse};
@@ -17,7 +18,7 @@ impl egui_tiles::Behavior<Pane> for Behavior {
     }
 
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
-        let mut state = State::load(ui.ctx(), pane.id);
+        let mut state = State::load(ui.ctx(), Id::new(tile_id));
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
@@ -44,7 +45,11 @@ impl egui_tiles::Behavior<Pane> for Behavior {
             .show_inside(ui, |ui| {
                 pane.central(ui, &mut state);
             });
-        state.store(ui.ctx(), pane.id);
+        if let Some(id) = self.close {
+            state.remove(ui.ctx(), Id::new(id));
+        } else {
+            state.store(ui.ctx(), Id::new(tile_id));
+        }
         if response.dragged() {
             UiResponse::DragStarted
         } else {

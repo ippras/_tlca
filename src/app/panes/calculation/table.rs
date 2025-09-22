@@ -190,13 +190,7 @@ impl TableView<'_> {
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
-            INDEX => {
-                // if self.settings.editable {
-                //     if ui.button(PLUS).clicked() {
-                //         self.state.add_table_row = true;
-                //     }
-                // }
-            }
+            INDEX => {}
             TAG => {}
             range => {
                 let data_frame = ui.memory_mut(|memory| {

@@ -52,6 +52,12 @@ impl State {
         })
     }
 
+    pub fn remove(self, ctx: &Context, id: Id) {
+        ctx.data_mut(|data| {
+            data.remove::<Self>(id);
+        });
+    }
+
     pub fn store(self, ctx: &Context, id: Id) {
         ctx.data_mut(|data| {
             data.insert_persisted(id, self);

@@ -122,6 +122,7 @@ impl Pane {
         self.windows(ui, state);
         if state.settings.editable {
             self.meta(ui);
+            ui.separator();
         }
         self.data(ui, state);
     }

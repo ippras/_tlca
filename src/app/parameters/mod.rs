@@ -17,7 +17,7 @@ impl Parameters {
     pub fn new() -> Self {
         Self {
             composition: SPECIES_STEREO,
-            filter: Filter::And,
+            filter: Filter::Or,
             threshold: 0.0,
             sort: Sort::Value,
             metric: Metric::HellingerDistance,

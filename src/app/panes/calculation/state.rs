@@ -195,8 +195,8 @@ impl Settings {
                 .logarithmic(true)
                 .update_while_editing(false)
                 .ui(ui);
-            if response.drag_stopped()
-                || (response.lost_focus() && !ui.input(|input| input.key_pressed(Key::Escape)))
+            if (response.drag_stopped() || response.lost_focus())
+                && !ui.input(|input| input.key_pressed(Key::Escape))
             {
                 self.parameters.threshold = threshold;
             }

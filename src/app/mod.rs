@@ -272,6 +272,7 @@ impl App {
             ctx.data_mut(|data| data.remove_temp::<HashedMetaDataFrame>(Id::new("Data")))
         {
             self.data.add(frame);
+            self.left_panel = true;
         }
     }
 

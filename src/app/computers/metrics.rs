@@ -130,6 +130,42 @@ impl Hash for Key<'_> {
 /// Metrics value
 type Value = DataFrame;
 
+// fn hierarchical_cluster(data_frame: DataFrame) {
+// use linfa::{Dataset, DatasetBase, dataset::Records, traits::Transformer as _};
+// use linfa_hierarchical::HierarchicalCluster;
+// use linfa_kernel::{Kernel, KernelMethod};
+//
+//     // let dataset = linfa_datasets::iris();
+//     let array = data_frame
+//         .to_ndarray::<Float64Type>(IndexOrder::default())
+//         .unwrap();
+//     let dataset = Dataset::new(array, Default::default());
+//     // Dataset::new(data, targets)
+//     //     .map_targets(|x| *x as usize)
+//     //     .with_feature_names(feature_names);
+//     // let t = DatasetBase::from(data_frame.to_ndarray(IndexOrder::default()).unwrap());
+//     let kernel = Kernel::params()
+//         .method(KernelMethod::Gaussian(1.0))
+//         .transform(array);
+//     // let kernel = HierarchicalCluster::default()
+//     //     .num_clusters(3)
+//     //     .transform(kernel)
+//     //     .unwrap();
+//     // for (id, target) in kernel
+//     //     .targets()
+//     //     .iter()
+//     //     .zip(dataset.into().targets().into_iter())
+//     // {
+//     //     let name = match *target {
+//     //         0 => "setosa",
+//     //         1 => "versicolor",
+//     //         2 => "virginica",
+//     //         _ => unreachable!(),
+//     //     };
+//     //     print!("({id} {name}) ");
+//     // }
+// }
+
 fn overlap_distance(a: Expr, b: Expr) -> Expr {
     lit(1) - min(a.clone(), b.clone()).sum() / min(a.sum(), b.sum())
 }

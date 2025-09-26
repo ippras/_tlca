@@ -1,7 +1,7 @@
 use crate::{app::HashedMetaDataFrame, utils::Hashed};
 use egui::{CentralPanel, Grid, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
 use egui_dnd::dnd;
-use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, TRASH, UNITE};
+use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, INTERSECT_THREE, TRASH, UNITE};
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, sync::LazyLock};
@@ -79,8 +79,8 @@ impl Data {
         let frames = self.selected();
         ui.add_enabled_ui(!frames.is_empty(), |ui| {
             if ui
-                .button(RichText::new(UNITE).heading())
-                .on_hover_text("unite")
+                .button(RichText::new(INTERSECT_THREE).heading())
+                .on_hover_text("Union")
                 .clicked()
             {
                 ui.data_mut(|data| data.insert_temp(Id::new("Unite"), frames));

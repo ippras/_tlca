@@ -146,21 +146,21 @@ impl Computer {
         // println!("Calculation 2: {}", lazy_frame.clone().collect().unwrap());
         // Filter
         match key.parameters.filter {
-            Filter::And => {
+            Filter::Intersection => {
                 // Значения отличные от нуля присутствуют во всех столбцах (AND)
                 lazy_frame = lazy_frame.filter(all_horizontal([all()
                     .exclude_cols(["Composition", "Species"])
                     .as_expr()
                     .is_not_null()])?);
             }
-            Filter::Or => {
+            Filter::Union => {
                 // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
                 lazy_frame = lazy_frame.filter(any_horizontal([all()
                     .exclude_cols(["Composition", "Species"])
                     .as_expr()
                     .is_not_null()])?);
             }
-            Filter::Xor => {
+            Filter::Difference => {
                 // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
                 lazy_frame = lazy_frame.filter(any_horizontal([all()
                     .exclude_cols(["Composition", "Species"])

@@ -3,8 +3,13 @@ use crate::app::{
     MAX_PRECISION,
     parameters::{Filter, Metric, Parameters, Sort, composition::COMPOSITIONS},
 };
-use egui::{ComboBox, Context, Grid, Id, Key, Slider, Ui, Widget};
-use egui_ext::Markdown;
+use egui::{
+    ComboBox, Context, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Separator, Slider, Ui,
+    Widget,
+};
+use egui_ext::{LabeledSeparator, Markdown};
+use egui_l20n::UiExt as _;
+use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
 use serde::{Deserialize, Serialize};
 
 const METRICS: [Metric; 11] = [
@@ -106,76 +111,110 @@ impl Settings {
         let id_salt = Id::new(ID_SOURCE).with("Settings");
         Grid::new(id_salt).show(ui, |ui| {
             // Precision
-            ui.label("Precision");
+            ui.label(ui.localize("Precision")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Precision.hover"));
+            });
             Slider::new(&mut self.precision, 0..=MAX_PRECISION).ui(ui);
             ui.end_row();
 
             // Percent
-            let mut response = ui.label("Percent");
+            let mut response = ui.label(ui.localize("Percent"));
             response |= ui.checkbox(&mut self.percent, "");
             response.on_hover_ui(|ui| {
-                ui.label("Percent.hover");
+                ui.label(ui.localize("Percent.hover"));
             });
             ui.end_row();
 
             // Truncate
-            let mut response = ui.label("Truncate");
+            let mut response = ui.label(ui.localize("Truncate"));
             response |= ui.checkbox(&mut self.truncate, "");
             response.on_hover_ui(|ui| {
-                ui.label("Truncate.hover");
+                ui.label(ui.localize("Truncate.hover"));
             });
             ui.end_row();
 
             ui.separator();
-            ui.separator();
+            ui.labeled_separator(ui.localize("Parameters"));
             ui.end_row();
 
             // Composition
-            ui.label("Composition");
+            ui.label(ui.localize("Composition")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Composition.hover"));
+            });
             ComboBox::from_id_salt(ui.auto_id_with("Composition"))
-                .selected_text(self.parameters.composition.text())
+                .selected_text(ui.localize(self.parameters.composition.text()))
                 .show_ui(ui, |ui| {
                     for selected_value in COMPOSITIONS {
                         ui.selectable_value(
                             &mut self.parameters.composition,
                             selected_value,
-                            selected_value.text(),
+                            ui.localize(selected_value.text()),
                         )
                         .on_hover_ui(|ui| {
-                            ui.label(selected_value.hover_text());
+                            ui.label(ui.localize(selected_value.hover_text()));
                         });
                     }
                 })
                 .response
-                .on_hover_text(self.parameters.composition.hover_text());
+                .on_hover_text(ui.localize(self.parameters.composition.hover_text()))
+                .on_hover_ui(|ui| {
+                    if ui.input_mut(|input| {
+                        input.consume_shortcut(&KeyboardShortcut::new(
+                            Modifiers::NONE,
+                            Key::ArrowDown,
+                        ))
+                    }) {
+                        self.parameters.composition = self.parameters.composition.forward();
+                    }
+                    if ui.input_mut(|input| {
+                        input
+                            .consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+                    }) {
+                        self.parameters.composition = self.parameters.composition.backward();
+                    }
+                });
             ui.end_row();
 
             // Filter
-            ui.label("Filter");
+            ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Filter.hover"));
+            });
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(self.parameters.filter.text())
+                .selected_text(ui.localize(self.parameters.filter.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
                         &mut self.parameters.filter,
-                        Filter::And,
-                        Filter::And.text(),
+                        Filter::Intersection,
+                        (
+                            Filter::Intersection.icon(),
+                            ui.localize(Filter::Intersection.text()),
+                        ),
                     )
-                    .on_hover_text(Filter::And.hover_text());
-                    ui.selectable_value(&mut self.parameters.filter, Filter::Or, Filter::Or.text())
-                        .on_hover_text(Filter::Or.hover_text());
+                    .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
                     ui.selectable_value(
                         &mut self.parameters.filter,
-                        Filter::Xor,
-                        Filter::Xor.text(),
+                        Filter::Union,
+                        (Filter::Union.icon(), ui.localize(Filter::Union.text())),
                     )
-                    .on_hover_text(Filter::Xor.hover_text());
+                    .on_hover_text(ui.localize(Filter::Union.hover_text()));
+                    ui.selectable_value(
+                        &mut self.parameters.filter,
+                        Filter::Difference,
+                        (
+                            Filter::Difference.icon(),
+                            ui.localize(Filter::Difference.text()),
+                        ),
+                    )
+                    .on_hover_text(ui.localize(Filter::Difference.hover_text()));
                 })
                 .response
-                .on_hover_text(self.parameters.filter.hover_text());
+                .on_hover_text(RichText::new(self.parameters.filter.icon()).heading());
             ui.end_row();
 
             // Threshold
-            ui.label("Threshold");
+            ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Threshold.hover"));
+            });
             let number_formatter = ui.style().number_formatter.clone();
             let mut threshold = self.parameters.threshold;
             let response = Slider::new(&mut threshold, 0.0..=1.0)
@@ -203,41 +242,72 @@ impl Settings {
             ui.end_row();
 
             // Sort
-            ui.label("Sort");
+            ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Sort.hover"));
+            });
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(self.parameters.sort.text())
+                .selected_text(ui.localize(self.parameters.sort.text()))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.parameters.sort, Sort::Key, Sort::Key.text())
-                        .on_hover_text(Sort::Key.hover_text());
-                    ui.selectable_value(&mut self.parameters.sort, Sort::Value, Sort::Value.text())
-                        .on_hover_text(Sort::Value.hover_text());
+                    ui.selectable_value(
+                        &mut self.parameters.sort,
+                        Sort::Key,
+                        ui.localize(Sort::Key.text()),
+                    )
+                    .on_hover_text(ui.localize(Sort::Key.hover_text()));
+                    ui.selectable_value(
+                        &mut self.parameters.sort,
+                        Sort::Value,
+                        ui.localize(Sort::Value.text()),
+                    )
+                    .on_hover_text(ui.localize(Sort::Value.hover_text()));
                 })
                 .response
-                .on_hover_text(self.parameters.sort.hover_text());
+                .on_hover_text(ui.localize(self.parameters.sort.hover_text()));
             ui.end_row();
 
             ui.separator();
-            ui.label("Metrics");
+            ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
             ui.end_row();
 
             // Metric
-            ui.label("Metric");
+            ui.label(ui.localize("Metric?PluralCategory=one"))
+                .on_hover_text(ui.localize("Metric.hover"));
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(self.parameters.metric.text())
+                .selected_text(ui.localize(self.parameters.metric.text()))
                 .show_ui(ui, |ui| {
                     for (index, metric) in METRICS.into_iter().enumerate() {
                         if SEPARATORS.contains(&index) {
                             ui.separator();
                         }
-                        ui.selectable_value(&mut self.parameters.metric, metric, metric.text())
-                            .on_hover_text(metric.hover_text());
+                        ui.selectable_value(
+                            &mut self.parameters.metric,
+                            metric,
+                            ui.localize(metric.text()),
+                        )
+                        .on_hover_text(ui.localize(metric.hover_text()));
                     }
                 })
                 .response
                 .on_hover_ui(|ui| {
                     ui.markdown(self.parameters.metric.markdown());
                 })
-                .on_hover_text(self.parameters.metric.hover_text());
+                .on_hover_text(ui.localize(self.parameters.metric.hover_text()))
+                .on_hover_ui(|ui| {
+                    if ui.input_mut(|input| {
+                        input.consume_shortcut(&KeyboardShortcut::new(
+                            Modifiers::NONE,
+                            Key::ArrowDown,
+                        ))
+                    }) {
+                        self.parameters.metric = self.parameters.metric.forward();
+                    }
+                    if ui.input_mut(|input| {
+                        input
+                            .consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+                    }) {
+                        self.parameters.metric = self.parameters.metric.backward();
+                    }
+                });
             ui.end_row();
 
             // Rank

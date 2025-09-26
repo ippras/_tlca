@@ -6,6 +6,8 @@ pub use self::app::App;
 
 mod app;
 mod r#const;
+mod localization;
+mod macros;
 mod markdown;
 mod presets;
 mod utils;

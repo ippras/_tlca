@@ -54,6 +54,7 @@ tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 
 egui_ext = { git = "https://github.com/kgv/egui_ext", features = ["markdown"] }
+egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 lipid = { git = "https://github.com/ippras/lipid" }
 metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
     "egui",
@@ -63,7 +64,6 @@ polars_ext = { git = "https://github.com/kgv/polars_ext" }
 # linfa = "0.7.1"
 # linfa-hierarchical = "0.7.1"
 # linfa-kernel = "0.7.1"
-# egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 # metadata = { path = "D:\\git\\ippras\\metadata", features = ["egui"] }
 # re_ui = "0.22.1"
 

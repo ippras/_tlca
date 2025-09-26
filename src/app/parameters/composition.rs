@@ -67,59 +67,95 @@ impl Composition {
 }
 
 impl Composition {
+    pub fn forward(&self) -> Self {
+        match *self {
+            SPECIES_STEREO => SPECIES_POSITIONAL,
+            SPECIES_POSITIONAL => SPECIES_MONO,
+            SPECIES_MONO => TYPE_STEREO,
+            TYPE_STEREO => TYPE_POSITIONAL,
+            TYPE_POSITIONAL => TYPE_MONO,
+            TYPE_MONO => MASS_STEREO,
+            MASS_STEREO => MASS_MONO,
+            MASS_MONO => ECN_STEREO,
+            ECN_STEREO => ECN_MONO,
+            ECN_MONO => UNSATURATION_STEREO,
+            UNSATURATION_STEREO => UNSATURATION_MONO,
+            UNSATURATION_MONO => UNSATURATION_MONO,
+        }
+    }
+
+    pub fn backward(&self) -> Self {
+        match *self {
+            SPECIES_STEREO => SPECIES_STEREO,
+            SPECIES_POSITIONAL => SPECIES_STEREO,
+            SPECIES_MONO => SPECIES_POSITIONAL,
+            TYPE_STEREO => SPECIES_MONO,
+            TYPE_POSITIONAL => TYPE_STEREO,
+            TYPE_MONO => TYPE_POSITIONAL,
+            MASS_STEREO => TYPE_MONO,
+            MASS_MONO => MASS_STEREO,
+            ECN_STEREO => MASS_MONO,
+            ECN_MONO => ECN_STEREO,
+            UNSATURATION_STEREO => ECN_MONO,
+            UNSATURATION_MONO => UNSATURATION_STEREO,
+        }
+    }
+}
+
+impl Composition {
     pub fn text(&self) -> &'static str {
         match *self {
-            MASS_MONO => "Composition-Mass-Monospecific",
-            MASS_STEREO => "Composition-Mass-Stereospecific",
-            ECN_MONO => "Composition-EquivalentCarbonNumber-Monospecific",
-            ECN_STEREO => "Composition-EquivalentCarbonNumber-Stereospecific",
-            SPECIES_MONO => "Composition-Species-Monospecific",
-            SPECIES_POSITIONAL => "Composition-Species-Positionalspecific",
-            SPECIES_STEREO => "Composition-Species-Stereospecific",
-            TYPE_MONO => "Composition-Type-Monospecific",
-            TYPE_POSITIONAL => "Composition-Type-Positionalspecific",
-            TYPE_STEREO => "Composition-Type-Stereospecific",
-            UNSATURATION_MONO => "Composition-Unsaturation-Monospecific",
-            UNSATURATION_STEREO => "Composition-Unsaturation-Stereospecific",
+            MASS_MONO => "Composition_Mass_Monospecific",
+            MASS_STEREO => "Composition_Mass_Stereospecific",
+            ECN_MONO => "Composition_EquivalentCarbonNumber_Monospecific",
+            ECN_STEREO => "Composition_EquivalentCarbonNumber_Stereospecific",
+            SPECIES_MONO => "Composition_Species_Monospecific",
+            SPECIES_POSITIONAL => "Composition_Species_Positionalspecific",
+            SPECIES_STEREO => "Composition_Species_Stereospecific",
+            TYPE_MONO => "Composition_Type_Monospecific",
+            TYPE_POSITIONAL => "Composition_Type_Positionalspecific",
+            TYPE_STEREO => "Composition_Type_Stereospecific",
+            UNSATURATION_MONO => "Composition_Unsaturation_Monospecific",
+            UNSATURATION_STEREO => "Composition_Unsaturation_Stereospecific",
         }
     }
 
     pub fn hover_text(&self) -> &'static str {
         match *self {
-            MASS_MONO => "Composition-Mass-Monospecific.hover",
-            MASS_STEREO => "Composition-Mass-Stereospecific.hover",
-            ECN_MONO => "Composition-EquivalentCarbonNumber-Monospecific.hover",
-            ECN_STEREO => "Composition-EquivalentCarbonNumber-Stereospecific.hover",
-            SPECIES_MONO => "Composition-Species-Monospecific.hover",
-            SPECIES_POSITIONAL => "Composition-Species-Positionalspecific.hover",
-            SPECIES_STEREO => "Composition-Species-Stereospecific.hover",
-            TYPE_MONO => "Composition-Type-Monospecific.hover",
-            TYPE_POSITIONAL => "Composition-Type-Positionalspecific.hover",
-            TYPE_STEREO => "Composition-Type-Stereospecific.hover",
-            UNSATURATION_MONO => "Composition-Unsaturation-Monospecific.hover",
-            UNSATURATION_STEREO => "Composition-Unsaturation-Stereospecific.hover",
+            MASS_MONO => "Composition_Mass_Monospecific.hover",
+            MASS_STEREO => "Composition_Mass_Stereospecific.hover",
+            ECN_MONO => "Composition_EquivalentCarbonNumber_Monospecific.hover",
+            ECN_STEREO => "Composition_EquivalentCarbonNumber_Stereospecific.hover",
+            SPECIES_MONO => "Composition_Species_Monospecific.hover",
+            SPECIES_POSITIONAL => "Composition_Species_Positionalspecific.hover",
+            SPECIES_STEREO => "Composition_Species_Stereospecific.hover",
+            TYPE_MONO => "Composition_Type_Monospecific.hover",
+            TYPE_POSITIONAL => "Composition_Type_Positionalspecific.hover",
+            TYPE_STEREO => "Composition_Type_Stereospecific.hover",
+            UNSATURATION_MONO => "Composition_Unsaturation_Monospecific.hover",
+            UNSATURATION_STEREO => "Composition_Unsaturation_Stereospecific.hover",
         }
     }
 }
 
-impl Display for Composition {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match *self {
-            MASS_MONO => f.write_str("Mass-Monospecific"),
-            MASS_STEREO => f.write_str("Mass-Stereospecific"),
-            ECN_MONO => f.write_str("EquivalentCarbonNumber-Monospecific"),
-            ECN_STEREO => f.write_str("EquivalentCarbonNumber-Stereospecific"),
-            SPECIES_MONO => f.write_str("Species-Monospecific"),
-            SPECIES_POSITIONAL => f.write_str("Species-Positionalspecific"),
-            SPECIES_STEREO => f.write_str("Species-Stereospecific"),
-            TYPE_MONO => f.write_str("Type-Monospecific"),
-            TYPE_POSITIONAL => f.write_str("Type-Positionalspecific"),
-            TYPE_STEREO => f.write_str("Type-Stereospecific"),
-            UNSATURATION_MONO => f.write_str("Unsaturation-Monospecific"),
-            UNSATURATION_STEREO => f.write_str("Unsaturation-Stereospecific"),
-        }
-    }
-}
+// impl Display for Composition {
+//     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+//         match *self {
+//             MASS_MONO => f.write_str("Mass-Monospecific"),
+//             MASS_STEREO => f.write_str("Mass-Stereospecific"),
+//             ECN_MONO => f.write_str("EquivalentCarbonNumber-Monospecific"),
+//             ECN_STEREO => f.write_str("EquivalentCarbonNumber-Stereospecific"),
+//             SPECIES_MONO => f.write_str("Species-Monospecific"),
+//             SPECIES_POSITIONAL => f.write_str("Species-Positionalspecific"),
+//             SPECIES_STEREO => f.write_str("Species-Stereospecific"),
+//             TYPE_MONO => f.write_str("Type-Monospecific"),
+//             TYPE_POSITIONAL => f.write_str("Type-Positionalspecific"),
+//             TYPE_STEREO => f.write_str("Type-Stereospecific"),
+//             UNSATURATION_MONO => f.write_str("Unsaturation-Monospecific"),
+//             UNSATURATION_STEREO => f.write_str("Unsaturation-Stereospecific"),
+//         }
+//     }
+// }
 
 impl Default for Composition {
     fn default() -> Self {

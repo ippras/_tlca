@@ -1,4 +1,7 @@
-use crate::utils::{Hashed, hash_data_frame};
+use crate::{
+    localization::ContextExt as _,
+    utils::{Hashed, hash_data_frame},
+};
 
 use self::{
     data::Data,
@@ -96,6 +99,7 @@ impl App {
         let mut fonts = FontDefinitions::default();
         add_to_fonts(&mut fonts, Variant::Regular);
         cc.egui_ctx.set_fonts(fonts);
+        cc.egui_ctx.set_localizations();
         custom_style(&cc.egui_ctx);
 
         // return Default::default();
@@ -193,6 +197,7 @@ impl App {
                         ui.memory_mut(|memory| {
                             memory.caches = take(memory).caches;
                         });
+                        ui.ctx().set_localizations();
                     }
                     ui.separator();
                     if ui

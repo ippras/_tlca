@@ -4,11 +4,8 @@ use self::{
     table::TableView,
 };
 use crate::{
-    app::{
-        HashedMetaDataFrame,
-        computers::{CalculationComputed, CalculationKey, MetricsComputed, MetricsKey},
-    },
-    utils::save,
+    app::computers::{CalculationComputed, CalculationKey, MetricsComputed, MetricsKey},
+    utils::{HashedMetaDataFrame, save},
 };
 use anyhow::Result;
 use egui::{
@@ -189,7 +186,7 @@ impl Pane {
         });
         let data_frame = ui.memory_mut(|memory| {
             memory.caches.cache::<MetricsComputed>().get(MetricsKey {
-                frame: &frame,
+                hashed_data_frame: &frame,
                 parameters: &settings.parameters,
             })
         });

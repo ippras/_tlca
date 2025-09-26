@@ -49,7 +49,7 @@ polars = { version = "0.51.0", default-features = false, features = [
 ] }
 polars-utils = { version = "0.51.0", features = ["nightly"] }
 semver = { version = "1.0.27", features = ["serde"] }
-serde = { version = "1.0.226", features = ["derive", "std"] }
+serde = { version = "1.0.228", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 
@@ -81,8 +81,8 @@ getrandom = { version = "0.3.3", default-features = false, features = [
 ] }
 poll-promise = { version = "0.3.0", features = ["web"] }
 tracing-wasm = "0.2.1"
-wasm-bindgen-futures = "0.4.52"
-web-sys = "0.3.79"
+wasm-bindgen-futures = "0.4.54"
+web-sys = "0.3.81"
 # js-sys = "0.3.77"
 # wasm-bindgen = "0.2.100"
 # tokio = { version = "1.44.2", features = ["macros", "rt", "sync", "time"] }

@@ -1,19 +1,16 @@
 use super::{super::MARGIN, ID_SOURCE, state::State};
 use crate::{
-    app::{
-        HashedMetaDataFrame,
-        computers::{
-            CalculationComputed, CalculationKey, DisplayComputed, DisplayKey, DisplayKind,
-        },
-        data::EMPTY_DATA_FRAME,
+    app::computers::{
+        CalculationComputed, CalculationKey, DisplayComputed, DisplayKey, DisplayKind,
     },
-    utils::Hashed,
+    utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
     Context, Frame, Grid, Id, Label, Margin, Popup, PopupCloseBehavior, Response, ScrollArea,
     Sense, TextStyle, TextWrapMode, Ui, Widget,
 };
 use egui_ext::{InnerResponseExt as _, ResponseExt as _};
+use egui_l20n::UiExt;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use itertools::Itertools as _;
@@ -29,7 +26,7 @@ const LEN: usize = TAG.end;
 /// Table view
 pub(super) struct TableView<'a> {
     source: &'a mut [HashedMetaDataFrame],
-    target: Hashed<DataFrame>,
+    target: HashedDataFrame,
     state: &'a mut State,
 }
 
@@ -37,7 +34,7 @@ impl<'a> TableView<'a> {
     pub(super) fn new(frames: &'a mut [HashedMetaDataFrame], state: &'a mut State) -> Self {
         Self {
             source: frames,
-            target: EMPTY_DATA_FRAME.clone(),
+            target: HashedDataFrame::EMPTY,
             state,
         }
     }
@@ -95,10 +92,15 @@ impl TableView<'_> {
                 ui.heading(HASH);
             }
             (0, TAG) => {
-                ui.heading("Triacylglycerol");
+                ui.heading(ui.localize(self.state.settings.parameters.composition.text()))
+                    .on_hover_ui(|ui| {
+                        ui.label(
+                            ui.localize(self.state.settings.parameters.composition.hover_text()),
+                        );
+                    });
             }
             (0, _) => {
-                ui.heading("Value");
+                ui.heading(ui.localize("Value"));
             }
             // Bottom
             (1, INDEX) => {}
@@ -146,7 +148,7 @@ impl TableView<'_> {
             (row, &TAG) => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
-                        data_frame: &self.target,
+                        hashed_data_frame: &self.target,
                         kind: DisplayKind::Composition {
                             composition: self.state.settings.parameters.composition,
                         },
@@ -165,7 +167,7 @@ impl TableView<'_> {
             (row, range) => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
-                        data_frame: &self.target,
+                        hashed_data_frame: &self.target,
                         kind: DisplayKind::Value { index: range.start },
                         percent: self.state.settings.percent,
                     })
@@ -195,7 +197,7 @@ impl TableView<'_> {
             range => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<DisplayComputed>().get(DisplayKey {
-                        data_frame: &self.target,
+                        hashed_data_frame: &self.target,
                         kind: DisplayKind::Value { index: range.start },
                         percent: self.state.settings.percent,
                     })

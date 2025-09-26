@@ -1,13 +1,12 @@
-use crate::{
-    localization::ContextExt as _,
-    utils::{Hashed, hash_data_frame},
-};
-
 use self::{
     data::Data,
     panes::{Pane, behavior::Behavior},
     widgets::PresetsWidget,
     windows::About,
+};
+use crate::{
+    localization::ContextExt as _,
+    utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use anyhow::Result;
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
@@ -27,7 +26,7 @@ use egui_phosphor::{
 use egui_tiles::{ContainerKind, Tile, Tree};
 use egui_tiles_ext::{TreeExt as _, VERTICAL};
 use lipid::prelude::*;
-use metadata::{MetaDataFrame, Metadata};
+use metadata::MetaDataFrame;
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{borrow::BorrowMut, fmt::Write, io::Cursor, mem::take, str, sync::LazyLock};
@@ -51,8 +50,6 @@ const VALUE_DATA_TYPE: LazyLock<DataType> = LazyLock::new(|| {
         ),
     ])
 });
-
-pub(crate) type HashedMetaDataFrame = MetaDataFrame<Metadata, Hashed<DataFrame>>;
 
 fn custom_style(ctx: &Context) {
     let mut style = (*ctx.style()).clone();
@@ -335,18 +332,11 @@ impl App {
 
         let bytes = dropped_file.bytes()?;
         trace!(?bytes);
-        let mut frame = MetaDataFrame::read_parquet(Cursor::new(bytes))?;
+        let frame = MetaDataFrame::read_parquet(Cursor::new(bytes))?;
         let schema = frame.data.schema();
         if COMPOSITION.matches_schema(schema).is_ok_and(|cast| !cast) {
             info!("COMPOSITION");
-            let hash = hash_data_frame(&mut frame.data)?;
-            self.data.add(MetaDataFrame {
-                meta: frame.meta,
-                data: Hashed {
-                    value: frame.data,
-                    hash,
-                },
-            });
+            self.data.try_add(frame)?;
         } else {
             return Err(
                 polars_err!(SchemaMismatch: r#"Invalid dropped file schema: expected [`COMPOSITION`], got = `{schema:?}`"#),

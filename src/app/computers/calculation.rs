@@ -1,17 +1,13 @@
 use crate::{
-    app::{
-        HashedMetaDataFrame,
-        data::EMPTY_DATA_FRAME,
-        parameters::{
-            Filter, Parameters, Sort,
-            composition::{
-                ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO, SPECIES_POSITIONAL,
-                SPECIES_STEREO, TYPE_MONO, TYPE_POSITIONAL, TYPE_STEREO, UNSATURATION_MONO,
-                UNSATURATION_STEREO,
-            },
+    app::parameters::{
+        Filter, Parameters, Sort,
+        composition::{
+            ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO, SPECIES_POSITIONAL,
+            SPECIES_STEREO, TYPE_MONO, TYPE_POSITIONAL, TYPE_STEREO, UNSATURATION_MONO,
+            UNSATURATION_STEREO,
         },
     },
-    utils::Hashed,
+    utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -35,11 +31,11 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         if key.frames.is_empty() {
-            return Ok(EMPTY_DATA_FRAME.clone());
+            return Ok(HashedDataFrame::EMPTY);
         }
         // Join
         let compute = |frame: &HashedMetaDataFrame| -> PolarsResult<LazyFrame> {
-            Ok(frame.data.value.clone().lazy().select([
+            Ok(frame.data.data_frame.clone().lazy().select([
                 col(LABEL),
                 col(TRIACYLGLYCEROL),
                 col("Value").alias(frame.meta.format(".").to_string()),
@@ -230,10 +226,7 @@ impl Computer {
         // println!("lazy_frame: {:?}", lazy_frame.clone().collect()?);
         let mut data_frame = lazy_frame.collect()?;
         let hash = data_frame.hash_rows(None)?.xor_reduce().unwrap_or_default();
-        Ok(Hashed {
-            value: data_frame,
-            hash,
-        })
+        Ok(HashedDataFrame { data_frame, hash })
     }
 }
 
@@ -258,4 +251,4 @@ impl Hash for Key<'_> {
 }
 
 /// Calculation value
-type Value = Hashed<DataFrame>;
+type Value = HashedDataFrame;

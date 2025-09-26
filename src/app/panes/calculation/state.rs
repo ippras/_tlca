@@ -4,12 +4,10 @@ use crate::app::{
     parameters::{Filter, Metric, Parameters, Sort, composition::COMPOSITIONS},
 };
 use egui::{
-    ComboBox, Context, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Separator, Slider, Ui,
-    Widget,
+    ComboBox, Context, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Slider, Ui, Widget,
 };
 use egui_ext::{LabeledSeparator, Markdown};
 use egui_l20n::UiExt as _;
-use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
 use serde::{Deserialize, Serialize};
 
 const METRICS: [Metric; 11] = [
@@ -83,7 +81,7 @@ pub struct Settings {
     pub editable: bool,
     pub sticky: usize,
     // Metrics settings
-    pub rank: bool,
+    pub chaddock: bool,
 
     pub parameters: Parameters,
 }
@@ -99,7 +97,7 @@ impl Settings {
             editable: false,
             sticky: 0,
 
-            rank: true,
+            chaddock: true,
 
             parameters: Parameters::new(),
         }
@@ -156,23 +154,17 @@ impl Settings {
                     }
                 })
                 .response
-                .on_hover_text(ui.localize(self.parameters.composition.hover_text()))
-                .on_hover_ui(|ui| {
-                    if ui.input_mut(|input| {
-                        input.consume_shortcut(&KeyboardShortcut::new(
-                            Modifiers::NONE,
-                            Key::ArrowDown,
-                        ))
-                    }) {
-                        self.parameters.composition = self.parameters.composition.forward();
-                    }
-                    if ui.input_mut(|input| {
-                        input
-                            .consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
-                    }) {
-                        self.parameters.composition = self.parameters.composition.backward();
-                    }
-                });
+                .on_hover_text(ui.localize(self.parameters.composition.hover_text()));
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
+            }) {
+                self.parameters.composition = self.parameters.composition.forward();
+            }
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+            }) {
+                self.parameters.composition = self.parameters.composition.backward();
+            }
             ui.end_row();
 
             // Filter
@@ -284,37 +276,22 @@ impl Settings {
                             metric,
                             ui.localize(metric.text()),
                         )
-                        .on_hover_text(ui.localize(metric.hover_text()));
+                        .on_hover_ui(|ui| {
+                            ui.markdown(metric.hover_markdown());
+                        });
                     }
                 })
                 .response
                 .on_hover_ui(|ui| {
-                    ui.markdown(self.parameters.metric.markdown());
-                })
-                .on_hover_text(ui.localize(self.parameters.metric.hover_text()))
-                .on_hover_ui(|ui| {
-                    if ui.input_mut(|input| {
-                        input.consume_shortcut(&KeyboardShortcut::new(
-                            Modifiers::NONE,
-                            Key::ArrowDown,
-                        ))
-                    }) {
-                        self.parameters.metric = self.parameters.metric.forward();
-                    }
-                    if ui.input_mut(|input| {
-                        input
-                            .consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
-                    }) {
-                        self.parameters.metric = self.parameters.metric.backward();
-                    }
+                    ui.markdown(self.parameters.metric.hover_markdown());
                 });
             ui.end_row();
 
-            // Rank
-            let mut response = ui.label("Rank");
-            response |= ui.checkbox(&mut self.rank, "");
+            // Chaddock
+            let mut response = ui.label(ui.localize("Chaddock"));
+            response |= ui.checkbox(&mut self.chaddock, "");
             response.on_hover_ui(|ui| {
-                ui.label("Rank.hover");
+                ui.label(ui.localize("Chaddock.hover"));
             });
             ui.end_row();
         });

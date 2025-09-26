@@ -3,7 +3,6 @@ use self::{
     Stereospecificity::{NonStereospecific, Stereospecific},
 };
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display, Formatter};
 
 pub const COMPOSITIONS: [Composition; 12] = [
     SPECIES_STEREO,

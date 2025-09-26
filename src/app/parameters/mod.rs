@@ -122,6 +122,21 @@ pub enum Metric {
 }
 
 impl Metric {
+    pub fn is_finite(&self) -> bool {
+        matches!(
+            self,
+            Metric::HellingerDistance
+                | Metric::JensenShannonDistance
+                | Metric::CosineDistance
+                | Metric::JaccardDistance
+                | Metric::OverlapDistance
+                | Metric::PearsonCorrelation
+                | Metric::SpearmanRankCorrelation
+        )
+    }
+}
+
+impl Metric {
     pub fn forward(&self) -> Self {
         match self {
             Self::HellingerDistance => Self::JensenShannonDistance,
@@ -156,24 +171,6 @@ impl Metric {
 }
 
 impl Metric {
-    pub fn markdown(&self) -> &'static str {
-        match self {
-            Self::HellingerDistance => HELLINGER_COEFFICIENT,
-            Self::JensenShannonDistance => JENSEN_SHANNON_COEFFICIENT,
-            Self::BhattacharyyaDistance => BHATTACHARYYA_COEFFICIENT,
-            Self::EuclideanDistance => EUCLIDEAN_DISTANCE,
-            Self::ChebyshevDistance => CHEBYSHEV_DISTANCE,
-            Self::ManhattanDistance => MANHATTAN_DISTANCE,
-            Self::CosineDistance => COSINE_COEFFICIENT,
-            Self::JaccardDistance => JACCARD_COEFFICIENT,
-            Self::OverlapDistance => OVERLAP_COEFFICIENT,
-            Self::PearsonCorrelation => PEARSON_CORRELATION_COEFFICIENT,
-            Self::SpearmanRankCorrelation => SPEARMAN_RANK_CORRELATION_COEFFICIENT,
-        }
-    }
-}
-
-impl Metric {
     pub fn text(&self) -> &'static str {
         match self {
             Self::HellingerDistance => "Metric_HellingerDistance",
@@ -190,19 +187,19 @@ impl Metric {
         }
     }
 
-    pub fn hover_text(&self) -> &'static str {
+    pub fn hover_markdown(&self) -> &'static str {
         match self {
-            Self::HellingerDistance => "Metric_HellingerDistance.hover",
-            Self::JensenShannonDistance => "Metric_JensenShannonDistance.hover",
-            Self::BhattacharyyaDistance => "Metric_BhattacharyyaDistance.hover",
-            Self::EuclideanDistance => "Metric_EuclideanDistance.hover",
-            Self::ChebyshevDistance => "Metric_ChebyshevDistance.hover",
-            Self::ManhattanDistance => "Metric_ManhattanDistance.hover",
-            Self::CosineDistance => "Metric_CosineDistance.hover",
-            Self::JaccardDistance => "Metric_JaccardDistance.hover",
-            Self::OverlapDistance => "Metric_OverlapDistance.hover",
-            Self::PearsonCorrelation => "Metric_PearsonCorrelation.hover",
-            Self::SpearmanRankCorrelation => "Metric_SpearmanRankCorrelation.hover",
+            Self::HellingerDistance => HELLINGER_COEFFICIENT,
+            Self::JensenShannonDistance => JENSEN_SHANNON_COEFFICIENT,
+            Self::BhattacharyyaDistance => BHATTACHARYYA_COEFFICIENT,
+            Self::EuclideanDistance => EUCLIDEAN_DISTANCE,
+            Self::ChebyshevDistance => CHEBYSHEV_DISTANCE,
+            Self::ManhattanDistance => MANHATTAN_DISTANCE,
+            Self::CosineDistance => COSINE_COEFFICIENT,
+            Self::JaccardDistance => JACCARD_COEFFICIENT,
+            Self::OverlapDistance => OVERLAP_COEFFICIENT,
+            Self::PearsonCorrelation => PEARSON_CORRELATION_COEFFICIENT,
+            Self::SpearmanRankCorrelation => SPEARMAN_RANK_CORRELATION_COEFFICIENT,
         }
     }
 }

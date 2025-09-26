@@ -1,10 +1,6 @@
 use polars::prelude::*;
 use std::fmt::{Display, from_fn};
 
-pub fn hash_data_frame(data_frame: &mut DataFrame) -> PolarsResult<u64> {
-    Ok(data_frame.hash_rows(None)?.xor_reduce().unwrap_or_default())
-}
-
 /// Extension methods for [`AnyValue`]
 pub trait AnyValueExt {
     fn display(&self) -> String;

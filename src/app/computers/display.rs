@@ -4,7 +4,7 @@ use crate::{
         SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_MONO, TYPE_POSITIONAL, TYPE_STEREO,
         UNSATURATION_MONO, UNSATURATION_STEREO,
     },
-    utils::Hashed,
+    utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -21,7 +21,7 @@ pub(crate) struct Computer;
 
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let mut lazy_frame = key.data_frame.value.clone().lazy();
+        let mut lazy_frame = key.hashed_data_frame.data_frame.clone().lazy();
         match key.kind {
             // Kind::LabelAndTriacylglycerol => {
             //     lazy_frame = lazy_frame.select([label()?, triacylglycerol()?]);
@@ -47,14 +47,14 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 /// Display key
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Key<'a> {
-    pub(crate) data_frame: &'a Hashed<DataFrame>,
+    pub(crate) hashed_data_frame: &'a HashedDataFrame,
     pub(crate) kind: Kind,
     pub(crate) percent: bool,
 }
 
 impl Hash for Key<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.data_frame.hash.hash(state);
+        self.hashed_data_frame.hash.hash(state);
         self.kind.hash(state);
         self.percent.hash(state);
     }

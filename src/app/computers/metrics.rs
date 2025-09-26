@@ -1,6 +1,6 @@
 use crate::{
     app::parameters::{Metric, Parameters},
-    utils::Hashed,
+    utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::{error::PolarsResult, prelude::*};
@@ -20,8 +20,8 @@ pub(crate) struct Computer;
 impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
-        let mut lazy_frame = key.frame.value.clone().lazy();
-        println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
+        let mut lazy_frame = key.hashed_data_frame.data_frame.clone().lazy();
+        // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = lazy_frame.select([all().exclude_cols(["Composition", "Species"]).as_expr()]);
         let schema = lazy_frame.collect_schema()?;
         let mean = |expr: Expr| expr.struct_().field_by_name("Mean").fill_null(0);
@@ -102,7 +102,8 @@ impl Computer {
         //         pearson_corr(col(LEFT), col(RIGHT)).alias("PearsonCorrelation"),
         //         spearman_rank_corr(col(LEFT), col(RIGHT), false).alias("SpearmanRankCorrelation"),
         //     ]);
-        println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
+
+        // println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame.collect()
     }
 }
@@ -116,13 +117,13 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 /// Metrics key
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Key<'a> {
-    pub(crate) frame: &'a Hashed<DataFrame>,
+    pub(crate) hashed_data_frame: &'a HashedDataFrame,
     pub(crate) parameters: &'a Parameters,
 }
 
 impl Hash for Key<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.frame.hash(state);
+        self.hashed_data_frame.hash(state);
         self.parameters.hash(state);
     }
 }

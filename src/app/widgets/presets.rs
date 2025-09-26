@@ -1,7 +1,4 @@
-use crate::{
-    app::{HashedMetaDataFrame, ICON_SIZE},
-    presets::*,
-};
+use crate::{app::ICON_SIZE, presets::*, utils::HashedMetaDataFrame};
 use egui::{
     Id, PopupCloseBehavior, Response, RichText, ScrollArea, Separator, Ui, Widget,
     containers::menu::{MenuConfig, SubMenuButton},
@@ -30,6 +27,56 @@ impl PresetsWidget {
                 preset(ui, &ippras::H626_N);
                 ui.labeled_separator(RichText::new("P-519 (Porphyridium purpureum)").heading());
                 preset(ui, &ippras::P519_N);
+            });
+        SubMenuButton::new("Sidorov (2014)")
+            .config(MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside))
+            .ui(ui, |ui| {
+                ui.hyperlink_to(
+                    RichText::new("10.1007/s11746-014-2553-8").heading(),
+                    "https://doi.org/10.1007/s11746-014-2553-8",
+                );
+                ui.labeled_separator(RichText::new("Subgenus Euonymus").heading());
+                ui.labeled_separator(RichText::new("Section Euonymus").heading());
+                preset(ui, &sidorov2014::EUONYMUS_BUNGEANUS);
+                preset(ui, &sidorov2014::EUONYMUS_EUROPAEUS);
+                preset(ui, &sidorov2014::EUONYMUS_HAMILTONIANUS);
+                preset(ui, &sidorov2014::EUONYMUS_PHELLOMANUS);
+                preset(ui, &sidorov2014::EUONYMUS_SEMIEXSERTUS);
+                preset(ui, &sidorov2014::EUONYMUS_SIEBOLDIANUS);
+                ui.labeled_separator(RichText::new("Section Melanocarya").heading());
+                preset(ui, &sidorov2014::EUONYMUS_ALATUS);
+                preset(ui, &sidorov2014::EUONYMUS_SACROSANCTUS);
+                ui.labeled_separator(RichText::new("Section Pseudovyenomus").heading());
+                preset(ui, &sidorov2014::EUONYMUS_PAUCIFLORUS);
+                ui.labeled_separator(RichText::new("Subgenus Kalonymus").heading());
+                preset(ui, &sidorov2014::EUONYMUS_LATIFOLIUS);
+                preset(ui, &sidorov2014::EUONYMUS_MACROPTERUS);
+                preset(ui, &sidorov2014::EUONYMUS_MAXIMOWICZIANUS);
+                preset(ui, &sidorov2014::EUONYMUS_SACHALINENSIS);
+            });
+        ui.separator();
+        // Third party
+        ui.heading("Third party");
+        SubMenuButton::new("Martinez-Force 2004")
+            .config(MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside))
+            .ui(ui, |ui| {
+                ui.hyperlink_to(
+                    RichText::new("10.1016/j.ab.2004.07.019").heading(),
+                    "https://doi.org/10.1016/j.ab.2004.07.019",
+                );
+                ui.labeled_separator(RichText::new("Hazelnut").heading());
+                preset(ui, &martínez_force2004::HAZELNUT);
+                ui.labeled_separator(RichText::new("Olive").heading());
+                preset(ui, &martínez_force2004::OLIVE);
+                ui.labeled_separator(RichText::new("Rice").heading());
+                preset(ui, &martínez_force2004::RICE);
+                ui.labeled_separator(RichText::new("Soybean").heading());
+                preset(ui, &martínez_force2004::SOYBEAN);
+                ui.labeled_separator(RichText::new("Sunflower").heading());
+                preset(ui, &martínez_force2004::SUNFLOWER_CAS3);
+                preset(ui, &martínez_force2004::SUNFLOWER_RHA274);
+                ui.labeled_separator(RichText::new("Walnut").heading());
+                preset(ui, &martínez_force2004::WALNUT);
             });
     }
 }

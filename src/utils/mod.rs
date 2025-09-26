@@ -1,11 +1,11 @@
 pub use self::{
-    hashed::Hashed,
+    hash::{HashedDataFrame, HashedMetaDataFrame, hash_data_frame},
     layout_job::LayoutJobExt,
-    polars::{AnyValueExt, hash_data_frame},
+    polars::AnyValueExt,
     save::save,
 };
 
-mod hashed;
+mod hash;
 mod layout_job;
 mod polars;
 mod save;

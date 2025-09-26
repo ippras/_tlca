@@ -67,12 +67,14 @@ impl Metrics<'_> {
         if let Some(value) = self.data_frame[column].f64()?.get(row) {
             let text = format!("{value:.0$}", self.settings.precision);
             let sign = Sign::from(value);
-            let color = ui.style().visuals.text_color();
-            let color = if self.settings.rank {
-                sign.color(color)
-            } else {
-                sign.rank().color(color)
-            };
+            let mut color = ui.style().visuals.text_color();
+            if self.settings.parameters.metric.is_finite() {
+                if self.settings.chaddock {
+                    color = sign.chaddock().color(color);
+                } else {
+                    color = sign.color(color);
+                }
+            }
             Label::new(RichText::new(text).color(color))
                 .ui(ui)
                 .on_hover_text(value.to_string())
@@ -90,11 +92,11 @@ enum Sign<T> {
 }
 
 impl Sign<f64> {
-    fn rank(&self) -> Sign<Rank> {
+    fn chaddock(&self) -> Sign<Chaddock> {
         match *self {
-            Sign::Negative(value) => Sign::Negative(Rank::from(value)),
+            Sign::Negative(value) => Sign::Negative(Chaddock::from(value)),
             Sign::Zero => Sign::Zero,
-            Sign::Positive(value) => Sign::Positive(Rank::from(value)),
+            Sign::Positive(value) => Sign::Positive(Chaddock::from(value)),
         }
     }
 }
@@ -109,20 +111,20 @@ impl Sign<f64> {
     }
 }
 
-impl Sign<Rank> {
+impl Sign<Chaddock> {
     fn color(&self, source: Color32) -> Color32 {
         match self {
-            Sign::Negative(Rank::VeryStrong) => source.lerp_to_gamma(Color32::RED, 1.0),
-            Sign::Negative(Rank::Strong) => source.lerp_to_gamma(Color32::RED, 0.8),
-            Sign::Negative(Rank::Moderate) => source.lerp_to_gamma(Color32::RED, 0.6),
-            Sign::Negative(Rank::Weak) => source.lerp_to_gamma(Color32::RED, 0.4),
-            Sign::Negative(Rank::VeryWeak) => source.lerp_to_gamma(Color32::RED, 0.2),
+            Sign::Negative(Chaddock::VeryStrong) => source.lerp_to_gamma(Color32::RED, 1.0),
+            Sign::Negative(Chaddock::Strong) => source.lerp_to_gamma(Color32::RED, 0.8),
+            Sign::Negative(Chaddock::Moderate) => source.lerp_to_gamma(Color32::RED, 0.6),
+            Sign::Negative(Chaddock::Weak) => source.lerp_to_gamma(Color32::RED, 0.4),
+            Sign::Negative(Chaddock::VeryWeak) => source.lerp_to_gamma(Color32::RED, 0.2),
             Sign::Zero => source,
-            Sign::Positive(Rank::VeryWeak) => source.lerp_to_gamma(Color32::BLUE, 0.2),
-            Sign::Positive(Rank::Weak) => source.lerp_to_gamma(Color32::BLUE, 0.4),
-            Sign::Positive(Rank::Moderate) => source.lerp_to_gamma(Color32::BLUE, 0.6),
-            Sign::Positive(Rank::Strong) => source.lerp_to_gamma(Color32::BLUE, 0.8),
-            Sign::Positive(Rank::VeryStrong) => source.lerp_to_gamma(Color32::BLUE, 1.0),
+            Sign::Positive(Chaddock::VeryWeak) => source.lerp_to_gamma(Color32::BLUE, 0.2),
+            Sign::Positive(Chaddock::Weak) => source.lerp_to_gamma(Color32::BLUE, 0.4),
+            Sign::Positive(Chaddock::Moderate) => source.lerp_to_gamma(Color32::BLUE, 0.6),
+            Sign::Positive(Chaddock::Strong) => source.lerp_to_gamma(Color32::BLUE, 0.8),
+            Sign::Positive(Chaddock::VeryStrong) => source.lerp_to_gamma(Color32::BLUE, 1.0),
         }
     }
 }
@@ -139,8 +141,9 @@ impl From<f64> for Sign<f64> {
     }
 }
 
+/// Chaddock
 #[derive(Clone, Copy, Debug)]
-enum Rank {
+enum Chaddock {
     VeryStrong,
     Strong,
     Moderate,
@@ -148,87 +151,27 @@ enum Rank {
     VeryWeak,
 }
 
-impl From<f64> for Rank {
+impl From<f64> for Chaddock {
     fn from(value: f64) -> Self {
         match value.abs() {
-            0.0..0.2 => Rank::VeryWeak,
-            0.2..0.4 => Rank::Weak,
-            0.4..0.6 => Rank::Moderate,
-            0.6..0.8 => Rank::Strong,
-            0.8..=1.0 => Rank::VeryStrong,
+            0.0..0.3 => Self::VeryWeak,
+            0.3..0.5 => Self::Weak,
+            0.5..0.7 => Self::Moderate,
+            0.7..0.9 => Self::Strong,
+            0.9.. => Self::VeryStrong,
             _ => unreachable!(),
         }
     }
 }
 
-// #[instrument(skip(self, ui), err)]
-// pub(super) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
-//     self.target = ui.memory_mut(|memory| {
-//         memory
-//             .caches
-//             .cache::<CalculationComputed>()
-//             .get(CalculationKey {
-//                 frames: self.source,
-//                 parameters: &self.settings.parameters,
-//             })
-//     });
-//     let id_salt = Id::new(ID_SOURCE).with("Table");
-//     if self.state.reset_table_state {
-//         let id = TableState::id(ui, Id::new(id_salt));
-//         TableState::reset(ui.ctx(), id);
-//         self.state.reset_table_state = false;
-//     }
-//     let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
-//     let num_rows = self.target.height() as u64 + 1;
-//     let value = self.target.width() - 2;
-//     let num_columns = LEN + value;
-//     Table::new()
-//         .id_salt(id_salt)
-//         .num_rows(num_rows)
-//         .columns(vec![
-//             Column::default().resizable(self.settings.resizable);
-//             num_columns
-//         ])
-//         .num_sticky_cols(self.settings.sticky)
-//         .headers([
-//             HeaderRow {
-//                 height,
-//                 groups: vec![INDEX, TAG, LEN..num_columns],
-//             },
-//             HeaderRow::new(height),
-//         ])
-//         .show(ui, self);
-//     if self.state.add_table_row {
-//         self.source[0].data.value.add_row()?;
-//         self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-//         self.state.add_table_row = false;
-//     }
-//     if let Some(index) = self.state.delete_table_row {
-//         self.source[0].data.value.delete_row(index)?;
-//         self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-//         self.state.delete_table_row = None;
-//     }
-//     if let Some(index) = self.state.take_firts_table_rows {
-//         self.source[0].data.value.firts_rows_to(index);
-//         self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-//         self.state.add_table_row = false;
-//     }
-//     if let Some(index) = self.state.take_last_table_rows {
-//         self.source[0].data.value.last_rows_from(index);
-//         self.source[0].data.hash = hash_data_frame(&mut self.source[0].data.value)?;
-//         self.state.add_table_row = false;
-//     }
-//     Ok(())
+// /// Extension methods for [`Ui`]
+// trait UiExt {
+//     fn header(&mut self, h1: &str, h2: &str);
 // }
 
-/// Extension methods for [`Ui`]
-trait UiExt {
-    fn header(&mut self, h1: &str, h2: &str);
-}
-
-impl UiExt for Ui {
-    fn header(&mut self, h1: &str, h2: &str) {
-        self.add(Label::new(h1).truncate());
-        self.add(Label::new(RichText::new(h2).small()).truncate());
-    }
-}
+// impl UiExt for Ui {
+//     fn header(&mut self, h1: &str, h2: &str) {
+//         self.add(Label::new(h1).truncate());
+//         self.add(Label::new(RichText::new(h2).small()).truncate());
+//     }
+// }

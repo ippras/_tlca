@@ -1,99 +1,125 @@
-use crate::utils::{HashedDataFrame, HashedMetaDataFrame, hash_data_frame};
-use egui::{CentralPanel, Grid, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
+use crate::utils::HashedMetaDataFrame;
+use egui::{Frame, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
 use egui_dnd::dnd;
 use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, INTERSECT_THREE, TRASH};
-use metadata::{MetaDataFrame, egui::MetadataWidget};
-use polars::prelude::*;
+use metadata::egui::MetadataWidget;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 /// Data
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Data {
+    pub fatty_acids: VecHashSet,
+    pub triacylglycerols: VecHashSet,
+}
+
+impl Data {
+    pub fn show(&mut self, ui: &mut Ui) {
+        ui.visuals_mut().collapsing_header_frame = true;
+        ui.collapsing(RichText::new("FattyAcids").heading(), |ui| {
+            TopBottomPanel::top(
+                ui.auto_id_with("LeftPane")
+                    .with("TopPane")
+                    .with("FattyAcids"),
+            )
+            .show_inside(ui, |ui| {
+                MenuBar::new().ui(ui, |ui| {
+                    self.fatty_acids.top(ui, "FattyAcids");
+                });
+            });
+            Frame::central_panel(ui.style()).show(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false, true])
+                    .show(ui, |ui| {
+                        self.fatty_acids.central(ui, "FattyAcids");
+                    });
+            });
+        });
+        ui.collapsing(RichText::new("Triacylglycerols").heading(), |ui| {
+            TopBottomPanel::top(
+                ui.auto_id_with("LeftPane")
+                    .with("TopPane")
+                    .with("Triacylglycerols"),
+            )
+            .show_inside(ui, |ui| {
+                MenuBar::new().ui(ui, |ui| {
+                    self.triacylglycerols.top(ui, "Triacylglycerols");
+                });
+            });
+            Frame::central_panel(ui.style()).show(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false, true])
+                    .show(ui, |ui| {
+                        self.triacylglycerols.central(ui, "Triacylglycerols");
+                    });
+            });
+        });
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct VecHashSet {
     pub frames: Vec<HashedMetaDataFrame>,
     pub selected: HashSet<HashedMetaDataFrame>,
 }
 
-impl Data {
-    pub fn selected(&self) -> Vec<HashedMetaDataFrame> {
-        self.frames
-            .iter()
-            .filter_map(|frame| self.selected.contains(frame).then_some(frame.clone()))
-            .collect()
-    }
-
+impl VecHashSet {
     pub fn add(&mut self, frame: HashedMetaDataFrame) {
         if !self.frames.contains(&frame) {
             self.frames.push(frame);
         }
     }
 
-    pub fn try_add(&mut self, mut frame: MetaDataFrame) -> PolarsResult<()> {
-        self.add(MetaDataFrame {
-            meta: frame.meta,
-            data: HashedDataFrame::new(frame.data)?,
-        });
-        Ok(())
-    }
-}
-
-impl Data {
-    pub fn show(&mut self, ui: &mut Ui) {
-        TopBottomPanel::top(ui.auto_id_with("LeftPane").with("TopPane")).show_inside(ui, |ui| {
-            MenuBar::new().ui(ui, |ui| {
-                self.top(ui);
-            });
-        });
-        CentralPanel::default().show_inside(ui, |ui| {
-            ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-                self.central(ui);
-            });
-        });
+    fn selected(&self) -> Vec<HashedMetaDataFrame> {
+        self.frames
+            .iter()
+            .filter_map(|frame| self.selected.contains(frame).then_some(frame.clone()))
+            .collect()
     }
 
-    fn top(&mut self, ui: &mut Ui) {
-        ui.heading("loaded_files")
-            .on_hover_text("loaded_files.hover");
-        ui.separator();
-        // Delete
-        if ui
-            .button(RichText::new(TRASH).heading())
-            .on_hover_text("delete")
-            .clicked()
-        {
-            self.frames.retain(|frame| !self.selected.remove(frame));
-        }
-        ui.separator();
+    fn top(&mut self, ui: &mut Ui, id: impl Hash) {
+        let is_empty = self.selected.is_empty();
         // Toggle
         if ui
             .button(RichText::new(CHECK).heading())
-            .on_hover_text("toggle")
-            .on_hover_text("toggle.hover")
+            .on_hover_text("Toggle")
+            .on_hover_text("Toggle.hover")
             .clicked()
         {
-            if self.selected.is_empty() {
+            if is_empty {
                 self.selected = self.frames.iter().cloned().collect();
             } else {
                 self.selected.clear();
             }
         }
         ui.separator();
-        // Configuration
-        let frames = self.selected();
-        ui.add_enabled_ui(!frames.is_empty(), |ui| {
+        // Delete
+        ui.add_enabled_ui(!is_empty, |ui| {
             if ui
-                .button(RichText::new(INTERSECT_THREE).heading())
-                .on_hover_text("Union")
+                .button(RichText::new(TRASH).heading())
+                .on_hover_text("Delete")
+                .on_hover_text("Delete.hover")
                 .clicked()
             {
-                ui.data_mut(|data| data.insert_temp(Id::new("Unite"), frames));
+                self.frames.retain(|frame| !self.selected.remove(frame));
+            }
+        });
+        ui.separator();
+        // Calculation
+        ui.add_enabled_ui(!is_empty, |ui| {
+            if ui
+                .button(RichText::new(INTERSECT_THREE).heading())
+                .on_hover_text("Join")
+                .clicked()
+            {
+                ui.data_mut(|data| data.insert_temp(Id::new("Join").with(id), self.selected()));
             }
         });
         ui.separator();
     }
 
-    fn central(&mut self, ui: &mut Ui) {
-        dnd(ui, ui.next_auto_id()).show_vec(&mut self.frames, |ui, frame, handle, _state| {
+    fn central(&mut self, ui: &mut Ui, id: impl Hash) {
+        dnd(ui, ui.auto_id_with(id)).show_vec(&mut self.frames, |ui, frame, handle, _state| {
             ui.horizontal(|ui| {
                 handle.ui(ui, |ui| {
                     ui.label(DOTS_SIX_VERTICAL);
@@ -107,14 +133,8 @@ impl Data {
                     }
                 }
                 let text = frame.meta.format(" ").to_string();
-                ui.add(Label::new(text).truncate()).on_hover_ui(|ui| {
-                    Grid::new(ui.next_auto_id()).show(ui, |ui| {
-                        MetadataWidget::new(&frame.meta).show(ui);
-                        ui.separator();
-                        ui.label("Rows");
-                        ui.label(frame.data.height().to_string());
-                    });
-                });
+                ui.add(Label::new(text).truncate())
+                    .on_hover_ui(|ui| MetadataWidget::new(&frame.meta).show(ui));
             });
         });
     }

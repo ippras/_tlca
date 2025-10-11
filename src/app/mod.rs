@@ -1,6 +1,6 @@
 use self::{
     data::Data,
-    panes::{Pane, behavior::Behavior},
+    panes::{Behavior, Pane},
     widgets::PresetsWidget,
     windows::About,
 };
@@ -30,26 +30,12 @@ use metadata::MetaDataFrame;
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{borrow::BorrowMut, fmt::Write, io::Cursor, mem::take, str, sync::LazyLock};
-use tracing::{info, instrument, trace};
+use tracing::{error, info, instrument, trace};
 
 /// IEEE 754-2008
 const MAX_PRECISION: usize = 16;
 
 pub(super) const ICON_SIZE: f32 = 32.0;
-
-const VALUE_DATA_TYPE: LazyLock<DataType> = LazyLock::new(|| {
-    DataType::Struct(vec![
-        Field::new(PlSmallStr::from_static("Mean"), DataType::Float64),
-        Field::new(
-            PlSmallStr::from_static("StandardDeviation"),
-            DataType::Float64,
-        ),
-        Field::new(
-            PlSmallStr::from_static("Repetitions"),
-            DataType::Array(Box::new(DataType::Float64), 0),
-        ),
-    ])
-});
 
 fn custom_style(ctx: &Context) {
     let mut style = (*ctx.style()).clone();
@@ -68,7 +54,7 @@ pub struct App {
     // Panels
     left_panel: bool,
     // Data
-    #[serde(skip)]
+    // #[serde(skip)]
     data: Data,
     // Panes
     #[serde(skip)]
@@ -269,23 +255,6 @@ impl App {
 
 // Copy/Paste, Drag&Drop
 impl App {
-    fn data(&mut self, ctx: &Context) {
-        if let Some(frame) =
-            ctx.data_mut(|data| data.remove_temp::<HashedMetaDataFrame>(Id::new("Data")))
-        {
-            self.data.add(frame);
-            self.left_panel = true;
-        }
-    }
-
-    fn unite(&mut self, ctx: &Context) {
-        if let Some(frames) =
-            ctx.data_mut(|data| data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Unite")))
-        {
-            self.tree.insert_pane::<VERTICAL>(Pane::new(frames));
-        }
-    }
-
     fn drag_and_drop(&mut self, ctx: &Context) {
         // Preview hovering files
         if let Some(text) = ctx.input(|input| {
@@ -314,14 +283,28 @@ impl App {
             (!input.raw.dropped_files.is_empty()).then_some(input.raw.dropped_files.clone())
         }) {
             info!(?dropped_files);
+            let mut frames = Vec::with_capacity(dropped_files.len());
             for dropped_file in dropped_files {
-                let _ = self.parse(dropped_file);
+                if let Ok(frame) = self.parse(dropped_file) {
+                    frames.push(frame);
+                }
             }
+            ctx.data_mut(|data| data.insert_temp(Id::new("Data"), frames));
         }
     }
 
     #[instrument(skip_all, err)]
-    fn parse(&mut self, dropped_file: DroppedFile) -> Result<()> {
+    fn parse(&mut self, dropped_file: DroppedFile) -> Result<HashedMetaDataFrame> {
+        let bytes = dropped_file.bytes()?;
+        trace!(?bytes);
+        let frame = ron::de::from_bytes::<MetaDataFrame>(&bytes)?;
+        Ok(MetaDataFrame {
+            meta: frame.meta,
+            data: HashedDataFrame::new(frame.data)?,
+        })
+    }
+
+    fn data(&mut self, ctx: &Context) {
         const COMPOSITION: LazyLock<SchemaRef> = LazyLock::new(|| {
             Arc::new(Schema::from_iter([
                 field!(LABEL[DataType::String]),
@@ -330,19 +313,72 @@ impl App {
             ]))
         });
 
-        let bytes = dropped_file.bytes()?;
-        trace!(?bytes);
-        let frame = MetaDataFrame::read_parquet(Cursor::new(bytes))?;
-        let schema = frame.data.schema();
-        if COMPOSITION.matches_schema(schema).is_ok_and(|cast| !cast) {
-            info!("COMPOSITION");
-            self.data.try_add(frame)?;
-        } else {
-            return Err(
-                polars_err!(SchemaMismatch: r#"Invalid dropped file schema: expected [`COMPOSITION`], got = `{schema:?}`"#),
-            )?;
+        const CACLULATION: LazyLock<SchemaRef> = LazyLock::new(|| {
+            Arc::new(Schema::from_iter([
+                Field::new(PlSmallStr::from_static(LABEL), DataType::String),
+                field!(FATTY_ACID),
+                Field::new(
+                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS123),
+                    VALUE_DATA_TYPE.clone(),
+                ),
+                Field::new(
+                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS13),
+                    VALUE_DATA_TYPE.clone(),
+                ),
+                Field::new(
+                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS2),
+                    VALUE_DATA_TYPE.clone(),
+                ),
+            ]))
+        });
+
+        const VALUE_DATA_TYPE: LazyLock<DataType> = LazyLock::new(|| {
+            DataType::Struct(vec![
+                Field::new(PlSmallStr::from_static("Mean"), DataType::Float64),
+                Field::new(
+                    PlSmallStr::from_static("StandardDeviation"),
+                    DataType::Float64,
+                ),
+                Field::new(
+                    PlSmallStr::from_static("Array"),
+                    DataType::Array(Box::new(DataType::Float64), 0),
+                ),
+            ])
+        });
+
+        if let Some(frames) =
+            ctx.data_mut(|data| data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Data")))
+        {
+            for frame in frames {
+                let schema = frame.data.schema();
+                if COMPOSITION.matches_schema(schema).is_ok_and(|cast| !cast) {
+                    info!("COMPOSITION");
+                    self.data.triacylglycerols.add(frame);
+                } else if CACLULATION.matches_schema(schema).is_ok_and(|cast| !cast) {
+                    info!("CACLULATION");
+                    self.data.fatty_acids.add(frame);
+                } else {
+                    error!(
+                        "{}",
+                        polars_err!(SchemaMismatch: r#"Invalid dropped file schema: expected [`CACLULATION`, `COMPOSITION`], got = `{schema:?}`"#)
+                    );
+                }
+            }
+            self.left_panel = true;
         }
-        Ok(())
+    }
+
+    fn join(&mut self, ctx: &Context) {
+        if let Some(frames) = ctx.data_mut(|data| {
+            data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Join").with("FattyAcids"))
+        }) {
+            self.tree.insert_pane::<VERTICAL>(Pane::fatty_acids(frames));
+        } else if let Some(frames) = ctx.data_mut(|data| {
+            data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Join").with("Triacylglycerols"))
+        }) {
+            self.tree
+                .insert_pane::<VERTICAL>(Pane::triacylglycerols(frames));
+        }
     }
 }
 
@@ -356,7 +392,7 @@ impl eframe::App for App {
     /// second.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.data(ctx);
-        self.unite(ctx);
+        self.join(ctx);
         // Pre update
         self.panels(ctx);
         self.windows(ctx);

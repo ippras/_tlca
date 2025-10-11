@@ -1,5 +1,5 @@
 use self::composition::{Composition, SPECIES_STEREO};
-use crate::markdown::*;
+use crate::r#const::markdown::*;
 use egui::emath::Float as _;
 use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
 use serde::{Deserialize, Serialize};

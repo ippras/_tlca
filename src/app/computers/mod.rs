@@ -1,9 +1,12 @@
 pub(crate) use self::{
-    calculation::{Computed as CalculationComputed, Key as CalculationKey},
-    display::{Computed as DisplayComputed, Key as DisplayKey, Kind as DisplayKind},
-    metrics::{Computed as MetricsComputed, Key as MetricsKey},
+    format::{Computed as DisplayComputed, Key as DisplayKey},
+    moments::{Computed as MomentsComputed, Key as MomentsKey},
+    triacylglycerols::{Computed as TriacylglycerolsComputed, Key as TriacylglycerolsKey},
 };
 
-mod calculation;
-mod display;
-mod metrics;
+pub(crate) mod fatty_acids;
+pub(crate) mod metrics;
+
+mod format;
+mod moments;
+mod triacylglycerols;

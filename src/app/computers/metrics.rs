@@ -4,10 +4,7 @@ use crate::{
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::{error::PolarsResult, prelude::*};
-use std::{
-    f64::consts::{E, FRAC_1_SQRT_2},
-    hash::{Hash, Hasher},
-};
+use std::f64::consts::{E, FRAC_1_SQRT_2};
 use tracing::instrument;
 
 /// Metrics computed
@@ -20,7 +17,7 @@ pub(crate) struct Computer;
 impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
-        let mut lazy_frame = key.hashed_data_frame.data_frame.clone().lazy();
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = lazy_frame.select([all().exclude_cols(["Composition", "Species"]).as_expr()]);
         let schema = lazy_frame.collect_schema()?;
@@ -115,17 +112,10 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 }
 
 /// Metrics key
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
-    pub(crate) hashed_data_frame: &'a HashedDataFrame,
+    pub(crate) frame: &'a HashedDataFrame,
     pub(crate) parameters: &'a Parameters,
-}
-
-impl Hash for Key<'_> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.hashed_data_frame.hash(state);
-        self.parameters.hash(state);
-    }
 }
 
 /// Metrics value

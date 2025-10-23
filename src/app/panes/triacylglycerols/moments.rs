@@ -1,9 +1,9 @@
 use super::{ID_SOURCE, state::Settings};
-use crate::{
-    app::panes::MARGIN,
-    r#const::markdown::{KURTOSIS, SKEWNESS},
-};
-use egui::{Color32, Id, Label, RichText, TextStyle, TextWrapMode, Ui, Widget};
+use crate::app::panes::MARGIN;
+#[cfg(feature = "markdown")]
+use crate::r#const::markdown::{KURTOSIS, SKEWNESS};
+use egui::{Id, TextStyle, TextWrapMode, Ui};
+#[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_extras::{Column, TableBuilder};
 use polars::prelude::*;
@@ -67,7 +67,10 @@ impl Moments<'_> {
         match column {
             0 => {
                 if let Some(name) = self.data_frame["Moment"].str()?.get(row) {
-                    ui.label(name).on_hover_ui(|ui| match name {
+                    #[allow(unused_variables)]
+                    let response = ui.label(name);
+                    #[cfg(feature = "markdown")]
+                    response.on_hover_ui(|ui| match name {
                         "Kurtosis" => ui.markdown(KURTOSIS),
                         "Skewness" => ui.markdown(SKEWNESS),
                         _ => {}

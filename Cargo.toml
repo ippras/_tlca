@@ -15,7 +15,6 @@ eframe = { version = "0.32.3", features = [
 ] }
 egui = "0.32.3"
 egui-phosphor = "0.10.0"
-egui_commonmark = { version = "0.21.1", features = ["macros", "svg"] }
 egui_dnd = "0.13.0"
 egui_extras = { version = "0.32.3", features = ["datepicker", "serde", "svg"] }
 egui_table = "0.4.0"
@@ -44,10 +43,10 @@ polars = { version = "0.51.0", default-features = false, features = [
     "round_series",
     "row_hash",
     "strings",
-    # "parquet",
     # "dtype-categorical",
-    # "ipc",
     # "ndarray",
+    # "parquet",
+    # "ipc",
 ] }
 polars-utils = { version = "0.51.0", features = ["nightly"] }
 semver = { version = "1.0.27", features = ["serde"] }
@@ -55,7 +54,8 @@ serde = { version = "1.0.228", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 
-egui_ext = { git = "https://github.com/kgv/egui_ext", features = ["markdown"] }
+# egui_ext = { git = "https://github.com/kgv/egui_ext", features = ["markdown"] }
+egui_ext = { git = "https://github.com/kgv/egui_ext" }
 egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 lipid = { git = "https://github.com/ippras/lipid" }
 metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
@@ -64,13 +64,6 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "map", feature
 polars_ext = { git = "https://github.com/kgv/polars_ext" }
 ron = "0.11.0"
 
-# blas = "0.23.0"
-# openblas-src = { version = "0.10.13", features = ["system"] }
-# ndarray = "0.16.1"
-# scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
-#     "openblas",
-#     "stats",
-# ] }
 # scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
 #     "stats",
 # ] }
@@ -98,15 +91,10 @@ poll-promise = { version = "0.3.0", features = ["web"] }
 tracing-wasm = "0.2.1"
 wasm-bindgen-futures = "0.4.54"
 web-sys = "0.3.81"
-# js-sys = "0.3.77"
-# wasm-bindgen = "0.2.100"
-# tokio = { version = "1.44.2", features = ["macros", "rt", "sync", "time"] }
-# tokio_with_wasm = { version = "0.8.2", features = [
-#     "macros",
-#     "rt",
-#     "sync",
-#     "time",
-# ] }
+
+[features]
+default = []
+markdown = ["egui_ext/markdown"]
 
 [profile.release]
 opt-level = 2 # fast and small wasm

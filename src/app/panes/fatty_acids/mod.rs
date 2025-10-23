@@ -10,13 +10,12 @@ use crate::{
         metrics::{Computed as MetricsComputed, Key as MetricsKey},
     },
     export::ron,
-    utils::{HashedMetaDataFrame, save},
+    utils::HashedMetaDataFrame,
 };
 use anyhow::Result;
 use egui::{
-    Button, CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Response, RichText, ScrollArea,
-    TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, containers::menu::MenuButton,
-    util::hash,
+    CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Response, RichText, ScrollArea, TextStyle,
+    TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
 };
 use egui_l20n::UiExt as _;
 use egui_phosphor::regular::{

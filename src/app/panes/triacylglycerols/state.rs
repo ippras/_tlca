@@ -6,7 +6,9 @@ use crate::app::{
 use egui::{
     ComboBox, Context, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Slider, Ui, Widget,
 };
-use egui_ext::{LabeledSeparator, Markdown};
+use egui_ext::LabeledSeparator;
+#[cfg(feature = "markdown")]
+use egui_ext::Markdown;
 use egui_l20n::UiExt as _;
 use serde::{Deserialize, Serialize};
 
@@ -268,27 +270,31 @@ impl Settings {
             // Metric
             ui.label(ui.localize("Metric?PluralCategory=one"))
                 .on_hover_text(ui.localize("Metric.hover"));
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            #[allow(unused_variables)]
+            let response = ComboBox::from_id_salt(ui.auto_id_with(id_salt))
                 .selected_text(ui.localize(self.parameters.metric.text()))
                 .show_ui(ui, |ui| {
                     for (index, metric) in METRICS.into_iter().enumerate() {
                         if SEPARATORS.contains(&index) {
                             ui.separator();
                         }
-                        ui.selectable_value(
+                        #[allow(unused_variables)]
+                        let response = ui.selectable_value(
                             &mut self.parameters.metric,
                             metric,
                             ui.localize(metric.text()),
-                        )
-                        .on_hover_ui(|ui| {
+                        );
+                        #[cfg(feature = "markdown")]
+                        response.on_hover_ui(|ui| {
                             ui.markdown(metric.hover_markdown());
                         });
                     }
                 })
-                .response
-                .on_hover_ui(|ui| {
-                    ui.markdown(self.parameters.metric.hover_markdown());
-                });
+                .response;
+            #[cfg(feature = "markdown")]
+            response.on_hover_ui(|ui| {
+                ui.markdown(self.parameters.metric.hover_markdown());
+            });
             ui.end_row();
 
             // Chaddock

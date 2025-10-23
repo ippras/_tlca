@@ -55,3 +55,9 @@ pub(crate) mod markdown {
     // pub const KULLBACK_LEIBLER_DIVERGruCE: &str = include_str!("../doc/metrics/ru/KullbackLeiblerDivergruce.md");
     // pub const WASSERSTEIN_DISTANCE: &str = include_str!("../doc/metrics/ru/WassersteinDistance.md");
 }
+
+pub(crate) mod svg {
+    use egui::{ImageSource, include_image};
+
+    pub const TRIACYLGLYCEROL: ImageSource = include_image!("../svg/Triacylglycerol.svg");
+}

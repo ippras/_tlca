@@ -1,7 +1,9 @@
 use crate::{app::ICON_SIZE, utils::HashedMetaDataFrame};
 use egui::{
-    Id, PopupCloseBehavior, Response, RichText, ScrollArea, Ui, Widget,
+    Align2, Color32, FontId, Id, PopupCloseBehavior, Response, RichText, ScrollArea, Sense, Ui,
+    Widget,
     containers::menu::{MenuButton, MenuConfig},
+    vec2,
 };
 use egui_ext::LabeledSeparator as _;
 use egui_phosphor::regular::{DATABASE, DROP};
@@ -30,7 +32,7 @@ impl PresetsWidget {
                 ui.labeled_separator(RichText::new("P-519 (Porphyridium purpureum)").heading());
                 preset(ui, &P519_N);
             });
-            ui.menu_button((DROP, "Triacylglycerols"), |ui| {
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 use crate::presets::ippras::tag::*;
 
                 ui.labeled_separator(RichText::new("C-108 (Chromochloris zofingiensis)").heading());
@@ -70,7 +72,7 @@ impl PresetsWidget {
                 preset(ui, &EUONYMUS_MAXIMOWICZIANUS);
                 preset(ui, &EUONYMUS_SACHALINENSIS);
             });
-            ui.menu_button((DROP, "Triacylglycerols"), |ui| {
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 use crate::presets::sidorov2014::tag::*;
 
                 // ui.labeled_separator(RichText::new("Subgenus Euonymus").heading());
@@ -96,14 +98,15 @@ impl PresetsWidget {
         ui.menu_button("Sidorov (2025)", |ui| {
             doi("10.3390/plants14040612").ui(ui);
             ui.menu_button((DROP, "Fatty acids"), |ui| {
-                use crate::presets::sidorov2014::fa::*;
+                use crate::presets::sidorov2025::fa::*;
 
-                ui.labeled_separator(RichText::new("Subgenus Euonymus").heading());
-
+                ui.labeled_separator(RichText::new("Lunaria rediviva").heading());
+                preset(ui, &LUNARIA_REDIVIVA_FISCHER);
+                preset(ui, &LUNARIA_REDIVIVA_SAPONIFICATION);
+                preset(ui, &LUNARIA_REDIVIVA_TMSH);
             });
-            ui.menu_button((DROP, "Triacylglycerols"), |ui| {
-                use crate::presets::sidorov2014::tag::*;
-
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
+                use crate::presets::sidorov2025::tag::*;
             });
         });
         ui.separator();
@@ -122,9 +125,9 @@ impl PresetsWidget {
                 preset(ui, &SUNFLOWER_SEED_HIGH_PALMITIC_HIGH_OLEIC);
                 preset(ui, &SUNFLOWER_SEED_HIGH_STEARIC_HIGH_OLEIC);
             });
-            // ui.menu_button((DROP, "Triacylglycerols"), |ui| {
-            //     use crate::presets::reske1997::tag::*;
-            // });
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
+                use crate::presets::reske1997::tag::*;
+            });
         });
         ui.menu_button("Martinez-Force (2004)", |ui| {
             doi("10.1016/j.ab.2004.07.019").ui(ui);
@@ -190,5 +193,94 @@ fn doi(doi: &str) -> impl Fn(&mut Ui) -> Response {
             RichText::new(format!("DOI: {doi}")).heading(),
             format!("https://doi.org/{doi}"),
         )
+    }
+}
+
+struct CombinedIcon<'a> {
+    base_icon: &'a str,
+    base_size: Option<f32>,
+    base_color: Option<Color32>,
+
+    overlay_icon: &'a str,
+    overlay_size: Option<f32>,
+    overlay_color: Option<Color32>,
+    overlay_offset: Option<f32>,
+}
+
+// Конструктор для удобства
+impl<'a> CombinedIcon<'a> {
+    pub fn new(base_icon: &'a str, overlay_icon: &'a str) -> Self {
+        Self {
+            base_icon,
+            base_size: None,
+            base_color: None,
+            overlay_icon,
+            overlay_size: None,
+            overlay_color: Some(Color32::from_rgb(0, 180, 0)),
+            overlay_offset: None,
+        }
+    }
+
+    // Методы-конструкторы для кастомизации
+    pub fn base_size(mut self, size: f32) -> Self {
+        self.base_size = Some(size);
+        self
+    }
+
+    pub fn overlay_size(mut self, size: f32) -> Self {
+        self.overlay_size = Some(size);
+        self
+    }
+
+    pub fn base_color(mut self, color: Color32) -> Self {
+        self.base_color = Some(color);
+        self
+    }
+
+    pub fn overlay_color(mut self, color: Color32) -> Self {
+        self.overlay_color = Some(color);
+        self
+    }
+}
+
+impl<'a> Widget for CombinedIcon<'a> {
+    fn ui(self, ui: &mut Ui) -> Response {
+        // Определяем желаемый размер виджета
+        let base_size = self.base_size.unwrap_or(ui.spacing().icon_width);
+        let overlay_size = self.overlay_size.unwrap_or(ui.spacing().icon_width);
+        let desired_size = vec2(base_size, base_size);
+
+        // Выделяем место в макете
+        let (rect, response) = ui.allocate_exact_size(desired_size, Sense::hover());
+
+        // Рисуем только если виджет видим на экране (оптимизация)
+        if ui.is_rect_visible(rect) {
+            let painter = ui.painter();
+            let visuals = ui.style().interact(&response);
+
+            // Определяем цвет для базовой иконки: либо заданный, либо из стиля
+            let base_color = self.base_color.unwrap_or(visuals.text_color());
+            let overlay_color = self.overlay_color.unwrap_or(visuals.text_color());
+
+            // Рисуем базовый значок
+            painter.text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                self.base_icon,
+                FontId::proportional(base_size),
+                base_color,
+            );
+
+            // Рисуем накладываемый значок
+            painter.text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                self.overlay_icon,
+                FontId::proportional(overlay_size),
+                overlay_color,
+            );
+        }
+
+        response
     }
 }

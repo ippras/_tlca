@@ -16,6 +16,7 @@ use egui::{
     TopBottomPanel, Visuals, warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LightDarkButton};
+use egui_extras::install_image_loaders;
 use egui_phosphor::{
     Variant, add_to_fonts,
     regular::{
@@ -84,6 +85,7 @@ impl App {
         cc.egui_ctx.set_fonts(fonts);
         cc.egui_ctx.set_localizations();
         custom_style(&cc.egui_ctx);
+        install_image_loaders(&cc.egui_ctx);
 
         // return Default::default();
         // Load previous app state (if any).

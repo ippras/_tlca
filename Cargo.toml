@@ -17,7 +17,7 @@ egui = "0.32.3"
 egui-phosphor = "0.10.0"
 egui_commonmark = { version = "0.21.1", features = ["macros", "svg"] }
 egui_dnd = "0.13.0"
-egui_extras = { version = "0.32.3", features = ["datepicker", "serde"] }
+egui_extras = { version = "0.32.3", features = ["datepicker", "serde", "svg"] }
 egui_table = "0.4.0"
 egui_tiles = "0.13.0"
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }

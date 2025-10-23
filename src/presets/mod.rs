@@ -56,55 +56,6 @@ pub(crate) mod ippras {
     }
 }
 
-// Third party
-
-// [Reske1997](https://doi.org/10.1007/s11746-997-0016-1)
-pub(crate) mod reske1997 {
-    #[rustfmt::skip]
-    pub(crate) mod fa {
-        use super::super::*;
-
-        pub(crate) static SUNFLOWER_SEED_COMMODITY: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (Commodity).1997-08-01.fa.utca.ron");
-        pub(crate) static SUNFLOWER_SEED_HIGH_LINOLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High linoleic).1997-08-01.fa.utca.ron");
-        pub(crate) static SUNFLOWER_SEED_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High oleic).1997-08-01.fa.utca.ron");
-        pub(crate) static SUNFLOWER_SEED_HIGH_PALMITIC_HIGH_LINOLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High palmitic, high linoleic).1997-08-01.fa.utca.ron");
-        pub(crate) static SUNFLOWER_SEED_HIGH_PALMITIC_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High palmitic, high oleic).1997-08-01.fa.utca.ron");
-        pub(crate) static SUNFLOWER_SEED_HIGH_STEARIC_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High stearic, high oleic).1997-08-01.fa.utca.ron");
-    }
-
-    #[rustfmt::skip]
-    pub(crate) mod tag {}
-}
-
-// [Martínez-Force2004](https://doi.org/10.1016/j.ab.2004.07.019)
-pub(crate) mod martínez_force2004 {
-    #[rustfmt::skip]
-    pub(crate) mod fa {
-        use super::super::*;
-
-        pub(crate) static HAZELNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Hazelnut.2025-08-19.fa.utca.ron");
-        pub(crate) static OLIVE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Olive.2025-08-19.fa.utca.ron");
-        pub(crate) static RICE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Rice.2025-08-19.fa.utca.ron");
-        pub(crate) static SOYBEAN: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Soybean.2025-08-19.fa.utca.ron");
-        pub(crate) static SUNFLOWER_CAS3: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower CAS-3.2025-08-19.fa.utca.ron");
-        pub(crate) static SUNFLOWER_RHA274: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower RHA-274.2025-08-19.fa.utca.ron");
-        pub(crate) static WALNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Walnut.2025-08-19.fa.utca.ron");
-    }
-
-    #[rustfmt::skip]
-    pub(crate) mod tag {
-        use super::super::*;
-
-        // pub(crate) static HAZELNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Hazelnut.2025-08-19.tag.utca.ron");
-        // pub(crate) static OLIVE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Olive.2025-08-19.tag.utca.ron");
-        // pub(crate) static RICE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Rice.2025-08-19.tag.utca.ron");
-        // pub(crate) static SOYBEAN: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Soybean.2025-08-19.tag.utca.ron");
-        // pub(crate) static SUNFLOWER_CAS3: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower CAS-3.2025-08-19.tag.utca.ron");
-        // pub(crate) static SUNFLOWER_RHA274: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower RHA-274.2025-08-19.tag.utca.ron");
-        // pub(crate) static WALNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Walnut.2025-08-19.tag.utca.ron");
-    }
-}
-
 // [Sidorov2014](https://doi.org/10.1007/s11746-014-2553-8)
 pub(crate) mod sidorov2014 {
     #[rustfmt::skip]
@@ -152,11 +103,64 @@ pub(crate) mod sidorov2025 {
     pub(crate) mod fa {
         use super::super::*;
 
+        // [Реакция Фишера-Шпайера](https://doi.org/10.1002/cber.189502803176)
+        pub(crate) static LUNARIA_REDIVIVA_FISCHER: LazyLock<HashedMetaDataFrame> = preset!("ippras/Sidorov2025/Lunaria Rediviva(Fischer).2024-01-24.fa.utca.ron");
+        pub(crate) static LUNARIA_REDIVIVA_SAPONIFICATION: LazyLock<HashedMetaDataFrame> = preset!("ippras/Sidorov2025/Lunaria Rediviva(Saponification).2024-01-24.fa.utca.ron");
+        pub(crate) static LUNARIA_REDIVIVA_TMSH: LazyLock<HashedMetaDataFrame> = preset!("ippras/Sidorov2025/Lunaria Rediviva(TMSH).2024-01-24.fa.utca.ron");
     }
 
     #[rustfmt::skip]
     pub(crate) mod tag {
         use super::super::*;
 
+    }
+}
+
+// Third party
+
+// [Reske1997](https://doi.org/10.1007/s11746-997-0016-1)
+pub(crate) mod reske1997 {
+    #[rustfmt::skip]
+    pub(crate) mod fa {
+        use super::super::*;
+
+        pub(crate) static SUNFLOWER_SEED_COMMODITY: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (Commodity).1997-08-01.fa.utca.ron");
+        pub(crate) static SUNFLOWER_SEED_HIGH_LINOLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High linoleic).1997-08-01.fa.utca.ron");
+        pub(crate) static SUNFLOWER_SEED_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High oleic).1997-08-01.fa.utca.ron");
+        pub(crate) static SUNFLOWER_SEED_HIGH_PALMITIC_HIGH_LINOLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High palmitic, high linoleic).1997-08-01.fa.utca.ron");
+        pub(crate) static SUNFLOWER_SEED_HIGH_PALMITIC_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High palmitic, high oleic).1997-08-01.fa.utca.ron");
+        pub(crate) static SUNFLOWER_SEED_HIGH_STEARIC_HIGH_OLEIC: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Reske1997/Sunﬂower Seed (High stearic, high oleic).1997-08-01.fa.utca.ron");
+    }
+
+    #[rustfmt::skip]
+    pub(crate) mod tag {}
+}
+
+// [Martínez-Force2004](https://doi.org/10.1016/j.ab.2004.07.019)
+pub(crate) mod martínez_force2004 {
+    #[rustfmt::skip]
+    pub(crate) mod fa {
+        use super::super::*;
+
+        pub(crate) static HAZELNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Hazelnut.2025-08-19.fa.utca.ron");
+        pub(crate) static OLIVE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Olive.2025-08-19.fa.utca.ron");
+        pub(crate) static RICE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Rice.2025-08-19.fa.utca.ron");
+        pub(crate) static SOYBEAN: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Soybean.2025-08-19.fa.utca.ron");
+        pub(crate) static SUNFLOWER_CAS3: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower CAS-3.2025-08-19.fa.utca.ron");
+        pub(crate) static SUNFLOWER_RHA274: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower RHA-274.2025-08-19.fa.utca.ron");
+        pub(crate) static WALNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Walnut.2025-08-19.fa.utca.ron");
+    }
+
+    #[rustfmt::skip]
+    pub(crate) mod tag {
+        use super::super::*;
+
+        // pub(crate) static HAZELNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Hazelnut.2025-08-19.tag.utca.ron");
+        // pub(crate) static OLIVE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Olive.2025-08-19.tag.utca.ron");
+        // pub(crate) static RICE: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Rice.2025-08-19.tag.utca.ron");
+        // pub(crate) static SOYBEAN: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Soybean.2025-08-19.tag.utca.ron");
+        // pub(crate) static SUNFLOWER_CAS3: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower CAS-3.2025-08-19.tag.utca.ron");
+        // pub(crate) static SUNFLOWER_RHA274: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Sunflower RHA-274.2025-08-19.tag.utca.ron");
+        // pub(crate) static WALNUT: LazyLock<HashedMetaDataFrame> = preset!("ThirdParty/Martinez-Force2004/Walnut.2025-08-19.tag.utca.ron");
     }
 }

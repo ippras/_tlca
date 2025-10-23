@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <g id="drop">
+      <path d="M208,144c0-72-80-128-80-128S48,72,48,144a80,80,0,0,0,160,0Z" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+      <path d="M136,192c20-3.37,36.61-20,40-40" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+    </g>
+  </defs>
+
+  <!-- Капля 1: Верхняя вершина -->
+  <use href="#drop" transform="translate(128, 78) scale(0.5) translate(-128, -128)"/>
+
+  <!-- Капля 2: Левая нижняя вершина -->
+  <use href="#drop" transform="translate(76, 168) scale(0.5) translate(-128, -128)"/>
+
+  <!-- Капля 3: Правая нижняя вершина -->
+  <use href="#drop" transform="translate(180, 168) scale(0.5) translate(-128, -128)"/>
+</svg>

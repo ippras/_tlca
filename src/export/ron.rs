@@ -1,28 +1,31 @@
+use std::sync::LazyLock;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::native::save;
 #[cfg(target_arch = "wasm32")]
 pub use self::web::save;
 
 use anyhow::Result;
-use metadata::{MetaDataFrame, Metadata};
-use ron::ser::{PrettyConfig, to_string_pretty};
+use metadata::MetaDataFrame;
+use ron::{
+    extensions::Extensions,
+    ser::{PrettyConfig, to_string_pretty},
+};
 use tracing::instrument;
+
+const CONFIG: LazyLock<PrettyConfig> =
+    LazyLock::new(|| PrettyConfig::new().extensions(Extensions::UNWRAP_NEWTYPES));
 
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
-    use ron::extensions::Extensions;
-    use serde::Serialize;
-
     use super::*;
+    use serde::Serialize;
     use std::{fs::File, io::Write};
 
     #[instrument(skip(frame), err)]
     pub fn save(frame: &MetaDataFrame<impl Serialize, impl Serialize>, name: &str) -> Result<()> {
         let mut file = File::create(name)?;
-        let serialized = to_string_pretty(
-            &frame,
-            PrettyConfig::default().extensions(Extensions::UNWRAP_NEWTYPES),
-        )?;
+        let serialized = to_string_pretty(&frame, CONFIG.clone())?;
         file.write_all(serialized.as_bytes())?;
         Ok(())
     }
@@ -36,7 +39,7 @@ mod web {
 
     #[instrument(err)]
     pub fn save(frame: &MetaDataFrame, name: &str) -> Result<()> {
-        let serialized = to_string_pretty(&frame, PrettyConfig::default())?;
+        let serialized = to_string_pretty(&frame, CONFIG.clone())?;
         if let Err(error) = download(serialized.as_bytes(), NONE, name) {
             bail!("save: {error:?}");
         }

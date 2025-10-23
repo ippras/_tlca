@@ -6,23 +6,23 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
-eframe = { version = "0.32.3", features = [
+eframe = { version = "0.33.0", features = [
     "accesskit",
     "default_fonts",
     "glow",
     "persistence",
     "wayland",
 ] }
-egui = "0.32.3"
-egui-phosphor = "0.10.0"
-egui_dnd = "0.13.0"
-egui_extras = { version = "0.32.3", features = ["datepicker", "serde", "svg"] }
-egui_table = "0.4.0"
-egui_tiles = "0.13.0"
-egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
+egui = "0.33.0"
+# egui-phosphor = "0.10.0"
+egui-phosphor = { git = "https://github.com/bircni/egui-phosphor", branch = "feature/egui-0.33" }
+egui_dnd = "0.14.0"
+egui_extras = { version = "0.33.0", features = ["datepicker", "serde", "svg"] }
+egui_table = "0.5.0"
+egui_tiles = "0.14.0"
 itertools = "0.14.0"
 log = "0.4.28"
-parking_lot = "0.12.4"
+parking_lot = "0.12.5"
 polars = { version = "0.51.0", default-features = false, features = [
     "array_arithmetic",
     "bitwise",
@@ -49,19 +49,23 @@ polars = { version = "0.51.0", default-features = false, features = [
     # "ipc",
 ] }
 polars-utils = { version = "0.51.0", features = ["nightly"] }
+ron = "0.11.0"
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 
-egui_ext = { git = "https://github.com/kgv/egui_ext" }
-egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
+egui_ext = { git = "https://github.com/kgv/egui_ext", branch = "egui-0.33.0" }
+egui_l20n = { git = "https://github.com/kgv/egui_l20n", branch = "egui-0.33.0", features = [
+    "macros",
+] }
+egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "egui-0.33.0" }
 lipid = { git = "https://github.com/ippras/lipid" }
 metadata = { git = "https://github.com/ippras/metadata", branch = "new", features = [
     "egui",
+    "polars",
 ] }
 polars_ext = { git = "https://github.com/kgv/polars_ext" }
-ron = "0.11.0"
 
 # scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
 #     "stats",

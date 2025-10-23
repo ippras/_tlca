@@ -22,7 +22,7 @@ use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
-use metadata::{MetaDataFrame, egui::MetadataWidget};
+use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 use crate::utils::{HashedDataFrame, HashedMetaDataFrame};
 use anyhow::Result;
-use metadata::MetaDataFrame;
+use metadata::polars::MetaDataFrame;
 use std::sync::LazyLock;
 
 macro preset($name:literal) {

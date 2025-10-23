@@ -6,7 +6,7 @@ pub use self::native::save;
 pub use self::web::save;
 
 use anyhow::Result;
-use metadata::MetaDataFrame;
+use metadata::polars::MetaDataFrame;
 use ron::{
     extensions::Extensions,
     ser::{PrettyConfig, to_string_pretty},

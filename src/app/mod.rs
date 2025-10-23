@@ -27,10 +27,10 @@ use egui_phosphor::{
 use egui_tiles::{ContainerKind, Tile, Tree};
 use egui_tiles_ext::{TreeExt as _, VERTICAL};
 use lipid::prelude::*;
-use metadata::MetaDataFrame;
+use metadata::polars::MetaDataFrame;
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{borrow::BorrowMut, fmt::Write, io::Cursor, mem::take, str, sync::LazyLock};
+use std::{borrow::BorrowMut, fmt::Write, mem::take, str, sync::LazyLock};
 use tracing::{error, info, instrument, trace};
 
 /// IEEE 754-2008

@@ -4,10 +4,7 @@ use metadata::MetaDataFrame;
 use std::sync::LazyLock;
 
 macro preset($name:literal) {
-    LazyLock::new(|| {
-        let bytes = include_bytes!($name);
-        parse(bytes).expect(concat!("preset ", $name))
-    })
+    LazyLock::new(|| parse(include_bytes!($name)).expect(concat!("preset ", $name)))
 }
 
 fn parse(bytes: &[u8]) -> Result<HashedMetaDataFrame> {
@@ -17,18 +14,6 @@ fn parse(bytes: &[u8]) -> Result<HashedMetaDataFrame> {
         data: HashedDataFrame::new(frame.data).unwrap(),
     })
 }
-
-// macro preset($name:literal) {
-//     LazyLock::new(|| {
-//         let bytes = include_bytes!($name);
-//         let MetaDataFrame { meta, data } =
-//             MetaDataFrame::read_parquet(Cursor::new(bytes)).expect(concat!("preset ", $name));
-//         MetaDataFrame {
-//             meta,
-//             data: HashedDataFrame::new(data).unwrap(),
-//         }
-//     })
-// }
 
 // IPPRAS
 pub(crate) mod ippras {

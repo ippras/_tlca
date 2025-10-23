@@ -48,11 +48,11 @@ pub(crate) mod ippras {
     pub(crate) mod tag {
         use super::super::*;
 
-        pub(crate) static C108_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-108(-N).2025-04-23.tag.utca.parquet");
-        pub(crate) static C1210_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-1210(-N).2025-04-24.tag.utca.parquet");
-        pub(crate) static C1540_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-1540(-N).2025-04-24.tag.utca.parquet");
-        pub(crate) static H626_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/H-626(-N).2025-04-24.tag.utca.parquet");
-        pub(crate) static P519_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/P-519(-N).2025-04-23.tag.utca.parquet");
+        pub(crate) static C108_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-108(-N).2025-04-23.tag.utca.ron");
+        pub(crate) static C1210_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-1210(-N).2025-04-24.tag.utca.ron");
+        pub(crate) static C1540_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/C-1540(-N).2025-04-24.tag.utca.ron");
+        pub(crate) static H626_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/H-626(-N).2025-04-24.tag.utca.ron");
+        pub(crate) static P519_N: LazyLock<HashedMetaDataFrame> = preset!("ippras/Microalgae/P-519(-N).2025-04-23.tag.utca.ron");
     }
 }
 

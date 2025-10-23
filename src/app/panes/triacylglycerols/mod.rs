@@ -10,7 +10,7 @@ use crate::{
         MomentsComputed, MomentsKey, TriacylglycerolsComputed, TriacylglycerolsKey,
         metrics::{Computed as MetricsComputed, Key as MetricsKey},
     },
-    utils::{HashedMetaDataFrame, save},
+    utils::HashedMetaDataFrame,
 };
 use anyhow::Result;
 use egui::{
@@ -48,13 +48,6 @@ impl Pane {
 
     fn hash(&self) -> u64 {
         hash(&self.frames)
-    }
-
-    fn save(&mut self) -> Result<()> {
-        let frame = &mut self.frames[0];
-        let name = format!("{}.fa.parquet", frame.meta.format(".")).replace(" ", "_");
-        save(&name, frame)?;
-        Ok(())
     }
 }
 
@@ -190,11 +183,18 @@ impl Pane {
             ))
             .clicked()
         {
-            let _ = self.save();
+            // let _ = self.save();
         }
         ui.separator();
         response
     }
+
+    // fn save(&mut self) -> Result<()> {
+    //     let frame = &mut self.frames[0];
+    //     let name = format!("{}.fa.parquet", frame.meta.format(".")).replace(" ", "_");
+    //     save(&name, frame)?;
+    //     Ok(())
+    // }
 
     fn central(&mut self, ui: &mut Ui, state: &mut State) {
         self.windows(ui, state);

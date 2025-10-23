@@ -54,11 +54,10 @@ serde = { version = "1.0.228", features = ["derive", "std"] }
 tracing = "0.1.41"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 
-# egui_ext = { git = "https://github.com/kgv/egui_ext", features = ["markdown"] }
 egui_ext = { git = "https://github.com/kgv/egui_ext" }
 egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 lipid = { git = "https://github.com/ippras/lipid" }
-metadata = { git = "https://github.com/ippras/metadata", branch = "map", features = [
+metadata = { git = "https://github.com/ippras/metadata", branch = "new", features = [
     "egui",
 ] }
 polars_ext = { git = "https://github.com/kgv/polars_ext" }
@@ -72,19 +71,18 @@ ron = "0.11.0"
 # linfa = "0.7.1"
 # linfa-hierarchical = "0.7.1"
 # linfa-kernel = "0.7.1"
-# metadata = { path = "D:\\git\\ippras\\metadata", features = ["egui"] }
 # re_ui = "0.22.1"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 poll-promise = { version = "0.3.0", features = ["tokio"] }
-tokio = { version = "1.47.1", features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-getrandom = { version = "0.3.3", default-features = false, features = [
+getrandom = { version = "0.3.4", default-features = false, features = [
     "wasm_js",
 ] }
 poll-promise = { version = "0.3.0", features = ["web"] }
@@ -93,7 +91,7 @@ wasm-bindgen-futures = "0.4.54"
 web-sys = "0.3.81"
 
 [features]
-default = []
+default = ["markdown"]
 markdown = ["egui_ext/markdown"]
 
 [profile.release]

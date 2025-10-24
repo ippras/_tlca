@@ -406,6 +406,6 @@ impl eframe::App for App {
 mod computers;
 mod data;
 mod panes;
-mod parameters;
+mod states;
 mod widgets;
 mod windows;

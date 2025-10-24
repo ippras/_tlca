@@ -1,5 +1,7 @@
-use super::{ID_SOURCE, state::Settings};
-use crate::app::panes::MARGIN;
+use crate::app::{
+    panes::MARGIN,
+    states::triacylglycerols::{ID_SOURCE, Settings},
+};
 #[cfg(feature = "markdown")]
 use crate::r#const::markdown::{KURTOSIS, SKEWNESS};
 use egui::{Id, TextStyle, TextWrapMode, Ui};

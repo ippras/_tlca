@@ -1,10 +1,9 @@
-use super::{
-    super::{MARGIN, mean_and_standard_deviation},
-    ID_SOURCE,
-    state::State,
-};
 use crate::{
-    app::computers::fatty_acids::format::{Computed as FormatComputed, Key as FormatKey},
+    app::{
+        computers::fatty_acids::format::{Computed as FormatComputed, Key as FormatKey},
+        panes::{MARGIN, mean_and_standard_deviation},
+        states::fatty_acids::{ID_SOURCE, State},
+    },
     utils::HashedDataFrame,
 };
 use egui::{Context, Frame, Id, Margin, TextStyle, TextWrapMode, Ui};
@@ -17,8 +16,8 @@ use std::ops::Range;
 use tracing::instrument;
 
 const INDEX: Range<usize> = 0..1;
-const FA: Range<usize> = INDEX.end..INDEX.end + 1;
-const LEN: usize = FA.end;
+const ID: Range<usize> = INDEX.end..INDEX.end + 1;
+const LEN: usize = ID.end;
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -57,7 +56,7 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: vec![INDEX, FA, LEN..num_columns],
+                    groups: vec![INDEX, ID, LEN..num_columns],
                 },
                 HeaderRow::new(height),
             ])
@@ -74,17 +73,15 @@ impl TableView<'_> {
             (0, INDEX) => {
                 ui.heading(HASH);
             }
-            (0, FA) => {
-                ui.heading(ui.localize("FattyAcid")).on_hover_ui(|ui| {
-                    ui.label(ui.localize("FattyAcid.hover"));
-                });
+            (0, ID) => {
+                ui.heading(ui.localize("Label"));
             }
             (0, _) => {
                 ui.heading(ui.localize("Value"));
             }
             // Bottom
             (1, INDEX) => {}
-            (1, FA) => {}
+            (1, ID) => {}
             (1, range) => {
                 ui.heading(self.frame[range.start].name().to_string());
             }
@@ -117,20 +114,21 @@ impl TableView<'_> {
             (row, &INDEX) => {
                 ui.label(row.to_string());
             }
-            (row, &FA) => {
+            (row, &ID) => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<FormatComputed>().get(FormatKey::new(
                         &self.frame,
-                        FA.start,
+                        ID.start,
                         &self.state.settings,
                     ))
                 });
-                let label = data_frame[FATTY_ACID].get(row)?.str_value();
+                let label = data_frame[LABEL].get(row)?.str_value();
                 let response = ui.label(label);
                 if response.hovered()
-                    && let Some(fatty_acid) = data_frame[LABEL].str()?.get(row)
+                    && let Some(fatty_acid) = data_frame[FATTY_ACID].str()?.get(row)
                 {
                     response.on_hover_ui(|ui| {
+                        ui.set_max_width(ui.spacing().tooltip_width);
                         ui.label(fatty_acid);
                     });
                 }
@@ -151,7 +149,7 @@ impl TableView<'_> {
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         match column {
-            INDEX | FA => {}
+            INDEX | ID => {}
             range => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory.caches.cache::<FormatComputed>().get(FormatKey::new(

@@ -1,8 +1,8 @@
 use crate::{
-    app::{
-        panes::triacylglycerols::state::Settings,
-        parameters::{
-            Filter, Sort,
+    app::states::{
+        Filter, Sort,
+        triacylglycerols::{
+            Settings,
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
                 SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_MONO, TYPE_POSITIONAL, TYPE_STEREO,
@@ -297,3 +297,7 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     }
     lazy_frame
 }
+
+pub(crate) mod format;
+pub(crate) mod metrics;
+pub(crate) mod moments;

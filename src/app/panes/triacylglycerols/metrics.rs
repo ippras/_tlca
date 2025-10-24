@@ -1,5 +1,7 @@
-use super::{super::metrics::Sign, ID_SOURCE, state::Settings};
-use crate::app::panes::MARGIN;
+use crate::app::{
+    panes::{MARGIN, metrics::Sign},
+    states::triacylglycerols::{ID_SOURCE, Settings},
+};
 use egui::{Id, Label, RichText, TextStyle, TextWrapMode, Ui, Widget};
 use egui_extras::{Column, TableBuilder};
 use polars::prelude::*;

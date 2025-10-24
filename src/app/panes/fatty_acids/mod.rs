@@ -1,13 +1,13 @@
-use self::{
-    metrics::Metrics,
-    state::{Settings, State},
-    table::TableView,
-};
+use self::{indices::Indices, metrics::Metrics, table::TableView};
 use super::{Behavior, MARGIN};
 use crate::{
-    app::computers::fatty_acids::{
-        Computed as FattyAcidsComputed, Key as FattyAcidsKey,
-        metrics::{Computed as MetricsComputed, Key as MetricsKey},
+    app::{
+        computers::fatty_acids::{
+            Computed as FattyAcidsComputed, Key as FattyAcidsKey,
+            indices::{Computed as IndicesComputed, Key as IndicesKey},
+            metrics::{Computed as MetricsComputed, Key as MetricsKey},
+        },
+        states::fatty_acids::{ID_SOURCE, Settings, State},
     },
     export::ron,
     utils::HashedMetaDataFrame,
@@ -28,8 +28,6 @@ use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-const ID_SOURCE: &str = "FattyAcids";
-
 /// Fatty acids pane
 #[derive(Default, Deserialize, Serialize)]
 pub struct Pane {
@@ -48,13 +46,6 @@ impl Pane {
     fn hash(&self) -> u64 {
         hash(&self.frames)
     }
-
-    // fn save(&mut self) -> Result<()> {
-    //     let frame = &mut self.frames[0];
-    //     let name = format!("{}.fa.parquet", frame.meta.format(".")).replace(" ", "_");
-    //     save(&name, frame)?;
-    //     Ok(())
-    // }
 }
 
 impl Pane {
@@ -150,6 +141,17 @@ impl Pane {
         ui.separator();
         // Sigma
         ui.menu_button(RichText::new(SIGMA).heading(), |ui| {
+            // Indices
+            ui.toggle_value(
+                &mut state.windows.open_indices,
+                (
+                    RichText::new(SIGMA).heading(),
+                    RichText::new(ui.localize("Indices")).heading(),
+                ),
+            )
+            .on_hover_ui(|ui| {
+                ui.label(ui.localize("Indices"));
+            });
             // Metrics
             ui.toggle_value(
                 &mut state.windows.open_metrics,
@@ -254,25 +256,65 @@ impl Pane {
 impl Pane {
     fn windows(&mut self, ui: &mut Ui, state: &mut State) {
         self.settings(ui, state);
+        self.indices(ui, state);
         self.metrics(ui, state);
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+        if let Some(inner_response) = Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
                 state.settings.show(ui);
+            })
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP} {}", self.title()));
             });
+        }
+    }
+
+    fn indices(&mut self, ui: &mut Ui, state: &mut State) {
+        if let Some(inner_response) = Window::new(format!("{SIGMA} Indices"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
+            .open(&mut state.windows.open_indices)
+            .show(ui.ctx(), |ui| self.indices_content(ui, &state.settings))
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP} {}", self.title()));
+            });
+        }
+    }
+
+    #[instrument(skip_all, err)]
+    fn indices_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
+        let frame = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<FattyAcidsComputed>()
+                .get(FattyAcidsKey::new(&self.frames, settings))
+        });
+        let data_frame = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<IndicesComputed>()
+                .get(IndicesKey::new(&frame, settings))
+        });
+        Indices::new(&data_frame, settings).show(ui)
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SIGMA} Metrics"))
+        if let Some(inner_response) = Window::new(format!("{SIGMA} Metrics"))
             .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_metrics)
-            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings));
+            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings))
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP} {}", self.title()));
+            });
+        }
     }
 
     #[instrument(skip_all, err)]
@@ -294,7 +336,6 @@ impl Pane {
     }
 }
 
-pub mod state;
-
+mod indices;
 mod metrics;
 mod table;

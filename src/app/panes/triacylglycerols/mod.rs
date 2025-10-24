@@ -1,26 +1,23 @@
-use self::{
-    metrics::Metrics,
-    moments::Moments,
-    state::{Settings, State},
-    table::TableView,
-};
+use self::{metrics::Metrics, moments::Moments, table::TableView};
 use super::{Behavior, MARGIN};
 use crate::{
-    app::computers::{
-        MomentsComputed, MomentsKey, TriacylglycerolsComputed, TriacylglycerolsKey,
-        metrics::{Computed as MetricsComputed, Key as MetricsKey},
+    app::{
+        computers::triacylglycerols::{
+            Computed as TriacylglycerolsComputed, Key as TriacylglycerolsKey,
+            metrics::{Computed as MetricsComputed, Key as MetricsKey},
+            moments::{Computed as MomentsComputed, Key as MomentsKey},
+        },
+        states::triacylglycerols::{ID_SOURCE, Settings, State},
     },
     utils::HashedMetaDataFrame,
 };
-use anyhow::Result;
 use egui::{
-    Button, CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Response, RichText, ScrollArea,
-    TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
+    Button, CentralPanel, CursorIcon, Frame, Id, IntoAtoms, Label, MenuBar, Response, RichText,
+    ScrollArea, TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
 };
 use egui_l20n::UiExt as _;
 use egui_phosphor::regular::{
-    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, FLOPPY_DISK, GEAR, NOTE_PENCIL, SIGMA, SLIDERS_HORIZONTAL,
-    TAG, X,
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
 use metadata::egui::MetadataWidget;
@@ -28,8 +25,6 @@ use polars::prelude::*;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
-
-const ID_SOURCE: &str = "Triacylglycerols";
 
 /// Triacylglycerols pane
 #[derive(Default, Deserialize, Serialize)]
@@ -98,7 +93,9 @@ impl Pane {
     }
 
     fn top(&mut self, ui: &mut Ui, state: &mut State) -> Response {
-        let mut response = ui.heading(NOTE_PENCIL).on_hover_text("Triacylglycerols");
+        let mut response = ui
+            .heading((DROP, DROP, DROP).into_atoms().text().unwrap_or_default())
+            .on_hover_text("Triacylglycerols");
         response |= ui.heading(self.title());
         response = response
             .on_hover_text(format!("{:x}", self.hash()))
@@ -227,21 +224,31 @@ impl Pane {
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+        if let Some(inner_response) = Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
                 state.settings.show(ui);
+            })
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP}{DROP}{DROP} {}", self.title()));
             });
+        }
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SIGMA} Metrics"))
+        if let Some(inner_response) = Window::new(format!("{SIGMA} Metrics"))
             .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_metrics)
-            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings));
+            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings))
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP}{DROP}{DROP} {}", self.title()));
+            });
+        }
     }
 
     #[instrument(skip_all, err)]
@@ -263,11 +270,16 @@ impl Pane {
     }
 
     fn moments(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SIGMA} Moments"))
+        if let Some(inner_response) = Window::new(format!("{SIGMA} Moments"))
             .id(ui.auto_id_with(ID_SOURCE).with("Moments"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_moments)
-            .show(ui.ctx(), |ui| self.moments_content(ui, &state.settings));
+            .show(ui.ctx(), |ui| self.moments_content(ui, &state.settings))
+        {
+            inner_response.response.on_hover_ui(|ui| {
+                ui.label(format!("{DROP}{DROP}{DROP} {}", self.title()));
+            });
+        }
     }
 
     #[instrument(skip_all, err)]
@@ -288,8 +300,6 @@ impl Pane {
         Ok(())
     }
 }
-
-pub mod state;
 
 mod metrics;
 mod moments;

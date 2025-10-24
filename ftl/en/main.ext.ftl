@@ -8,9 +8,9 @@ StereospecificNumber = { $number ->
     [2] Stereospecific number 2
     [3] Stereospecific number 3
     *[one] Stereospecific number
-    [123] Stereospecific numbers 1, 2, 3
-    [1223] Stereospecific numbers 1, 2 or 2, 3
-    [13] Stereospecific numbers 1, 3
+    [123] Stereospecific numbers 1,2,3
+    [1223] Stereospecific numbers 1,2(2,3)
+    [13] Stereospecific numbers 1,3
     [many] Stereospecific numbers
 }
     .abbreviation = { $number ->

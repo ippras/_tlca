@@ -1,6 +1,6 @@
 [package]
 name = "tlca"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 
@@ -14,8 +14,7 @@ eframe = { version = "0.33.0", features = [
     "wayland",
 ] }
 egui = "0.33.0"
-# egui-phosphor = "0.10.0"
-egui-phosphor = { git = "https://github.com/bircni/egui-phosphor", branch = "feature/egui-0.33" }
+egui-phosphor = { git = "https://github.com/bircni/egui-phosphor", branch = "feature/egui-0.33" } # egui-phosphor = "0.10.0"
 egui_dnd = "0.14.0"
 egui_extras = { version = "0.33.0", features = ["datepicker", "serde", "svg"] }
 egui_table = "0.5.0"
@@ -23,7 +22,8 @@ egui_tiles = "0.14.0"
 itertools = "0.14.0"
 log = "0.4.28"
 parking_lot = "0.12.5"
-polars = { version = "0.51.0", default-features = false, features = [
+# polars = { version = "0.51.0", default-features = false, features = [
+polars = { git = "https://github.com/pola-rs/polars", rev = "5594b81b1177ad20ebecff8ad4c807b1816647ff", default-features = false, features = [
     "array_arithmetic",
     "bitwise",
     "concat_str",
@@ -43,6 +43,9 @@ polars = { version = "0.51.0", default-features = false, features = [
     "round_series",
     "row_hash",
     "strings",
+    #
+    "dtype-datetime",
+    "timezones",
     # "dtype-categorical",
     # "ndarray",
     # "parquet",
@@ -60,18 +63,17 @@ egui_l20n = { git = "https://github.com/kgv/egui_l20n", branch = "egui-0.33.0", 
     "macros",
 ] }
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "egui-0.33.0" }
-lipid = { git = "https://github.com/ippras/lipid" }
-metadata = { git = "https://github.com/ippras/metadata", branch = "new", features = [
+lipid = { git = "https://github.com/ippras/lipid", branch = "new-polars" }
+metadata = { git = "https://github.com/ippras/metadata", branch = "new-polars", features = [
     "egui",
     "polars",
 ] }
-polars_ext = { git = "https://github.com/kgv/polars_ext" }
+polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "new-polars" }
 
 # scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
 #     "stats",
 # ] }
 # scirs2 = "0.1.0-rc.1"
-
 # linfa = "0.7.1"
 # linfa-hierarchical = "0.7.1"
 # linfa-kernel = "0.7.1"

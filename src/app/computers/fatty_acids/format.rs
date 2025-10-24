@@ -1,4 +1,4 @@
-use crate::{app::panes::fatty_acids::state::Settings, utils::HashedDataFrame};
+use crate::{app::states::fatty_acids::Settings, utils::HashedDataFrame};
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;

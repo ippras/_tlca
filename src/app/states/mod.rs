@@ -1,46 +1,6 @@
-use self::composition::{Composition, SPECIES_STEREO};
 use crate::r#const::markdown::*;
-use egui::emath::Float as _;
 use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
-
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct Parameters {
-    pub composition: Composition,
-    pub filter: Filter,
-    pub threshold: f64,
-    pub sort: Sort,
-    pub metric: Metric,
-}
-
-impl Parameters {
-    pub fn new() -> Self {
-        Self {
-            composition: SPECIES_STEREO,
-            filter: Filter::Union,
-            threshold: 0.0,
-            sort: Sort::Value,
-            metric: Metric::HellingerDistance,
-        }
-    }
-}
-
-impl Default for Parameters {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Hash for Parameters {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.composition.hash(state);
-        self.filter.hash(state);
-        self.threshold.ord().hash(state);
-        self.sort.hash(state);
-        self.metric.hash(state);
-    }
-}
 
 /// Filter
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
@@ -204,4 +164,5 @@ impl Metric {
     }
 }
 
-pub mod composition;
+pub mod fatty_acids;
+pub mod triacylglycerols;

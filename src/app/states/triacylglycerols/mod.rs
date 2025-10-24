@@ -1,14 +1,21 @@
-use super::ID_SOURCE;
-use crate::app::{
-    MAX_PRECISION,
-    parameters::{Filter, Metric, Parameters, Sort},
+use self::{
+    composition::{COMPOSITIONS, Composition, SPECIES_STEREO},
+    windows::Windows,
 };
-use egui::{ComboBox, Context, Grid, Id, Key, RichText, Slider, Ui, Widget};
+use super::{Filter, Metric, Sort};
+use crate::app::MAX_PRECISION;
+use egui::{
+    ComboBox, Context, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Slider, Ui, Widget,
+    emath::Float as _,
+};
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_l20n::UiExt as _;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
+
+pub(crate) const ID_SOURCE: &str = "Triacylglycerols";
 
 const METRICS: [Metric; 11] = [
     Metric::HellingerDistance,
@@ -82,6 +89,8 @@ pub struct Settings {
     pub sticky: usize,
     // Metrics settings
     pub chaddock: bool,
+    // Moment settings
+    pub bias: bool,
 
     pub parameters: Parameters,
 }
@@ -98,6 +107,8 @@ impl Settings {
             sticky: 0,
 
             chaddock: true,
+
+            bias: true,
 
             parameters: Parameters::new(),
         }
@@ -133,6 +144,38 @@ impl Settings {
 
             ui.separator();
             ui.labeled_separator(ui.localize("Parameters"));
+            ui.end_row();
+
+            // Composition
+            ui.label(ui.localize("Composition")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Composition.hover"));
+            });
+            ComboBox::from_id_salt(ui.auto_id_with("Composition"))
+                .selected_text(ui.localize(self.parameters.composition.text()))
+                .show_ui(ui, |ui| {
+                    for selected_value in COMPOSITIONS {
+                        ui.selectable_value(
+                            &mut self.parameters.composition,
+                            selected_value,
+                            ui.localize(selected_value.text()),
+                        )
+                        .on_hover_ui(|ui| {
+                            ui.label(ui.localize(selected_value.hover_text()));
+                        });
+                    }
+                })
+                .response
+                .on_hover_text(ui.localize(self.parameters.composition.hover_text()));
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
+            }) {
+                self.parameters.composition = self.parameters.composition.forward();
+            }
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+            }) {
+                self.parameters.composition = self.parameters.composition.backward();
+            }
             ui.end_row();
 
             // Filter
@@ -271,6 +314,14 @@ impl Settings {
             ui.separator();
             ui.labeled_separator(ui.localize("Moments"));
             ui.end_row();
+
+            // Bias
+            let mut response = ui.label(ui.localize("Bias"));
+            response |= ui.checkbox(&mut self.bias, "");
+            response.on_hover_ui(|ui| {
+                ui.label(ui.localize("Bias.hover"));
+            });
+            ui.end_row();
         });
     }
 }
@@ -281,18 +332,43 @@ impl Default for Settings {
     }
 }
 
-/// Calculation windows
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
-pub struct Windows {
-    pub open_metrics: bool,
-    pub open_settings: bool,
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct Parameters {
+    pub composition: Composition,
+    pub filter: Filter,
+    pub threshold: f64,
+    pub sort: Sort,
+    pub metric: Metric,
 }
 
-impl Windows {
+impl Parameters {
     pub fn new() -> Self {
         Self {
-            open_metrics: false,
-            open_settings: false,
+            composition: SPECIES_STEREO,
+            filter: Filter::Union,
+            threshold: 0.0,
+            sort: Sort::Value,
+            metric: Metric::HellingerDistance,
         }
     }
 }
+
+impl Default for Parameters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Hash for Parameters {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.composition.hash(state);
+        self.filter.hash(state);
+        self.threshold.ord().hash(state);
+        self.sort.hash(state);
+        self.metric.hash(state);
+    }
+}
+
+pub mod composition;
+
+mod windows;

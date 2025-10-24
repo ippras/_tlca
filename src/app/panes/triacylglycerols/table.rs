@@ -1,10 +1,12 @@
-use super::{
-    super::{MARGIN, mean_and_standard_deviation},
-    ID_SOURCE,
-    state::State,
-};
 use crate::{
-    app::computers::{DisplayComputed, DisplayKey, TriacylglycerolsComputed, TriacylglycerolsKey},
+    app::{
+        computers::triacylglycerols::{
+            Computed as TriacylglycerolsComputed, Key as TriacylglycerolsKey,
+            format::{Computed as FormatComputed, Key as FormatKey},
+        },
+        panes::{MARGIN, mean_and_standard_deviation},
+        states::triacylglycerols::{ID_SOURCE, State},
+    },
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
@@ -145,14 +147,11 @@ impl TableView<'_> {
             }
             (row, &TAG) => {
                 let data_frame = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<DisplayComputed>()
-                        .get(DisplayKey::new(
-                            &self.target,
-                            TAG.start,
-                            &self.state.settings,
-                        ))
+                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+                        &self.target,
+                        TAG.start,
+                        &self.state.settings,
+                    ))
                 });
                 if let Some(label) = data_frame[LABEL].str()?.get(row) {
                     let response = Label::new(label).sense(Sense::click()).ui(ui);
@@ -165,14 +164,11 @@ impl TableView<'_> {
             }
             (row, range) => {
                 let data_frame = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<DisplayComputed>()
-                        .get(DisplayKey::new(
-                            &self.target,
-                            range.start,
-                            &self.state.settings,
-                        ))
+                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+                        &self.target,
+                        range.start,
+                        &self.state.settings,
+                    ))
                 });
                 mean_and_standard_deviation(ui, &data_frame, row)?;
             }
@@ -185,14 +181,11 @@ impl TableView<'_> {
             INDEX | TAG => {}
             range => {
                 let data_frame = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<DisplayComputed>()
-                        .get(DisplayKey::new(
-                            &self.target,
-                            range.start,
-                            &self.state.settings,
-                        ))
+                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+                        &self.target,
+                        range.start,
+                        &self.state.settings,
+                    ))
                 });
                 let row = data_frame.height() - 1;
                 mean_and_standard_deviation(ui, &data_frame, row)?;

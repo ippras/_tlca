@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::native::save;
 #[cfg(target_arch = "wasm32")]
@@ -11,6 +9,8 @@ use ron::{
     extensions::Extensions,
     ser::{PrettyConfig, to_string_pretty},
 };
+use serde::Serialize;
+use std::sync::LazyLock;
 use tracing::instrument;
 
 const CONFIG: LazyLock<PrettyConfig> =
@@ -19,7 +19,6 @@ const CONFIG: LazyLock<PrettyConfig> =
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
     use super::*;
-    use serde::Serialize;
     use std::{fs::File, io::Write};
 
     #[instrument(skip(frame), err)]
@@ -37,8 +36,8 @@ mod web {
     use anyhow::bail;
     use egui_ext::download::{NONE, download};
 
-    #[instrument(err)]
-    pub fn save(frame: &MetaDataFrame, name: &str) -> Result<()> {
+    #[instrument(skip(frame), err)]
+    pub fn save(frame: &MetaDataFrame<impl Serialize, impl Serialize>, name: &str) -> Result<()> {
         let serialized = to_string_pretty(&frame, CONFIG.clone())?;
         if let Err(error) = download(serialized.as_bytes(), NONE, name) {
             bail!("save: {error:?}");

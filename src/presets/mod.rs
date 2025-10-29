@@ -82,7 +82,7 @@ pub(crate) mod sidorov2014 {
     }
 }
 
-// [Sidorov2014](https://doi.org/10.3390/plants14040612)
+// [Sidorov2025](https://doi.org/10.3390/plants14040612)
 pub(crate) mod sidorov2025 {
     #[rustfmt::skip]
     pub(crate) mod fa {

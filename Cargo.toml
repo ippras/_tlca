@@ -22,8 +22,7 @@ egui_tiles = "0.14.0"
 itertools = "0.14.0"
 log = "0.4.28"
 parking_lot = "0.12.5"
-# polars = { version = "0.51.0", default-features = false, features = [
-polars = { git = "https://github.com/pola-rs/polars", rev = "5594b81b1177ad20ebecff8ad4c807b1816647ff", default-features = false, features = [
+polars = { version = "0.52.0", default-features = false, features = [
     "array_arithmetic",
     "bitwise",
     "concat_str",
@@ -51,7 +50,7 @@ polars = { git = "https://github.com/pola-rs/polars", rev = "5594b81b1177ad20ebe
     # "parquet",
     # "ipc",
 ] }
-polars-utils = { version = "0.51.0", features = ["nightly"] }
+polars-utils = { version = "0.52.0", features = ["nightly"] }
 ron = "0.11.0"
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive", "std"] }

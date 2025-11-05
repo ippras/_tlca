@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" height="256" width="256">
+  <style>
+    /* Стиль по умолчанию (светлая тема) */
+    .logo-stroke {
+      stroke: black; /* Цвет для светлой темы */
+    }
+
+    /* Стиль для темной темы */
+    @media (prefers-color-scheme: dark) {
+      .logo-stroke {
+        stroke: white; /* Цвет для темной темы */
+      }
+    }
+  </style>
+
+  <defs>
+    <g id="drop">
+      <path class="logo-stroke" d="M208,144c0-72-80-128-80-128S48,72,48,144a80,80,0,0,0,160,0Z" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>
+      <path class="logo-stroke" d="M136,192c20-3.37,36.61-20,40-40" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+    </g>
+  </defs>
+
+  <use href="#drop" transform="translate(128, 78) rotate(180) scale(0.5) translate(-128, -128)"/>
+  <use href="#drop" transform="translate(76, 168) scale(0.5) translate(-128, -128)"/>
+  <use href="#drop" transform="translate(180, 168) scale(0.5) translate(-128, -128)"/>
+</svg>

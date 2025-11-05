@@ -1,7 +1,7 @@
 use self::{
     data::Data,
     panes::{Behavior, Pane},
-    widgets::PresetsWidget,
+    widgets::{Github, Presets},
     windows::About,
 };
 use crate::{
@@ -230,8 +230,10 @@ impl App {
                         }
                     }
                     ui.separator();
-                    // Load
-                    ui.add(PresetsWidget);
+                    // Presets
+                    ui.add(Presets);
+                    ui.separator();
+                    ui.add(Github);
                     ui.separator();
                     // About
                     if ui

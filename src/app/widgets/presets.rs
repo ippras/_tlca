@@ -8,10 +8,10 @@ use egui::{
 use egui_ext::LabeledSeparator as _;
 use egui_phosphor::regular::{DATABASE, DROP};
 
-/// Presets
-pub struct PresetsWidget;
+/// Presets widget
+pub struct Presets;
 
-impl PresetsWidget {
+impl Presets {
     fn content(&mut self, ui: &mut Ui) {
         // IPPRAS
         ui.hyperlink_to(RichText::new("IPPRAS").heading(), "https://ippras.ru");
@@ -169,7 +169,7 @@ impl PresetsWidget {
     }
 }
 
-impl Widget for PresetsWidget {
+impl Widget for Presets {
     fn ui(mut self, ui: &mut Ui) -> Response {
         MenuButton::new(RichText::new(DATABASE).size(ICON_SIZE))
             .config(MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside))

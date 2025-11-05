@@ -133,11 +133,11 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let by = [match key.composition {
         MASS_MONO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .mass(None)
+            .relative_atomic_mass(None)
             .round(ROUND_MASS, RoundMode::HalfToEven),
         MASS_STEREO => col(TRIACYLGLYCEROL).triacylglycerol().map_expr(|expr| {
             expr.fatty_acid()
-                .mass(None)
+                .relative_atomic_mass(None)
                 .round(ROUND_MASS, RoundMode::HalfToEven)
         }),
         ECN_MONO => col(TRIACYLGLYCEROL)

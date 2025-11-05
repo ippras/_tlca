@@ -1,3 +1,4 @@
-pub(super) use self::presets::PresetsWidget;
+pub(super) use self::{github::Github, presets::Presets};
 
+mod github;
 mod presets;

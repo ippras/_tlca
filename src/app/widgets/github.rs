@@ -7,7 +7,7 @@ use egui::{
     Context, Id, PopupCloseBehavior, Response, RichText, ScrollArea, Ui, Widget,
     containers::menu::{MenuButton, MenuConfig},
 };
-use egui_ext::{Doi as _, LabeledSeparator as _};
+use egui_ext::Doi as _;
 use egui_phosphor::regular::{CLOUD_ARROW_DOWN, DROP};
 use ehttp::{Request, fetch_async};
 use metadata::polars::MetaDataFrame;
@@ -63,9 +63,21 @@ impl Github {
             ui.heading("Helianthus annuus");
             ui.menu_button((DROP, "Fatty acids"), |ui| {
                 let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.fa.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3714.2025-10-31.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.tag.utca.ron");
+                let _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3714.2025-10-31.tag.utca.ron");
             });
         });
         ui.menu_button("Microalgae", |ui| {

@@ -56,7 +56,7 @@ impl Metrics<'_> {
                     });
                     for column in 0..columns {
                         row.col(|ui| {
-                            let _ = self.body_cell_content_ui(ui, index, column);
+                            _ = self.body_cell_content_ui(ui, index, column);
                         });
                     }
                 });

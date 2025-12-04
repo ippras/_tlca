@@ -180,7 +180,7 @@ impl Pane {
             ))
             .clicked()
         {
-            // let _ = self.save();
+            // _ = self.save();
         }
         ui.separator();
         response
@@ -212,7 +212,7 @@ impl Pane {
     }
 
     fn data(&mut self, ui: &mut Ui, state: &mut State) {
-        let _ = TableView::new(&mut self.frames, state).show(ui);
+        _ = TableView::new(&mut self.frames, state).show(ui);
     }
 }
 
@@ -265,7 +265,7 @@ impl Pane {
                 parameters: &settings.parameters,
             })
         });
-        let _ = Metrics::new(&data_frame, settings).show(ui);
+        _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())
     }
 
@@ -296,7 +296,7 @@ impl Pane {
                 bias: settings.bias,
             })
         });
-        let _ = Moments::new(&data_frame, settings).show(ui);
+        _ = Moments::new(&data_frame, settings).show(ui);
         Ok(())
     }
 }

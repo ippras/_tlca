@@ -111,7 +111,7 @@ impl TableDelegate for Metrics<'_> {
         Frame::new()
             .inner_margin(Margin::from(MARGIN))
             .show(ui, |ui| {
-                let _ =
+                _ =
                     self.body_cell_content_ui(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1);
             });
     }

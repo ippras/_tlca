@@ -196,7 +196,7 @@ impl Pane {
                 })
                 .clicked()
             {
-                let _ = self.save_ron(&title);
+                _ = self.save_ron(&title);
             }
             // if ui
             //     .button("PARQUET")
@@ -208,9 +208,9 @@ impl Pane {
             //     })
             //     .clicked()
             // {
-            //     let _ = self.save_parquet(&title);
+            //     _ = self.save_parquet(&title);
             // }
-            // let _ = self.save();
+            // _ = self.save();
         });
         ui.separator();
         response
@@ -249,7 +249,7 @@ impl Pane {
                 .cache::<FattyAcidsComputed>()
                 .get(FattyAcidsKey::new(&self.frames, &state.settings))
         });
-        let _ = TableView::new(&frame, state).show(ui);
+        _ = TableView::new(&frame, state).show(ui);
     }
 }
 
@@ -331,7 +331,7 @@ impl Pane {
                 parameters: &settings.parameters,
             })
         });
-        let _ = Metrics::new(&data_frame, settings).show(ui);
+        _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())
     }
 }

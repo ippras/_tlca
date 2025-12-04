@@ -65,6 +65,7 @@ impl Github {
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.fa.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.fa.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3110.2025-11-10.fa.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.fa.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.fa.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.fa.utca.ron");
@@ -74,6 +75,7 @@ impl Github {
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.tag.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.tag.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3110.2025-11-10.tag.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.tag.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.tag.utca.ron");
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.tag.utca.ron");

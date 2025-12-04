@@ -4,10 +4,10 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
-/// Display computed
+/// Format computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
 
-/// Display computer
+/// Format computer
 #[derive(Default)]
 pub(crate) struct Computer;
 
@@ -25,7 +25,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
     }
 }
 
-/// Display key
+/// Format key
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
@@ -47,7 +47,7 @@ impl<'a> Key<'a> {
     }
 }
 
-/// Display value
+/// Format value
 type Value = DataFrame;
 
 fn format(key: Key) -> PolarsResult<LazyFrame> {

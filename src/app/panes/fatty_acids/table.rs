@@ -116,11 +116,10 @@ impl TableView<'_> {
             }
             (row, &ID) => {
                 let data_frame = ui.memory_mut(|memory| {
-                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
-                        &self.frame,
-                        ID.start,
-                        &self.state.settings,
-                    ))
+                    memory
+                        .caches
+                        .cache::<FormatComputed>()
+                        .get(FormatKey::new(&self.frame, &self.state.settings))
                 });
                 let label = data_frame[LABEL].get(row)?.str_value();
                 let response = ui.label(label);
@@ -134,14 +133,8 @@ impl TableView<'_> {
                 }
             }
             (row, range) => {
-                let data_frame = ui.memory_mut(|memory| {
-                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
-                        &self.frame,
-                        range.start,
-                        &self.state.settings,
-                    ))
-                });
-                self.mean_and_standard_deviation(ui, range.start, row)?;
+                self.with_array(ui, range.start, row)?;
+                // self.mean_and_standard_deviation(ui, range.start, row)?;
             }
         }
         Ok(())
@@ -197,6 +190,28 @@ impl TableView<'_> {
                 response = response.on_hover_ui(|ui| {
                     ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                     ui.heading(ui.localize("StandardDeviation"));
+                    ui.label(text);
+                });
+            }
+        }
+        Ok(response)
+    }
+
+    fn with_array(&self, ui: &mut Ui, column: usize, row: usize) -> PolarsResult<Response> {
+        let mut response = self.mean_and_standard_deviation(ui, column, row)?;
+        if response.hovered() {
+            // let data_frame = ui.memory_mut(|memory| {
+            //     memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+            //         &self.frame,
+            //         column,
+            //         &self.state.settings,
+            //     ))
+            // });
+            // Array
+            if let Some(text) = data_frame["Array"].str()?.get(row) {
+                response = response.on_hover_ui(|ui| {
+                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                    ui.heading(ui.localize("Array"));
                     ui.label(text);
                 });
             }

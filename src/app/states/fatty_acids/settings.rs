@@ -17,13 +17,15 @@ use serde::{Deserialize, Serialize};
 use std::{
     hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
+    sync::LazyLock,
 };
 
-const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 4] = [
+const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
+
+const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
+    StereospecificNumbers::Sn123,
     StereospecificNumbers::Sn13,
     StereospecificNumbers::Sn2,
-    StereospecificNumbers::Sn3,
-    StereospecificNumbers::Sn123,
 ];
 
 const METRICS: [Metric; 11] = [
@@ -48,6 +50,7 @@ const SEPARATORS: [usize; 3] = [3, 6, 9];
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
+    pub(crate) normalize_factor: bool,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     #[serde(skip)]
@@ -68,6 +71,7 @@ pub(crate) struct Settings {
 impl Settings {
     pub(crate) fn new() -> Self {
         Self {
+            normalize_factor: false,
             percent: true,
             precision: 2,
             resizable: false,
@@ -87,84 +91,24 @@ impl Settings {
 
 impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
-        let id_salt = Id::new(ID_SOURCE).with("Settings");
-        Grid::new(id_salt).show(ui, |ui| {
+        Grid::new(*ID_SALT).show(ui, |ui| {
             self.precision(ui);
             self.percent(ui);
             self.standard_deviation(ui);
-
-            // Truncate
-            let mut response = ui.label(ui.localize("Truncate"));
-            response |= ui.checkbox(&mut self.truncate, "");
-            response.on_hover_ui(|ui| {
-                ui.label(ui.localize("Truncate.hover"));
-            });
-            ui.end_row();
+            self.normalize_factor(ui);
+            self.truncate(ui);
 
             ui.separator();
             ui.labeled_separator(ui.localize("Parameters"));
             ui.end_row();
 
-            // Display
-            ui.label(ui.localize("Display")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Display.hover"));
-            });
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(ui.localize(self.parameters.display.text()))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.parameters.display,
-                        Display::StereospecificNumbers,
-                        ui.localize(Display::StereospecificNumbers.text()),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label(ui.localize(Display::StereospecificNumbers.hover_text()));
-                    });
-                    ui.selectable_value(
-                        &mut self.parameters.display,
-                        Display::Factors,
-                        ui.localize(Display::Factors.text()),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label(ui.localize(Display::Factors.hover_text()));
-                    });
-                })
-                .response
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(self.parameters.display.hover_text()));
-                });
-            ui.end_row();
-
-            // Stereospecific numbers
-            ui.label(ui.localize("StereospecificNumber?number=many"))
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize("StereospecificNumber.abbreviation?number=other"));
-                });
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(ui.localize(self.parameters.stereospecific_numbers.text()))
-                .show_ui(ui, |ui| {
-                    for stereospecific_number in STEREOSPECIFIC_NUMBERS {
-                        ui.selectable_value(
-                            &mut self.parameters.stereospecific_numbers,
-                            stereospecific_number,
-                            ui.localize(stereospecific_number.text()),
-                        )
-                        .on_hover_ui(|ui| {
-                            ui.label(ui.localize(stereospecific_number.hover_text()));
-                        });
-                    }
-                })
-                .response
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(self.parameters.stereospecific_numbers.hover_text()));
-                });
-            ui.end_row();
+            self.display(ui);
 
             // Filter
             ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Filter.hover"));
             });
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
                 .selected_text(ui.localize(self.parameters.filter.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
@@ -230,7 +174,7 @@ impl Settings {
             ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Sort.hover"));
             });
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
                 .selected_text(ui.localize(self.parameters.sort.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
@@ -258,7 +202,7 @@ impl Settings {
             ui.label(ui.localize("Metric?PluralCategory=one"))
                 .on_hover_text(ui.localize("Metric.hover"));
             #[allow(unused_variables)]
-            let response = ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
                 .selected_text(ui.localize(self.parameters.metric.text()))
                 .show_ui(ui, |ui| {
                     for (index, metric) in METRICS.into_iter().enumerate() {
@@ -309,7 +253,7 @@ impl Settings {
                     .map(|index| ui.localize(&format!("Indices_{}", index.name))),
                 1
             );
-            ComboBox::from_id_salt(ui.auto_id_with(id_salt))
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
                 .selected_text(selected_text)
                 .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
                 .show_ui(ui, |ui| self.parameters.indices.show(ui));
@@ -350,6 +294,123 @@ impl Settings {
         });
         ui.end_row();
     }
+
+    /// Normalize factor
+    fn normalize_factor(&mut self, ui: &mut Ui) {
+        ui.label(ui.localize("NormalizeFactor"))
+            .on_hover_localized("NormalizeFactor.hover");
+        ui.checkbox(&mut self.normalize_factor, ());
+        ui.end_row();
+    }
+
+    /// Truncate
+    fn truncate(&mut self, ui: &mut Ui) {
+        let mut response = ui.label(ui.localize("Truncate"));
+        response |= ui.checkbox(&mut self.truncate, "");
+        response.on_hover_ui(|ui| {
+            ui.label(ui.localize("Truncate.hover"));
+        });
+        ui.end_row();
+    }
+
+    /// Display
+    fn display(&mut self, ui: &mut Ui) {
+        // Display
+        ui.label(ui.localize("Display")).on_hover_ui(|ui| {
+            ui.label(ui.localize("Display.hover"));
+        });
+        ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+            .selected_text(ui.localize(self.parameters.display.text()))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(
+                    &mut self.parameters.display,
+                    Display::StereospecificNumbers,
+                    ui.localize(Display::StereospecificNumbers.text()),
+                )
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(Display::StereospecificNumbers.hover_text()));
+                });
+                ui.selectable_value(
+                    &mut self.parameters.display,
+                    Display::Factor,
+                    ui.localize(Display::Factor.text()),
+                )
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(Display::Factor.hover_text()));
+                });
+            })
+            .response
+            .on_hover_ui(|ui| {
+                ui.label(ui.localize(self.parameters.display.hover_text()));
+            });
+        ui.end_row();
+
+        // Stereospecific numbers
+        let enabled = self.parameters.display == Display::StereospecificNumbers;
+        ui.add_enabled_ui(enabled, |ui| {
+            ui.label(ui.localize("StereospecificNumber?number=many"))
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize("StereospecificNumber.abbreviation?number=other"));
+                });
+        });
+        ui.add_enabled_ui(enabled, |ui| {
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.parameters.stereospecific_numbers.text()))
+                .show_ui(ui, |ui| {
+                    for stereospecific_number in STEREOSPECIFIC_NUMBERS {
+                        ui.selectable_value(
+                            &mut self.parameters.stereospecific_numbers,
+                            stereospecific_number,
+                            ui.localize(stereospecific_number.text()),
+                        )
+                        .on_hover_ui(|ui| {
+                            ui.label(ui.localize(stereospecific_number.hover_text()));
+                        });
+                    }
+                })
+                .response
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(self.parameters.stereospecific_numbers.hover_text()));
+                });
+        });
+        ui.end_row();
+
+        // Factor
+        let enabled = self.parameters.display == Display::Factor;
+        ui.add_enabled_ui(enabled, |ui| {
+            ui.label(ui.localize("Factor?Number=many"))
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize("Factor.abbreviation?Number=other"));
+                });
+        });
+        ui.add_enabled_ui(enabled, |ui| {
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.parameters.factor.text()))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.parameters.factor,
+                        Factor::Enrichment,
+                        ui.localize(Factor::Enrichment.text()),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize(Factor::Enrichment.hover_text()));
+                    });
+                    ui.selectable_value(
+                        &mut self.parameters.factor,
+                        Factor::Selectivity,
+                        ui.localize(Factor::Selectivity.text()),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize(Factor::Selectivity.hover_text()));
+                    });
+                })
+                .response
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(self.parameters.factor.hover_text()));
+                });
+        });
+        ui.end_row();
+    }
 }
 
 impl Default for Settings {
@@ -363,7 +424,7 @@ impl Default for Settings {
 pub(crate) struct Parameters {
     pub(crate) display: Display,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) factors: Factors,
+    pub(crate) factor: Factor,
     pub(crate) filter: Filter,
     pub(crate) threshold: f64,
     pub(crate) sort: Sort,
@@ -376,7 +437,7 @@ impl Parameters {
         Self {
             display: Display::StereospecificNumbers,
             stereospecific_numbers: StereospecificNumbers::Sn123,
-            factors: Factors::Enrichment,
+            factor: Factor::Enrichment,
             filter: Filter::Union,
             threshold: 0.0,
             sort: Sort::Value,
@@ -406,21 +467,21 @@ impl Hash for Parameters {
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum Display {
     StereospecificNumbers,
-    Factors,
+    Factor,
 }
 
 impl Display {
     pub(crate) fn text(&self) -> &'static str {
         match self {
             Self::StereospecificNumbers => "StereospecificNumber?number=many",
-            Self::Factors => "Factor?Number=many",
+            Self::Factor => "Factor?Number=many",
         }
     }
 
     pub(crate) fn hover_text(&self) -> &'static str {
         match self {
             Self::StereospecificNumbers => "StereospecificNumber.abbreviation?number=other",
-            Self::Factors => "Factor?Number=many.hover",
+            Self::Factor => "Factor?Number=many.hover",
         }
     }
 }
@@ -431,7 +492,6 @@ pub(crate) enum StereospecificNumbers {
     Sn123,
     Sn13,
     Sn2,
-    Sn3,
 }
 
 impl StereospecificNumbers {
@@ -440,25 +500,39 @@ impl StereospecificNumbers {
             Self::Sn123 => "StereospecificNumber.abbreviation?number=123",
             Self::Sn13 => "StereospecificNumber.abbreviation?number=13",
             Self::Sn2 => "StereospecificNumber.abbreviation?number=2",
-            Self::Sn3 => "StereospecificNumber.abbreviation?number=3",
         }
     }
 
     pub(crate) fn hover_text(&self) -> &'static str {
         match self {
             Self::Sn123 => "StereospecificNumber?number=123",
-            Self::Sn13 => "StereospecificNumber?number=1",
+            Self::Sn13 => "StereospecificNumber?number=13",
             Self::Sn2 => "StereospecificNumber?number=2",
-            Self::Sn3 => "StereospecificNumber?number=3",
         }
     }
 }
 
 /// Stereospecific numbers
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum Factors {
+pub(crate) enum Factor {
     Selectivity,
     Enrichment,
+}
+
+impl Factor {
+    pub(crate) fn text(&self) -> &'static str {
+        match self {
+            Self::Enrichment => "EnrichmentFactor",
+            Self::Selectivity => "SelectivityFactor",
+        }
+    }
+
+    pub(crate) fn hover_text(&self) -> &'static str {
+        match self {
+            Self::Enrichment => "EnrichmentFactor.hover",
+            Self::Selectivity => "SelectivityFactor.hover",
+        }
+    }
 }
 
 /// Indices

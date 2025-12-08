@@ -1,7 +1,7 @@
 use crate::{
     app::states::{
         Filter, Sort,
-        fatty_acids::{Display, Factors, Settings, StereospecificNumbers},
+        fatty_acids::{Display, Factor, Settings, StereospecificNumbers},
     },
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
@@ -44,10 +44,11 @@ pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) ddof: u8,
     pub(crate) display: Display,
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) factors: Factors,
+    pub(crate) factor: Factor,
     pub(crate) filter: Filter,
+    pub(crate) normalize_factor: bool,
     pub(crate) sort: Sort,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
 }
 
@@ -57,10 +58,11 @@ impl<'a> Key<'a> {
             frames,
             ddof: 1,
             display: settings.parameters.display,
-            stereospecific_numbers: settings.parameters.stereospecific_numbers,
-            factors: settings.parameters.factors,
+            factor: settings.parameters.factor,
             filter: settings.parameters.filter,
+            normalize_factor: settings.normalize_factor,
             sort: settings.parameters.sort,
+            stereospecific_numbers: settings.parameters.stereospecific_numbers,
             threshold: settings.parameters.threshold.into(),
         }
     }
@@ -140,9 +142,6 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     StereospecificNumbers::Sn2 => col(name.clone())
                         .struct_()
                         .field_by_name(STEREOSPECIFIC_NUMBERS2),
-                    StereospecificNumbers::Sn3 => col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS13),
                 }
                 .struct_()
             };
@@ -167,7 +166,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .collect::<Vec<_>>();
             lazy_frame = lazy_frame.with_columns(exprs);
         }
-        Display::Factors => {
+        Display::Factor => {
             // let mut lazy_frames = Vec::with_capacity(INDICES_LIST.len());
             // for index in [] {
             //     let exprs = schema
@@ -216,10 +215,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             //     )?),
             //     all().as_expr(),
             // ]);
-            println!(
-                "lazy_frame.select([index]).collect().unwrap(): {:?}",
-                lazy_frame.clone().collect().unwrap()
-            );
+            println!("BEFORE 0: {:?}", lazy_frame.clone().collect().unwrap());
             let stereospecific_numbers = |name: &PlSmallStr| {
                 (
                     col(name.clone())
@@ -237,12 +233,30 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     let (sn123, sn2) = stereospecific_numbers(name);
                     let tag = sn123.struct_().field_by_name("Array");
                     let mag2 = sn2.struct_().field_by_name("Array");
-                    let factor = match key.factors {
-                        Factors::Selectivity => {
-                            col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
+                    let mut factor = match key.factor {
+                        Factor::Selectivity => {
+                            let fa = col(FATTY_ACID).fatty_acid();
+                            let unsaturated_mag2 = mag2
+                                .clone()
+                                .filter(fa.clone().is_unsaturated(None))
+                                .arr()
+                                .eval(element().sum(), true)
+                                .list()
+                                .to_array(3);
+                            // let unsaturated_tag = tag
+                            //     .clone()
+                            //     .filter(fa.is_unsaturated(None))
+                            //     .arr()
+                            //     .eval(element().sum(), true);
+                            // (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
+                            // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
+                            unsaturated_mag2
                         }
-                        Factors::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
+                        Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
                     };
+                    if key.normalize_factor {
+                        factor = factor / lit(3);
+                    }
                     as_struct(vec![
                         factor.clone().arr().mean().alias("Mean"),
                         factor
@@ -266,7 +280,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .collect::<Vec<_>>();
             lazy_frame = lazy_frame.with_columns(exprs);
             println!(
-                "AFTER !!!!!! lazy_frame.select([index]).collect().unwrap(): {:?}",
+                "AFTER !!!!!!: {:?}",
                 lazy_frame
                     .clone()
                     .select([nth(2).as_expr()])

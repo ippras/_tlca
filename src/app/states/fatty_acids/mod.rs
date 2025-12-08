@@ -1,5 +1,5 @@
 pub(crate) use self::settings::{
-    Display, Factors, Indices, Parameters, Settings, StereospecificNumbers,
+    Display, Factor, Indices, Parameters, Settings, StereospecificNumbers,
 };
 
 use self::windows::Windows;

@@ -29,15 +29,17 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) column: usize,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
 }
 
 impl<'a> Key<'a> {
-    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
+    pub(crate) fn new(frame: &'a HashedDataFrame, column: usize, settings: &Settings) -> Self {
         Self {
             frame,
+            column,
             percent: settings.percent,
             precision: settings.precision,
             significant: false,
@@ -50,21 +52,16 @@ type Value = DataFrame;
 
 fn format(key: Key) -> PolarsResult<LazyFrame> {
     let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    lazy_frame = lazy_frame.select([
-        col(LABEL),
-        col(FATTY_ACID).fatty_acid().format(),
-        //
-    ]);
-    // match key.column {
-    //     1 => {
-    //         lazy_frame = lazy_frame.select([col(LABEL), col(FATTY_ACID).fatty_acid().format()]);
-    //     }
-    //     index => {
-    //         let values = lazy_frame.clone().select(format_value(index, key)?);
-    //         let sum = lazy_frame.select(format_sum(index, key)?);
-    //         lazy_frame = concat_lf_diagonal([values, sum], UnionArgs::default())?;
-    //     }
-    // }
+    match key.column {
+        1 => {
+            lazy_frame = lazy_frame.select([col(LABEL), col(FATTY_ACID).fatty_acid().format()]);
+        }
+        index => {
+            let values = lazy_frame.clone().select(format_value(index, key)?);
+            let sum = lazy_frame.select(format_sum(index, key)?);
+            lazy_frame = concat_lf_diagonal([values, sum], UnionArgs::default())?;
+        }
+    }
     Ok(lazy_frame)
 }
 

@@ -249,6 +249,13 @@ impl Pane {
                 .cache::<FattyAcidsComputed>()
                 .get(FattyAcidsKey::new(&self.frames, &state.settings))
         });
+        // let data_frame = ui.memory_mut(|memory| {
+        //     memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+        //         &self.frame,
+        //         ID.start,
+        //         &self.state.settings,
+        //     ))
+        // });
         _ = TableView::new(&frame, state).show(ui);
     }
 }

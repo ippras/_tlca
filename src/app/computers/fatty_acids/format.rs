@@ -1,4 +1,8 @@
-use crate::{app::states::fatty_acids::Settings, utils::HashedDataFrame};
+use crate::{
+    app::states::fatty_acids::Settings,
+    r#const::{ARRAY, MEAN, STANDARD_DEVIATION},
+    utils::HashedDataFrame,
+};
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
@@ -49,78 +53,85 @@ impl<'a> Key<'a> {
 type Value = DataFrame;
 
 fn format(key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    lazy_frame = lazy_frame.select([
-        col(LABEL),
-        col(FATTY_ACID).fatty_acid().format(),
-        //
-    ]);
-    // match key.column {
-    //     1 => {
-    //         lazy_frame = lazy_frame.select([col(LABEL), col(FATTY_ACID).fatty_acid().format()]);
-    //     }
-    //     index => {
-    //         let values = lazy_frame.clone().select(format_value(index, key)?);
-    //         let sum = lazy_frame.select(format_sum(index, key)?);
-    //         lazy_frame = concat_lf_diagonal([values, sum], UnionArgs::default())?;
-    //     }
-    // }
-    Ok(lazy_frame)
-}
-
-fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 3]> {
-    Ok([
-        format_mean(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name("Mean")
-                .sum(),
-            key,
-        ),
-        format_standard_deviation(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name("StandardDeviation")
-                .pow(2)
-                .sum()
-                .sqrt(),
-            key,
-        )?,
-        format_array(
-            nth(index as _).as_expr().struct_().field_by_name("Array"),
-            key,
-        )?,
-    ])
-}
-
-fn format_value(index: usize, key: Key) -> PolarsResult<[Expr; 3]> {
-    Ok([
-        format_mean(
-            nth(index as _).as_expr().struct_().field_by_name("Mean"),
-            key,
-        ),
-        format_standard_deviation(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name("StandardDeviation"),
-            key,
-        )?,
-        format_array(
-            nth(index as _).as_expr().struct_().field_by_name("Array"),
-            key,
-        )?,
-    ])
+    let lazy_frame = key.frame.data_frame.clone().lazy();
+    let mut exprs = vec![col(LABEL), col(FATTY_ACID).fatty_acid().format()];
+    let mut sum = Vec::new();
+    for name in key
+        .frame
+        .data_frame
+        .get_column_names_str()
+        .into_iter()
+        .filter(|&name| !matches!(name, LABEL | FATTY_ACID))
+    {
+        exprs.push(
+            as_struct(vec![
+                format_mean(col(name).clone().struct_().field_by_name(MEAN), key),
+                format_standard_deviation(
+                    col(name)
+                        .clone()
+                        .struct_()
+                        .field_by_name(STANDARD_DEVIATION),
+                    key,
+                )?,
+                format_array(col(name).struct_().field_by_name(ARRAY), key)?,
+            ])
+            .alias(name),
+        );
+        sum.push(
+            as_struct(vec![
+                format_mean(col(name).clone().struct_().field_by_name(MEAN).sum(), key),
+                format_standard_deviation(
+                    col(name)
+                        .clone()
+                        .struct_()
+                        .field_by_name(STANDARD_DEVIATION)
+                        .pow(2)
+                        .sum()
+                        .sqrt(),
+                    key,
+                )?,
+                // TODO: Следить когда добавят возможность складывать массивы поэлементно
+                // format_array(
+                //     col(name)
+                //         .struct_()
+                //         .field_by_name(ARRAY)
+                //         .arr()
+                //         .eval(element().sum(), false),
+                //     key,
+                // )?,
+                format_array(
+                    concat_arr(vec![
+                        col(name)
+                            .struct_()
+                            .field_by_name(ARRAY)
+                            .arr()
+                            .to_struct(None)
+                            .struct_()
+                            .field_by_name("*")
+                            .sum(),
+                    ])?
+                    .alias(ARRAY),
+                    key,
+                )?,
+            ])
+            .alias(name),
+        );
+    }
+    concat_lf_diagonal(
+        [
+            lazy_frame.clone().select(exprs),
+            lazy_frame.clone().select(sum),
+        ],
+        UnionArgs::default(),
+    )
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key).alias("Mean")
+    format_float(expr, key).alias(MEAN)
 }
 
 fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(format_str("±{}", [format_float(expr, key)])?.alias("StandardDeviation"))
+    Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
 }
 
 fn format_array(expr: Expr, key: Key) -> PolarsResult<Expr> {

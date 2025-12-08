@@ -5,6 +5,10 @@ pub(crate) const LINKS: &str = "Links";
 pub(crate) const REPORT_AN_ISSUE: &str = "Report an issue";
 pub(crate) const WEB_PAGE_ADDRESS: &str = "Web page address";
 
+pub(crate) const ARRAY: &str = "Array";
+pub(crate) const MEAN: &str = "Mean";
+pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
+
 pub(crate) mod markdown {
     pub const KURTOSIS: &str = include_str!("../doc/ru/Moments/Kurtosis.md");
     pub const SKEWNESS: &str = include_str!("../doc/ru/Moments/Skewness.md");

@@ -3,6 +3,7 @@ use crate::{
         Filter, Sort,
         fatty_acids::{Display, Factor, Settings, StereospecificNumbers},
     },
+    r#const::*,
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
@@ -149,15 +150,15 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .iter_names()
                 .filter(|&name| name != LABEL && name != FATTY_ACID)
                 .map(|name| {
-                    let mean = r#struct(name).field_by_name("Mean");
-                    let standard_deviation = r#struct(name).field_by_name("StandardDeviation");
-                    let array = r#struct(name).field_by_name("Array");
+                    let mean = r#struct(name).field_by_name(MEAN);
+                    let standard_deviation = r#struct(name).field_by_name(STANDARD_DEVIATION);
+                    let array = r#struct(name).field_by_name(ARRAY);
                     ternary_expr(
                         mean.clone().neq(0),
                         as_struct(vec![
-                            mean.alias("Mean"),
-                            standard_deviation.alias("StandardDeviation"),
-                            array.alias("Array"),
+                            mean.alias(MEAN),
+                            standard_deviation.alias(STANDARD_DEVIATION),
+                            array.alias(ARRAY),
                         ]),
                         lit(NULL),
                     )
@@ -182,14 +183,14 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             //                     StereospecificNumbers::Sn3 => STEREOSPECIFIC_NUMBERS13,
             //                 })
             //                 .struct_()
-            //                 .field_by_name("Mean");
+            //                 .field_by_name(MEAN);
             //             let mean = col(FATTY_ACID).fatty_acid().unsaturated(expr, None);
-            //             let standard_deviation = lit(0.0).alias("StandardDeviation");
-            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias("Array");
+            //             let standard_deviation = lit(0.0).alias(STANDARD_DEVIATION);
+            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias(ARRAY);
             //             as_struct(vec![
-            //                 mean.alias("Mean"),
-            //                 standard_deviation.alias("StandardDeviation"),
-            //                 array.alias("Array"),
+            //                 mean.alias(MEAN),
+            //                 standard_deviation.alias(STANDARD_DEVIATION),
+            //                 array.alias(ARRAY),
             //             ])
             //             .alias(name.clone())
             //         })
@@ -231,8 +232,8 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .filter(|&name| name != LABEL && name != FATTY_ACID)
                 .map(|name| {
                     let (sn123, sn2) = stereospecific_numbers(name);
-                    let tag = sn123.struct_().field_by_name("Array");
-                    let mag2 = sn2.struct_().field_by_name("Array");
+                    let tag = sn123.struct_().field_by_name(ARRAY);
+                    let mag2 = sn2.struct_().field_by_name(ARRAY);
                     let mut factor = match key.factor {
                         Factor::Selectivity => {
                             let fa = col(FATTY_ACID).fatty_acid();
@@ -258,21 +259,17 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                         factor = factor / lit(3);
                     }
                     as_struct(vec![
-                        factor.clone().arr().mean().alias("Mean"),
-                        factor
-                            .clone()
-                            .arr()
-                            .std(key.ddof)
-                            .alias("StandardDeviation"),
-                        factor.alias("Array"),
+                        factor.clone().arr().mean().alias(MEAN),
+                        factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
+                        factor.alias(ARRAY),
                     ])
                     .alias(name.clone())
                     // ternary_expr(
                     //     mean.clone().neq(0),
                     //     as_struct(vec![
-                    //         mean.alias("Mean"),
-                    //         standard_deviation.alias("StandardDeviation"),
-                    //         array.alias("Array"),
+                    //         mean.alias(MEAN),
+                    //         standard_deviation.alias(STANDARD_DEVIATION),
+                    //         array.alias(ARRAY),
                     //     ]),
                     //     lit(NULL),
                     // )
@@ -307,12 +304,12 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             //         .filter(|&name| name != LABEL && name != FATTY_ACID)
             //         .map(|name| {
             //             let mean = index(name);
-            //             let standard_deviation = lit(0.0).alias("StandardDeviation");
-            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias("Array");
+            //             let standard_deviation = lit(0.0).alias(STANDARD_DEVIATION);
+            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias(ARRAY);
             //             as_struct(vec![
-            //                 mean.alias("Mean"),
-            //                 standard_deviation.alias("StandardDeviation"),
-            //                 array.alias("Array"),
+            //                 mean.alias(MEAN),
+            //                 standard_deviation.alias(STANDARD_DEVIATION),
+            //                 array.alias(ARRAY),
             //             ])
             //             .alias(name.clone())
             //         }),
@@ -354,7 +351,7 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .exclude_cols([LABEL, FATTY_ACID])
         .as_expr()
         .struct_()
-        .field_by_name("Mean")
+        .field_by_name(MEAN)
         .gt(key.threshold.into_inner())])?);
     Ok(lazy_frame)
 }

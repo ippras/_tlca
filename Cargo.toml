@@ -6,6 +6,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+const_format = "0.2.35"
 eframe = { version = "0.33.2", features = [
     "accesskit",
     "default_fonts",
@@ -22,7 +23,7 @@ egui_tiles = "0.14.0"
 itertools = "0.14.0"
 log = "0.4.29"
 parking_lot = "0.12.5"
-polars = { version = "0.52.0", default-features = false, features = [
+polars = { git = "https://github.com/pola-rs/polars", rev = "fea5335", default-features = false, features = [
     "array_arithmetic",
     "bitwise",
     "concat_str",
@@ -43,6 +44,7 @@ polars = { version = "0.52.0", default-features = false, features = [
     "row_hash",
     "strings",
     #
+    "array_to_struct",
     "dtype-datetime",
     "timezones",
     # "dtype-categorical",
@@ -60,13 +62,13 @@ unic-langid = { version = "0.9.6", features = ["macros"] }
 egui_ext = { git = "https://github.com/kgv/egui_ext" }
 egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
-ehttp = { version = "0.5.0", features = ["native-async"] }
-lipid = { git = "https://github.com/ippras/lipid" }
-metadata = { git = "https://github.com/ippras/metadata", features = [
+ehttp = { version = "0.6.0", features = ["native-async"] }
+lipid = { git = "https://github.com/ippras/lipid", branch = "fea5335" }
+metadata = { git = "https://github.com/ippras/metadata", branch = "fea5335", features = [
     "egui",
     "polars",
 ] }
-polars_ext = { git = "https://github.com/kgv/polars_ext" }
+polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "fea5335" }
 url = { version = "2.5.7", features = ["serde"] }
 urlencoding = "2.1.3"
 

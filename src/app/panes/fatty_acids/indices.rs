@@ -1,6 +1,9 @@
-use crate::app::{
-    panes::MARGIN,
-    states::fatty_acids::{ID_SOURCE, Settings},
+use crate::{
+    app::{
+        panes::MARGIN,
+        states::fatty_acids::{ID_SOURCE, Settings},
+    },
+    r#const::MEAN,
 };
 use egui::{Id, TextStyle, TextWrapMode, Ui};
 use egui_extras::{Column, TableBuilder};
@@ -67,7 +70,7 @@ impl<'a> Indices<'a> {
             column => {
                 if let Some(mean) = self.data_frame[column]
                     .struct_()?
-                    .field_by_name("Mean")?
+                    .field_by_name(MEAN)?
                     .f64()?
                     .get(row)
                 {

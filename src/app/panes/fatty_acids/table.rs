@@ -1,10 +1,9 @@
 use crate::{
     app::{
-        computers::fatty_acids::format::{Computed as FormatComputed, Key as FormatKey},
-        panes::{MARGIN, mean_and_standard_deviation},
+        panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
     },
-    utils::HashedDataFrame,
+    r#const::*,
 };
 use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_l20n::UiExt;
@@ -21,13 +20,13 @@ const LEN: usize = ID.end;
 
 /// Table view
 pub(super) struct TableView<'a> {
-    frame: &'a HashedDataFrame,
+    data_frame: &'a DataFrame,
     state: &'a mut State,
 }
 
 impl<'a> TableView<'a> {
-    pub(super) fn new(frame: &'a HashedDataFrame, state: &'a mut State) -> Self {
-        Self { frame, state }
+    pub(super) fn new(data_frame: &'a DataFrame, state: &'a mut State) -> Self {
+        Self { data_frame, state }
     }
 }
 
@@ -41,8 +40,8 @@ impl TableView<'_> {
             self.state.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
-        let num_rows = self.frame.height() as u64 + 1;
-        let value = self.frame.width() - 2;
+        let num_rows = self.data_frame.height() as u64;
+        let value = self.data_frame.width() - 2;
         let num_columns = LEN + value;
         Table::new()
             .id_salt(id_salt)
@@ -83,76 +82,37 @@ impl TableView<'_> {
             (1, INDEX) => {}
             (1, ID) => {}
             (1, range) => {
-                ui.heading(self.frame[range.start].name().to_string());
+                ui.heading(self.data_frame[range.start].name().to_string());
             }
             _ => {}
         };
     }
 
-    #[instrument(skip(self, ui), err)]
     fn cell_content_ui(
         &mut self,
         ui: &mut Ui,
         row: usize,
         column: Range<usize>,
     ) -> PolarsResult<()> {
-        if row < self.frame.height() {
-            self.body_cell_content_ui(ui, row, column)?;
-        } else {
-            self.footer_cell_content_ui(ui, column)?;
-        }
-        Ok(())
-    }
-
-    fn body_cell_content_ui(
-        &mut self,
-        ui: &mut Ui,
-        row: usize,
-        column: Range<usize>,
-    ) -> PolarsResult<()> {
         match (row, &column) {
-            (row, &INDEX) => {
+            (row, &INDEX) if row + 1 < self.data_frame.height() => {
                 ui.label(row.to_string());
             }
             (row, &ID) => {
-                let data_frame = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<FormatComputed>()
-                        .get(FormatKey::new(&self.frame, &self.state.settings))
-                });
-                let label = data_frame[LABEL].get(row)?.str_value();
-                let response = ui.label(label);
-                if response.hovered()
-                    && let Some(fatty_acid) = data_frame[FATTY_ACID].str()?.get(row)
-                {
-                    response.on_hover_ui(|ui| {
-                        ui.set_max_width(ui.spacing().tooltip_width);
-                        ui.label(fatty_acid);
-                    });
+                if let Some(label) = self.data_frame[LABEL].str()?.get(row) {
+                    let response = ui.label(label);
+                    if response.hovered()
+                        && let Some(fatty_acid) = self.data_frame[FATTY_ACID].str()?.get(row)
+                    {
+                        response.on_hover_ui(|ui| {
+                            ui.set_max_width(ui.spacing().tooltip_width);
+                            ui.label(fatty_acid);
+                        });
+                    }
                 }
             }
             (row, range) => {
                 self.with_array(ui, range.start, row)?;
-                // self.mean_and_standard_deviation(ui, range.start, row)?;
-            }
-        }
-        Ok(())
-    }
-
-    fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
-        match column {
-            INDEX | ID => {}
-            range => {
-                let data_frame = ui.memory_mut(|memory| {
-                    memory.caches.cache::<FormatComputed>().get(FormatKey::new(
-                        &self.frame,
-                        range.start,
-                        &self.state.settings,
-                    ))
-                });
-                let row = data_frame.height() - 1;
-                mean_and_standard_deviation(ui, &data_frame, row)?;
             }
         }
         Ok(())
@@ -164,15 +124,12 @@ impl TableView<'_> {
         column: usize,
         row: usize,
     ) -> PolarsResult<Response> {
-        let data_frame = ui.memory_mut(|memory| {
-            memory.caches.cache::<FormatComputed>().get(FormatKey::new(
-                &self.frame,
-                column,
-                &self.state.settings,
-            ))
-        });
-        let mean = data_frame["Mean"].str()?.get(row);
-        let standard_deviation = data_frame["StandardDeviation"].str()?.get(row);
+        let mean_series = self.data_frame[column].struct_()?.field_by_name(MEAN)?;
+        let mean = mean_series.str()?.get(row);
+        let standard_deviation_series = self.data_frame[column]
+            .struct_()?
+            .field_by_name(STANDARD_DEVIATION)?;
+        let standard_deviation = standard_deviation_series.str()?.get(row);
         let text = match mean {
             Some(mean)
                 if self.state.settings.standard_deviation
@@ -189,7 +146,7 @@ impl TableView<'_> {
             if let Some(text) = standard_deviation {
                 response = response.on_hover_ui(|ui| {
                     ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                    ui.heading(ui.localize("StandardDeviation"));
+                    ui.heading(ui.localize(STANDARD_DEVIATION));
                     ui.label(text);
                 });
             }
@@ -200,18 +157,12 @@ impl TableView<'_> {
     fn with_array(&self, ui: &mut Ui, column: usize, row: usize) -> PolarsResult<Response> {
         let mut response = self.mean_and_standard_deviation(ui, column, row)?;
         if response.hovered() {
-            // let data_frame = ui.memory_mut(|memory| {
-            //     memory.caches.cache::<FormatComputed>().get(FormatKey::new(
-            //         &self.frame,
-            //         column,
-            //         &self.state.settings,
-            //     ))
-            // });
             // Array
-            if let Some(text) = data_frame["Array"].str()?.get(row) {
+            let array_series = self.data_frame[column].struct_()?.field_by_name(ARRAY)?;
+            if let Some(text) = array_series.str()?.get(row) {
                 response = response.on_hover_ui(|ui| {
                     ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                    ui.heading(ui.localize("Array"));
+                    ui.heading(ui.localize(ARRAY));
                     ui.label(text);
                 });
             }

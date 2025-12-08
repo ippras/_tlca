@@ -158,11 +158,11 @@ impl TableView<'_> {
         let mut response = self.mean_and_standard_deviation(ui, column, row)?;
         if response.hovered() {
             // Array
-            let array_series = self.data_frame[column].struct_()?.field_by_name(ARRAY)?;
+            let array_series = self.data_frame[column].struct_()?.field_by_name(SAMPLE)?;
             if let Some(text) = array_series.str()?.get(row) {
                 response = response.on_hover_ui(|ui| {
                     ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                    ui.heading(ui.localize(ARRAY));
+                    ui.heading(ui.localize(SAMPLE));
                     ui.label(text);
                 });
             }

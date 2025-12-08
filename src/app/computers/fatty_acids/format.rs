@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::Settings,
-    r#const::{ARRAY, MEAN, STANDARD_DEVIATION},
+    r#const::{SAMPLE, MEAN, STANDARD_DEVIATION},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -73,7 +73,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
                         .field_by_name(STANDARD_DEVIATION),
                     key,
                 )?,
-                format_array(col(name).struct_().field_by_name(ARRAY), key)?,
+                format_array(col(name).struct_().field_by_name(SAMPLE), key)?,
             ])
             .alias(name),
         );
@@ -103,14 +103,14 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
                     concat_arr(vec![
                         col(name)
                             .struct_()
-                            .field_by_name(ARRAY)
+                            .field_by_name(SAMPLE)
                             .arr()
                             .to_struct(None)
                             .struct_()
                             .field_by_name("*")
                             .sum(),
                     ])?
-                    .alias(ARRAY),
+                    .alias(SAMPLE),
                     key,
                 )?,
             ])

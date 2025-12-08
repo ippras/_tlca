@@ -132,33 +132,34 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     match key.display {
         Display::StereospecificNumbers => {
-            let r#struct = |name: &PlSmallStr| {
-                match key.stereospecific_numbers {
-                    StereospecificNumbers::Sn123 => col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS123),
-                    StereospecificNumbers::Sn13 => col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS13),
-                    StereospecificNumbers::Sn2 => col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS2),
-                }
-                .struct_()
+            let stereospecific_numbers = |name: &PlSmallStr| match key.stereospecific_numbers {
+                StereospecificNumbers::Sn123 => col(name.clone())
+                    .struct_()
+                    .field_by_name(STEREOSPECIFIC_NUMBERS123),
+                StereospecificNumbers::Sn13 => col(name.clone())
+                    .struct_()
+                    .field_by_name(STEREOSPECIFIC_NUMBERS13),
+                StereospecificNumbers::Sn2 => col(name.clone())
+                    .struct_()
+                    .field_by_name(STEREOSPECIFIC_NUMBERS2),
             };
             let exprs = schema
                 .iter_names()
                 .filter(|&name| name != LABEL && name != FATTY_ACID)
                 .map(|name| {
-                    let mean = r#struct(name).field_by_name(MEAN);
-                    let standard_deviation = r#struct(name).field_by_name(STANDARD_DEVIATION);
-                    let array = r#struct(name).field_by_name(ARRAY);
+                    let mean = stereospecific_numbers(name).struct_().field_by_name(MEAN);
+                    let standard_deviation = stereospecific_numbers(name)
+                        .struct_()
+                        .field_by_name(STANDARD_DEVIATION);
+                    let sample = stereospecific_numbers(name)
+                        .struct_()
+                        .field_by_name("Array");
                     ternary_expr(
                         mean.clone().neq(0),
                         as_struct(vec![
                             mean.alias(MEAN),
                             standard_deviation.alias(STANDARD_DEVIATION),
-                            array.alias(ARRAY),
+                            sample.alias(SAMPLE),
                         ]),
                         lit(NULL),
                     )
@@ -232,8 +233,8 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .filter(|&name| name != LABEL && name != FATTY_ACID)
                 .map(|name| {
                     let (sn123, sn2) = stereospecific_numbers(name);
-                    let tag = sn123.struct_().field_by_name(ARRAY);
-                    let mag2 = sn2.struct_().field_by_name(ARRAY);
+                    let tag = sn123.struct_().field_by_name("Array");
+                    let mag2 = sn2.struct_().field_by_name("Array");
                     let mut factor = match key.factor {
                         Factor::Selectivity => {
                             let fa = col(FATTY_ACID).fatty_acid();
@@ -261,7 +262,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     as_struct(vec![
                         factor.clone().arr().mean().alias(MEAN),
                         factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
-                        factor.alias(ARRAY),
+                        factor.alias(SAMPLE),
                     ])
                     .alias(name.clone())
                     // ternary_expr(

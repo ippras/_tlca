@@ -20,7 +20,7 @@ use std::{
 };
 
 const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 4] = [
-    StereospecificNumbers::Sn1,
+    StereospecificNumbers::Sn13,
     StereospecificNumbers::Sn2,
     StereospecificNumbers::Sn3,
     StereospecificNumbers::Sn123,
@@ -122,11 +122,11 @@ impl Settings {
                     });
                     ui.selectable_value(
                         &mut self.parameters.display,
-                        Display::Indices,
-                        ui.localize(Display::Indices.text()),
+                        Display::Factors,
+                        ui.localize(Display::Factors.text()),
                     )
                     .on_hover_ui(|ui| {
-                        ui.label(ui.localize(Display::Indices.hover_text()));
+                        ui.label(ui.localize(Display::Factors.hover_text()));
                     });
                 })
                 .response
@@ -363,6 +363,7 @@ impl Default for Settings {
 pub(crate) struct Parameters {
     pub(crate) display: Display,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) factors: Factors,
     pub(crate) filter: Filter,
     pub(crate) threshold: f64,
     pub(crate) sort: Sort,
@@ -375,6 +376,7 @@ impl Parameters {
         Self {
             display: Display::StereospecificNumbers,
             stereospecific_numbers: StereospecificNumbers::Sn123,
+            factors: Factors::Enrichment,
             filter: Filter::Union,
             threshold: 0.0,
             sort: Sort::Value,
@@ -404,21 +406,21 @@ impl Hash for Parameters {
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum Display {
     StereospecificNumbers,
-    Indices,
+    Factors,
 }
 
 impl Display {
     pub(crate) fn text(&self) -> &'static str {
         match self {
             Self::StereospecificNumbers => "StereospecificNumber?number=many",
-            Self::Indices => "Indices",
+            Self::Factors => "Factor?Number=many",
         }
     }
 
     pub(crate) fn hover_text(&self) -> &'static str {
         match self {
             Self::StereospecificNumbers => "StereospecificNumber.abbreviation?number=other",
-            Self::Indices => "Indices.hover",
+            Self::Factors => "Factor?Number=many.hover",
         }
     }
 }
@@ -427,7 +429,7 @@ impl Display {
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum StereospecificNumbers {
     Sn123,
-    Sn1,
+    Sn13,
     Sn2,
     Sn3,
 }
@@ -436,7 +438,7 @@ impl StereospecificNumbers {
     pub(crate) fn text(&self) -> &'static str {
         match self {
             Self::Sn123 => "StereospecificNumber.abbreviation?number=123",
-            Self::Sn1 => "StereospecificNumber.abbreviation?number=1",
+            Self::Sn13 => "StereospecificNumber.abbreviation?number=13",
             Self::Sn2 => "StereospecificNumber.abbreviation?number=2",
             Self::Sn3 => "StereospecificNumber.abbreviation?number=3",
         }
@@ -445,11 +447,18 @@ impl StereospecificNumbers {
     pub(crate) fn hover_text(&self) -> &'static str {
         match self {
             Self::Sn123 => "StereospecificNumber?number=123",
-            Self::Sn1 => "StereospecificNumber?number=1",
+            Self::Sn13 => "StereospecificNumber?number=1",
             Self::Sn2 => "StereospecificNumber?number=2",
             Self::Sn3 => "StereospecificNumber?number=3",
         }
     }
+}
+
+/// Stereospecific numbers
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) enum Factors {
+    Selectivity,
+    Enrichment,
 }
 
 /// Indices

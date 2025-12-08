@@ -63,7 +63,7 @@ fn mean_and_standard_deviation(
         };
         response
     } else {
-        ui.label("-")
+        ui.label("—")
     })
 }
 

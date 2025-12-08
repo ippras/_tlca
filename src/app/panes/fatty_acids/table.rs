@@ -6,7 +6,7 @@ use crate::{
     },
     utils::HashedDataFrame,
 };
-use egui::{Context, Frame, Id, Margin, TextStyle, TextWrapMode, Ui};
+use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_l20n::UiExt;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
@@ -141,7 +141,7 @@ impl TableView<'_> {
                         &self.state.settings,
                     ))
                 });
-                mean_and_standard_deviation(ui, &data_frame, row)?;
+                self.mean_and_standard_deviation(ui, range.start, row)?;
             }
         }
         Ok(())
@@ -163,6 +163,45 @@ impl TableView<'_> {
             }
         }
         Ok(())
+    }
+
+    fn mean_and_standard_deviation(
+        &self,
+        ui: &mut Ui,
+        column: usize,
+        row: usize,
+    ) -> PolarsResult<Response> {
+        let data_frame = ui.memory_mut(|memory| {
+            memory.caches.cache::<FormatComputed>().get(FormatKey::new(
+                &self.frame,
+                column,
+                &self.state.settings,
+            ))
+        });
+        let mean = data_frame["Mean"].str()?.get(row);
+        let standard_deviation = data_frame["StandardDeviation"].str()?.get(row);
+        let text = match mean {
+            Some(mean)
+                if self.state.settings.standard_deviation
+                    && let Some(standard_deviation) = standard_deviation =>
+            {
+                WidgetText::from(format!("{mean} {standard_deviation}"))
+            }
+            Some(mean) => WidgetText::from(mean.to_string()),
+            None => WidgetText::from("—"),
+        };
+        let mut response = ui.label(text);
+        if response.hovered() {
+            // Standard deviation
+            if let Some(text) = standard_deviation {
+                response = response.on_hover_ui(|ui| {
+                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                    ui.heading(ui.localize("StandardDeviation"));
+                    ui.label(text);
+                });
+            }
+        }
+        Ok(response)
     }
 }
 

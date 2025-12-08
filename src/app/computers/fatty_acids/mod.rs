@@ -1,7 +1,7 @@
 use crate::{
     app::states::{
         Filter, Sort,
-        fatty_acids::{Display, Settings, StereospecificNumbers},
+        fatty_acids::{Display, Factors, Settings, StereospecificNumbers},
     },
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
@@ -42,8 +42,10 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
+    pub(crate) ddof: u8,
     pub(crate) display: Display,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) factors: Factors,
     pub(crate) filter: Filter,
     pub(crate) sort: Sort,
     pub(crate) threshold: OrderedFloat<f64>,
@@ -53,8 +55,10 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
         Self {
             frames,
+            ddof: 1,
             display: settings.parameters.display,
             stereospecific_numbers: settings.parameters.stereospecific_numbers,
+            factors: settings.parameters.factors,
             filter: settings.parameters.filter,
             sort: settings.parameters.sort,
             threshold: settings.parameters.threshold.into(),
@@ -125,28 +129,30 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     match key.display {
         Display::StereospecificNumbers => {
-            let r#struct = |name: &PlSmallStr| match key.stereospecific_numbers {
-                StereospecificNumbers::Sn123 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS123),
-                StereospecificNumbers::Sn1 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS13),
-                StereospecificNumbers::Sn2 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS2),
-                StereospecificNumbers::Sn3 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS13),
+            let r#struct = |name: &PlSmallStr| {
+                match key.stereospecific_numbers {
+                    StereospecificNumbers::Sn123 => col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS123),
+                    StereospecificNumbers::Sn13 => col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS13),
+                    StereospecificNumbers::Sn2 => col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS2),
+                    StereospecificNumbers::Sn3 => col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS13),
+                }
+                .struct_()
             };
             let exprs = schema
                 .iter_names()
                 .filter(|&name| name != LABEL && name != FATTY_ACID)
                 .map(|name| {
-                    let mean = r#struct(name).struct_().field_by_name("Mean");
-                    let standard_deviation =
-                        r#struct(name).struct_().field_by_name("StandardDeviation");
-                    let array = r#struct(name).struct_().field_by_name("Array");
+                    let mean = r#struct(name).field_by_name("Mean");
+                    let standard_deviation = r#struct(name).field_by_name("StandardDeviation");
+                    let array = r#struct(name).field_by_name("Array");
                     ternary_expr(
                         mean.clone().neq(0),
                         as_struct(vec![
@@ -161,7 +167,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .collect::<Vec<_>>();
             lazy_frame = lazy_frame.with_columns(exprs);
         }
-        Display::Indices => {
+        Display::Factors => {
             // let mut lazy_frames = Vec::with_capacity(INDICES_LIST.len());
             // for index in [] {
             //     let exprs = schema
@@ -211,10 +217,63 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             //     all().as_expr(),
             // ]);
             println!(
-                "azy_frame.select([index]).collect().unwrap(): {:?}",
+                "lazy_frame.select([index]).collect().unwrap(): {:?}",
                 lazy_frame.clone().collect().unwrap()
             );
-
+            let stereospecific_numbers = |name: &PlSmallStr| {
+                (
+                    col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS123),
+                    col(name.clone())
+                        .struct_()
+                        .field_by_name(STEREOSPECIFIC_NUMBERS2),
+                )
+            };
+            let exprs = schema
+                .iter_names()
+                .filter(|&name| name != LABEL && name != FATTY_ACID)
+                .map(|name| {
+                    let (sn123, sn2) = stereospecific_numbers(name);
+                    let tag = sn123.struct_().field_by_name("Array");
+                    let mag2 = sn2.struct_().field_by_name("Array");
+                    let factor = match key.factors {
+                        Factors::Selectivity => {
+                            col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
+                        }
+                        Factors::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
+                    };
+                    as_struct(vec![
+                        factor.clone().arr().mean().alias("Mean"),
+                        factor
+                            .clone()
+                            .arr()
+                            .std(key.ddof)
+                            .alias("StandardDeviation"),
+                        factor.alias("Array"),
+                    ])
+                    .alias(name.clone())
+                    // ternary_expr(
+                    //     mean.clone().neq(0),
+                    //     as_struct(vec![
+                    //         mean.alias("Mean"),
+                    //         standard_deviation.alias("StandardDeviation"),
+                    //         array.alias("Array"),
+                    //     ]),
+                    //     lit(NULL),
+                    // )
+                })
+                .collect::<Vec<_>>();
+            lazy_frame = lazy_frame.with_columns(exprs);
+            println!(
+                "AFTER !!!!!! lazy_frame.select([index]).collect().unwrap(): {:?}",
+                lazy_frame
+                    .clone()
+                    .select([nth(2).as_expr()])
+                    .unnest(all(), None)
+                    .collect()
+                    .unwrap()
+            );
             // let exprs = [
             //     lit(Series::new(
             //         PlSmallStr::from_static(LABEL),

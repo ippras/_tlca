@@ -1,6 +1,7 @@
 #![feature(custom_inner_attributes)]
 #![feature(debug_closure_helpers)]
 #![feature(decl_macro)]
+#![feature(if_let_guard)]
 
 pub use self::app::App;
 

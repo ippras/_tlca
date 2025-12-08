@@ -1,4 +1,6 @@
-pub(crate) use self::settings::{Display, Indices, Parameters, Settings, StereospecificNumbers};
+pub(crate) use self::settings::{
+    Display, Factors, Indices, Parameters, Settings, StereospecificNumbers,
+};
 
 use self::windows::Windows;
 use egui::{Context, Id};

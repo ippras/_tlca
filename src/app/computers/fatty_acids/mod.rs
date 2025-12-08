@@ -230,7 +230,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             };
             let exprs = schema
                 .iter_names()
-                .filter(|&name| name != LABEL && name != FATTY_ACID)
+                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID))
                 .map(|name| {
                     let (sn123, sn2) = stereospecific_numbers(name);
                     let tag = sn123.struct_().field_by_name("Array");
@@ -238,33 +238,38 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     let mut factor = match key.factor {
                         Factor::Selectivity => {
                             let fa = col(FATTY_ACID).fatty_acid();
-                            let unsaturated_mag2 = mag2
-                                .clone()
-                                .filter(fa.clone().is_unsaturated(None))
-                                .arr()
-                                .eval(element().sum(), true)
-                                .list()
-                                .to_array(3);
-                            // let unsaturated_tag = tag
-                            //     .clone()
-                            //     .filter(fa.is_unsaturated(None))
-                            //     .arr()
-                            //     .eval(element().sum(), true);
-                            // (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
+                            let unsaturated_mag2 = concat_arr(vec![
+                                mag2.clone()
+                                    .filter(fa.clone().is_unsaturated(None))
+                                    .arr()
+                                    .to_struct(None)
+                                    .struct_()
+                                    .field_by_name("*")
+                                    .sum(),
+                            ])?;
+                            let unsaturated_tag = concat_arr(vec![
+                                tag.clone()
+                                    .filter(fa.clone().is_unsaturated(None))
+                                    .arr()
+                                    .to_struct(None)
+                                    .struct_()
+                                    .field_by_name("*")
+                                    .sum(),
+                            ])?;
+                            (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
                             // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
-                            unsaturated_mag2
                         }
                         Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
                     };
                     if key.normalize_factor {
                         factor = factor / lit(3);
                     }
-                    as_struct(vec![
+                    Ok(as_struct(vec![
                         factor.clone().arr().mean().alias(MEAN),
                         factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
                         factor.alias(SAMPLE),
                     ])
-                    .alias(name.clone())
+                    .alias(name.clone()))
                     // ternary_expr(
                     //     mean.clone().neq(0),
                     //     as_struct(vec![
@@ -275,7 +280,7 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     //     lit(NULL),
                     // )
                 })
-                .collect::<Vec<_>>();
+                .collect::<PolarsResult<Vec<_>>>()?;
             lazy_frame = lazy_frame.with_columns(exprs);
             println!(
                 "AFTER !!!!!!: {:?}",

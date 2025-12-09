@@ -1,12 +1,11 @@
 use crate::{
     app::states::fatty_acids::{Factor, Settings},
     r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
-    utils::HashedDataFrame,
+    utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
-use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
 /// Factors computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -88,25 +87,9 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
             let mag2 = sn2.struct_().field_by_name("Array");
             let mut factor = match key.factor {
                 Factor::Selectivity => {
-                    let fa = col(FATTY_ACID).fatty_acid();
-                    let unsaturated_mag2 = concat_arr(vec![
-                        mag2.clone()
-                            .filter(fa.clone().is_unsaturated(None))
-                            .arr()
-                            .to_struct(None)
-                            .struct_()
-                            .field_by_name("*")
-                            .sum(),
-                    ])?;
-                    let unsaturated_tag = concat_arr(vec![
-                        tag.clone()
-                            .filter(fa.is_unsaturated(None))
-                            .arr()
-                            .to_struct(None)
-                            .struct_()
-                            .field_by_name("*")
-                            .sum(),
-                    ])?;
+                    let is_unsaturated = col(FATTY_ACID).fatty_acid().is_unsaturated(None);
+                    let unsaturated_mag2 = sum_arr(mag2.clone().filter(is_unsaturated.clone()))?;
+                    let unsaturated_tag = sum_arr(tag.clone().filter(is_unsaturated))?;
                     (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
                     // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
                 }

@@ -38,10 +38,9 @@ impl Filter {
 }
 
 /// Sort
-#[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub enum Sort {
     Key,
-    #[default]
     Value,
 }
 

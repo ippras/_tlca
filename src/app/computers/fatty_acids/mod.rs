@@ -42,7 +42,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) filter: Filter,
-    pub(crate) sort: Sort,
+    pub(crate) sort: Option<Sort>,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
 }
@@ -179,26 +179,28 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Sort
 fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    match key.sort {
-        Sort::Key => {
-            lazy_frame = lazy_frame.sort_by_exprs(
-                [
-                    col(FATTY_ACID).fatty_acid().carbon(),
-                    col(FATTY_ACID).fatty_acid().double_bounds_unsaturation(),
-                    col(FATTY_ACID).fatty_acid().indices(),
-                    col(LABEL),
-                ],
-                SortMultipleOptions::new().with_maintain_order(true),
-            );
-        }
-        Sort::Value => {
-            lazy_frame = lazy_frame.sort_by_exprs(
-                [all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr()],
-                SortMultipleOptions::new()
-                    .with_maintain_order(true)
-                    .with_order_descending(true)
-                    .with_nulls_last(true),
-            );
+    if let Some(sort) = key.sort {
+        match sort {
+            Sort::Key => {
+                lazy_frame = lazy_frame.sort_by_exprs(
+                    [
+                        col(FATTY_ACID).fatty_acid().carbon(),
+                        col(FATTY_ACID).fatty_acid().double_bounds_unsaturation(),
+                        col(FATTY_ACID).fatty_acid().indices(),
+                        col(LABEL),
+                    ],
+                    SortMultipleOptions::new().with_maintain_order(true),
+                );
+            }
+            Sort::Value => {
+                lazy_frame = lazy_frame.sort_by_exprs(
+                    [all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr()],
+                    SortMultipleOptions::new()
+                        .with_maintain_order(true)
+                        .with_order_descending(true)
+                        .with_nulls_last(true),
+                );
+            }
         }
     }
     lazy_frame

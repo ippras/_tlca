@@ -1,13 +1,18 @@
-use crate::app::{
-    MAX_PRECISION,
-    states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
+use crate::{
+    app::{
+        MAX_PRECISION,
+        states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
+    },
+    r#const::EM_DASH,
 };
-use egui::{ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget};
+use egui::{
+    ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,
+};
 use egui_dnd::dnd;
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
-use egui_l20n::prelude::*;
+use egui_l20n::{ResponseExt, prelude::*};
 use egui_phosphor::regular::DOTS_SIX_VERTICAL;
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
@@ -71,7 +76,7 @@ pub(crate) struct Settings {
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) filter: Filter,
     pub(crate) threshold: OrderedFloat<f64>,
-    pub(crate) sort: Sort,
+    pub(crate) sort: Option<Sort>,
 }
 
 impl Settings {
@@ -98,7 +103,7 @@ impl Settings {
             stereospecific_numbers: StereospecificNumbers::Sn123,
             filter: Filter::Union,
             threshold: OrderedFloat(0.0),
-            sort: Sort::Value,
+            sort: None,
         }
     }
 }
@@ -290,20 +295,31 @@ impl Settings {
             ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Sort.hover"));
             });
-            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.sort.text()))
+            let text = match self.sort {
+                Some(sort) => WidgetText::from(ui.localize(sort.text())),
+                None => WidgetText::from(EM_DASH),
+            };
+            let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(text)
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.sort, Sort::Key, ui.localize(Sort::Key.text()))
-                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
                     ui.selectable_value(
                         &mut self.sort,
-                        Sort::Value,
+                        Some(Sort::Key),
+                        ui.localize(Sort::Key.text()),
+                    )
+                    .on_hover_text(ui.localize(Sort::Key.hover_text()));
+                    ui.selectable_value(
+                        &mut self.sort,
+                        Some(Sort::Value),
                         ui.localize(Sort::Value.text()),
                     )
                     .on_hover_text(ui.localize(Sort::Value.hover_text()));
+                    ui.selectable_value(&mut self.sort, None, EM_DASH);
                 })
-                .response
-                .on_hover_text(ui.localize(self.sort.hover_text()));
+                .response;
+            if let Some(sort) = self.sort {
+                response.on_hover_localized(sort.hover_text());
+            }
         });
     }
 

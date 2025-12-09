@@ -107,3 +107,5 @@ NormalizeFactor = Normalize factor
     .hover = Normalize enrichment factor and selectivity factor.
 Sample = Sample
     .hover = Sample.
+Significant = Significant
+    .hover = Round floating points to a number of significant figures.

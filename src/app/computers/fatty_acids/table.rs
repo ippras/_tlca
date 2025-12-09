@@ -1,7 +1,7 @@
 use crate::{
     app::states::fatty_acids::Settings,
     r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
-    utils::HashedDataFrame,
+    utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -96,17 +96,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
                 //     key,
                 // )?,
                 format_array(
-                    concat_arr(vec![
-                        col(name)
-                            .struct_()
-                            .field_by_name(SAMPLE)
-                            .arr()
-                            .to_struct(None)
-                            .struct_()
-                            .field_by_name("*")
-                            .sum(),
-                    ])?
-                    .alias(SAMPLE),
+                    sum_arr(col(name).struct_().field_by_name(SAMPLE))?.alias(SAMPLE),
                     key,
                 )?,
             ])

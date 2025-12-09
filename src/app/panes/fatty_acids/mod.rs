@@ -1,4 +1,4 @@
-use self::{indices::Indices, metrics::Metrics, table::TableView};
+use self::{factors::Factors, indices::Indices, metrics::Metrics, table::TableView};
 use super::{Behavior, MARGIN};
 use crate::{
     app::{
@@ -312,8 +312,7 @@ impl Pane {
                 .cache::<FactorsComputed>()
                 .get(FactorsKey::new(&self.calculated, settings))
         });
-        // Factors::new(&data_frame, settings).show(ui)
-        Ok(())
+        Factors::new(&data_frame, settings).show(ui)
     }
 
     fn indices(&mut self, ui: &mut Ui, state: &mut State) {
@@ -355,6 +354,7 @@ impl Pane {
     }
 }
 
+mod factors;
 mod indices;
 mod metrics;
 mod table;

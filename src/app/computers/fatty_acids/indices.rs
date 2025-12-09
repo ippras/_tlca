@@ -1,10 +1,14 @@
 use crate::{
-    app::states::fatty_acids::{Indices, Settings, StereospecificNumbers},
-    r#const::FILTER,
+    app::states::{
+        Filter,
+        fatty_acids::{Indices, Settings, StereospecificNumbers},
+    },
+    r#const::THRESHOLD,
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use std::{iter::once, num::NonZeroI8};
 use tracing::instrument;
@@ -19,7 +23,10 @@ pub(crate) struct Computer;
 impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let lazy_frame = compute(key)?;
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        lazy_frame = select(lazy_frame, key);
+        lazy_frame = filter(lazy_frame, key)?;
+        lazy_frame = compute(lazy_frame, key)?;
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -35,16 +42,20 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) filter: Filter,
     pub(crate) indices: &'a Indices,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
+            filter: settings.filter,
             indices: &settings.indices,
             stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: settings.threshold,
         }
     }
 }
@@ -52,9 +63,31 @@ impl<'a> Key<'a> {
 /// Indices value
 type Value = DataFrame;
 
-fn compute(key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    let schema = lazy_frame.collect_schema()?;
+/// Select
+fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    lazy_frame.with_columns([all()
+        .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
+        .as_expr()
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id())
+        .name()
+        .keep()])
+}
+
+/// Filter
+fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr();
+    Ok(lazy_frame.filter(match key.filter {
+        Filter::Intersection => all_horizontal([expr.is_not_null()])?,
+        Filter::Union => any_horizontal([expr.is_not_null()])?,
+        Filter::Difference => any_horizontal([expr.is_null()])?,
+    }))
+}
+
+/// Compute
+fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    // let schema = lazy_frame.collect_schema()?;
+    let schema = key.frame.schema();
     let lazy_frames = key
         .indices
         .iter()
@@ -66,7 +99,7 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
             ));
             let values = schema
                 .iter_names()
-                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
+                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
                 .map(|name| {
                     let expr = col(name.clone()).struct_().field_by_name("Mean");
                     let mean = compute_index(&index.name, expr);
@@ -83,8 +116,7 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
             lazy_frame.clone().select(exprs)
         })
         .collect::<Vec<_>>();
-    lazy_frame = concat(lazy_frames, Default::default())?;
-    Ok(lazy_frame)
+    concat(lazy_frames, Default::default())
 }
 
 fn compute_index(name: &str, expr: Expr) -> Expr {

@@ -1,9 +1,9 @@
 use crate::{
     app::states::{
-        Filter, Sort,
+        Sort,
         fatty_acids::{Settings, StereospecificNumbers},
     },
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -47,8 +47,8 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
-    pub(crate) filter: Filter,
     pub(crate) sort: Option<Sort>,
+    // pub(crate) filter: Filter,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
 }
@@ -57,8 +57,8 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
         Self {
             frames,
-            filter: settings.filter,
             sort: settings.sort,
+            // filter: settings.filter,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold,
         }
@@ -69,27 +69,10 @@ impl<'a> Key<'a> {
 type Value = HashedDataFrame;
 
 fn compute(key: Key) -> PolarsResult<LazyFrame> {
-    println!("Fatty acids frames: {:?}", key.frames);
     let mut lazy_frame = join(key)?;
-    println!(
-        "Fatty acids join: {}",
-        lazy_frame.clone().collect().unwrap()
-    );
-    lazy_frame = values(lazy_frame, key)?;
-    println!(
-        "Fatty acids values: {}",
-        lazy_frame.clone().collect().unwrap()
-    );
-    lazy_frame = filter(lazy_frame, key)?;
-    println!(
-        "Fatty acids filter: {}",
-        lazy_frame.clone().collect().unwrap()
-    );
+    lazy_frame = values(lazy_frame)?;
+    lazy_frame = threshold(lazy_frame, key)?;
     lazy_frame = sort(lazy_frame, key);
-    // println!(
-    //     "Fatty acids sort: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     Ok(lazy_frame)
 }
 
@@ -124,27 +107,35 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 }
 
 /// Values
-fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     let exprs = schema
         .iter_names()
         .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID))
         .map(|name| {
-            let expr = col(name.as_str())
-                .struct_()
-                .field_by_name(key.stereospecific_numbers.id());
-            let mean = expr.clone().struct_().field_by_name(MEAN);
-            let standard_deviation = expr.clone().struct_().field_by_name(STANDARD_DEVIATION);
-            let sample = expr.struct_().field_by_name("Array");
-            ternary_expr(
-                mean.clone().neq(0),
-                as_struct(vec![
-                    mean.alias(MEAN),
-                    standard_deviation.alias(STANDARD_DEVIATION),
-                    sample.alias(SAMPLE),
-                ]),
-                lit(NULL),
-            )
+            let field = |stereospecific_numbers: &str| {
+                let expr = col(name.as_str())
+                    .struct_()
+                    .field_by_name(stereospecific_numbers);
+                let mean = expr.clone().struct_().field_by_name(MEAN);
+                let standard_deviation = expr.clone().struct_().field_by_name(STANDARD_DEVIATION);
+                let sample = expr.struct_().field_by_name("Array");
+                ternary_expr(
+                    mean.clone().neq(0),
+                    as_struct(vec![
+                        mean.alias(MEAN),
+                        standard_deviation.alias(STANDARD_DEVIATION),
+                        sample.alias(SAMPLE),
+                    ]),
+                    lit(NULL),
+                )
+                .alias(stereospecific_numbers)
+            };
+            as_struct(vec![
+                field(STEREOSPECIFIC_NUMBERS123),
+                field(STEREOSPECIFIC_NUMBERS13),
+                field(STEREOSPECIFIC_NUMBERS2),
+            ])
             .alias(name.clone())
         })
         .collect::<Vec<_>>();
@@ -152,34 +143,19 @@ fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     Ok(lazy_frame)
 }
 
-/// Filter
-fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+/// Threshold
+fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let expr = all().exclude_cols([LABEL, FATTY_ACID]).as_expr();
-    // Join
-    let mut predicate = match key.filter {
-        Filter::Intersection => {
-            // Значения отличные от нуля присутствуют во всех столбцах (AND)
-            all_horizontal([expr.clone().is_not_null()])?
-        }
-        Filter::Union => {
-            // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
-            any_horizontal([expr.clone().is_not_null()])?
-        }
-        Filter::Difference => {
-            // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
-            any_horizontal([expr.clone().is_null()])?
-        }
-    };
-    lazy_frame = lazy_frame.filter(predicate);
-    // Threshold
     // Значение в одном или более столбцах больше threshold
-    predicate = any_horizontal([expr
+    let predicate = any_horizontal([expr
         .clone()
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id())
         .struct_()
         .field_by_name(MEAN)
         .gt_eq(key.threshold.0)
         .and(expr.is_not_null())])?;
-    lazy_frame = lazy_frame.with_column(predicate.alias("Filter"));
+    lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
     Ok(lazy_frame)
 }
 
@@ -200,7 +176,7 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
             }
             Sort::Value => {
                 lazy_frame = lazy_frame.sort_by_exprs(
-                    [all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr()],
+                    [all().exclude_cols([LABEL, FATTY_ACID]).as_expr()],
                     SortMultipleOptions::new()
                         .with_maintain_order(true)
                         .with_order_descending(true)
@@ -211,6 +187,37 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     }
     lazy_frame
 }
+
+// /// Filter
+// fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+//     let expr = all().exclude_cols([LABEL, FATTY_ACID]).as_expr();
+//     // Join
+//     let mut predicate = match key.filter {
+//         Filter::Intersection => {
+//             // Значения отличные от нуля присутствуют во всех столбцах (AND)
+//             all_horizontal([expr.clone().is_not_null()])?
+//         }
+//         Filter::Union => {
+//             // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
+//             any_horizontal([expr.clone().is_not_null()])?
+//         }
+//         Filter::Difference => {
+//             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
+//             any_horizontal([expr.clone().is_null()])?
+//         }
+//     };
+//     lazy_frame = lazy_frame.filter(predicate);
+//     // Threshold
+//     // Значение в одном или более столбцах больше threshold
+//     predicate = any_horizontal([expr
+//         .clone()
+//         .struct_()
+//         .field_by_name(MEAN)
+//         .gt_eq(key.threshold.0)
+//         .and(expr.is_not_null())])?;
+//     lazy_frame = lazy_frame.with_column(predicate.alias("Filter"));
+//     Ok(lazy_frame)
+// }
 
 pub(crate) mod factors;
 pub(crate) mod indices;

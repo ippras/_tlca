@@ -1,10 +1,14 @@
 use crate::{
-    app::states::{Metric, fatty_acids::Settings},
-    r#const::FILTER,
+    app::states::{
+        Filter, Metric,
+        fatty_acids::{Settings, StereospecificNumbers},
+    },
+    r#const::THRESHOLD,
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use std::f64::consts::{E, FRAC_1_SQRT_2};
 use tracing::instrument;
@@ -20,8 +24,11 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        lazy_frame = select(lazy_frame, key);
+        lazy_frame = filter(lazy_frame, key)?;
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr()]);
+        lazy_frame =
+            lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr()]);
         let schema = lazy_frame.collect_schema()?;
         let mean = |expr: Expr| expr.struct_().field_by_name("Mean").fill_null(0);
         let exprs = schema
@@ -97,20 +104,47 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) filter: Filter,
     pub(crate) metric: Metric,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
+            filter: settings.filter,
             metric: settings.metric,
+            stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: settings.threshold,
         }
     }
 }
 
 /// Metrics value
 type Value = DataFrame;
+
+/// Select
+fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    lazy_frame.with_columns([all()
+        .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
+        .as_expr()
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id())
+        .name()
+        .keep()])
+}
+
+/// Filter
+fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr();
+    Ok(lazy_frame.filter(match key.filter {
+        Filter::Intersection => all_horizontal([expr.is_not_null()])?,
+        Filter::Union => any_horizontal([expr.is_not_null()])?,
+        Filter::Difference => any_horizontal([expr.is_null()])?,
+    }))
+}
 
 // fn hierarchical_cluster(data_frame: DataFrame) {
 // use linfa::{Dataset, DatasetBase, dataset::Records, traits::Transformer as _};

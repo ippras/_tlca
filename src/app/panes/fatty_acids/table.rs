@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
     },
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
+    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
 };
 use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_l20n::UiExt;
@@ -94,8 +94,8 @@ impl TableView<'_> {
         row: usize,
         column: Range<usize>,
     ) -> PolarsResult<()> {
-        if let Some(filter) = self.data_frame[FILTER].bool()?.get(row)
-            && !filter
+        if let Some(threshold) = self.data_frame[THRESHOLD].bool()?.get(row)
+            && !threshold
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
@@ -143,7 +143,7 @@ impl TableView<'_> {
                 WidgetText::from(format!("{mean} {standard_deviation}"))
             }
             Some(mean) => WidgetText::from(mean.to_string()),
-            None => WidgetText::from("—"),
+            None => WidgetText::from(EM_DASH),
         };
         let mut response = ui.label(text);
         if response.hovered() {

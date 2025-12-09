@@ -1,10 +1,14 @@
 use crate::{
-    app::states::fatty_acids::Settings,
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
+    app::states::{
+        Filter,
+        fatty_acids::{Settings, StereospecificNumbers},
+    },
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
@@ -17,7 +21,10 @@ pub(crate) struct Computer;
 
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let lazy_frame = format(key)?;
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        lazy_frame = select(lazy_frame, key);
+        lazy_frame = filter(lazy_frame, key)?;
+        lazy_frame = format(lazy_frame, key)?;
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -33,18 +40,24 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) filter: Filter,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
         Self {
             frame,
+            filter: settings.filter,
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
+            stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: settings.threshold,
         }
     }
 }
@@ -52,8 +65,39 @@ impl<'a> Key<'a> {
 /// Table value
 type Value = DataFrame;
 
-fn format(key: Key) -> PolarsResult<LazyFrame> {
-    let lazy_frame = key.frame.data_frame.clone().lazy();
+/// Select
+fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    lazy_frame.with_columns([all()
+        .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
+        .as_expr()
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id())
+        .name()
+        .keep()])
+}
+
+/// Filter
+fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr();
+    lazy_frame = lazy_frame.filter(match key.filter {
+        Filter::Intersection => {
+            // Значения отличные от нуля присутствуют во всех столбцах (AND)
+            all_horizontal([expr.is_not_null()])?
+        }
+        Filter::Union => {
+            // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
+            any_horizontal([expr.is_not_null()])?
+        }
+        Filter::Difference => {
+            // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
+            any_horizontal([expr.is_null()])?
+        }
+    });
+    Ok(lazy_frame)
+}
+
+/// Format
+fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let mut exprs = vec![col(LABEL), col(FATTY_ACID).fatty_acid().format()];
     let mut sum = Vec::new();
     for name in key
@@ -61,7 +105,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
         .data_frame
         .get_column_names_str()
         .into_iter()
-        .filter(|&name| !matches!(name, LABEL | FATTY_ACID | FILTER))
+        .filter(|&name| !matches!(name, LABEL | FATTY_ACID | THRESHOLD))
     {
         exprs.push(
             as_struct(vec![
@@ -103,7 +147,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
             .alias(name),
         );
     }
-    exprs.push(col(FILTER));
+    exprs.push(col(THRESHOLD));
     concat_lf_diagonal(
         [
             lazy_frame.clone().select(exprs),

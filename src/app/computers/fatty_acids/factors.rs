@@ -1,11 +1,13 @@
 use crate::{
-    app::states::fatty_acids::{Factor, Settings},
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
+    app::states::fatty_acids::{Factor, Settings, StereospecificNumbers},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
+use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
 /// Factors computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -38,6 +40,8 @@ pub(crate) struct Key<'a> {
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
@@ -50,6 +54,8 @@ impl<'a> Key<'a> {
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
+            stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: settings.threshold,
         }
     }
 }
@@ -63,28 +69,32 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
         "FF0: {}",
         lazy_frame
             .clone()
-            .select([col("К-2233.2025-10-29").struct_().field_by_name("*")])
+            .select([col("К-2233.2025-10-29")
+                .struct_()
+                .field_by_index(0)
+                .struct_()
+                .field_by_index(2)])
             // .unnest(cols(["К-2233.2025-10-29"]), None)
             .collect()?
     );
-    let stereospecific_numbers = |name: &PlSmallStr| {
-        (
-            col(name.clone())
-                .struct_()
-                .field_by_name(STEREOSPECIFIC_NUMBERS123),
-            col(name.clone())
-                .struct_()
-                .field_by_name(STEREOSPECIFIC_NUMBERS2),
-        )
-    };
-    let schema = lazy_frame.collect_schema()?;
-    let exprs = schema
+    let exprs = key
+        .frame
+        .schema()
         .iter_names()
-        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
         .map(|name| {
-            let (sn123, sn2) = stereospecific_numbers(name);
-            let tag = sn123.struct_().field_by_name("Array");
-            let mag2 = sn2.struct_().field_by_name("Array");
+            let expr = col(name.as_str());
+            let tag = expr
+                .clone()
+                .struct_()
+                .field_by_name(STEREOSPECIFIC_NUMBERS123)
+                .struct_()
+                .field_by_name(SAMPLE);
+            let mag2 = expr
+                .struct_()
+                .field_by_name(STEREOSPECIFIC_NUMBERS2)
+                .struct_()
+                .field_by_name(SAMPLE);
             let mut factor = match key.factor {
                 Factor::Selectivity => {
                     let is_unsaturated = col(FATTY_ACID).fatty_acid().is_unsaturated(None);
@@ -95,26 +105,43 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
                 }
                 Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
             };
+            // .fill_null(concat_arr(vec![lit(0.0)])?);
             if key.normalize_factor {
                 factor = factor / lit(3);
             }
+            println!(
+                "!!!!!!!!!!!: {}",
+                lazy_frame.clone().select([factor.clone()]).collect()?
+            );
             Ok(as_struct(vec![
-                factor.clone().arr().mean().alias(MEAN),
-                factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
-                factor.alias(SAMPLE),
+                factor
+                    .clone()
+                    .arr()
+                    .mean()
+                    .percent_if(key.percent)
+                    .precision(key.precision, key.significant)
+                    .alias(MEAN),
+                factor
+                    .clone()
+                    .arr()
+                    .std(key.ddof)
+                    .percent_if(key.percent)
+                    .precision(key.precision, key.significant)
+                    .alias(STANDARD_DEVIATION),
+                factor
+                    .arr()
+                    .eval(
+                        element()
+                            .percent_if(key.percent)
+                            .precision(key.precision, key.significant),
+                        false,
+                    )
+                    .alias(SAMPLE),
             ])
             .alias(name.clone()))
         })
         .collect::<PolarsResult<Vec<_>>>()?;
     lazy_frame = lazy_frame.with_columns(exprs);
-    println!(
-        "FF1: {:?}",
-        lazy_frame
-            .clone()
-            .select([nth(2).as_expr()])
-            .unnest(all(), None)
-            .collect()
-            .unwrap()
-    );
+    println!("FF1: {:?}", lazy_frame.clone().collect().unwrap());
     Ok(lazy_frame)
 }

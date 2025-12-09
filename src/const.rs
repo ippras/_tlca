@@ -7,10 +7,11 @@ pub(crate) const WEB_PAGE_ADDRESS: &str = "Web page address";
 
 pub(crate) const EM_DASH: &str = "—";
 
-pub(crate) const FILTER: &str = "Filter";
+// pub(crate) const FILTER: &str = "Filter";
 pub(crate) const MEAN: &str = "Mean";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
+pub(crate) const THRESHOLD: &str = "Threshold";
 
 pub(crate) mod markdown {
     pub const KURTOSIS: &str = include_str!("../doc/ru/Moments/Kurtosis.md");

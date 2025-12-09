@@ -1,5 +1,5 @@
 use crate::{
-    app::states::fatty_acids::Settings,
+    app::states::fatty_acids::{Factor, Settings},
     r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::HashedDataFrame,
 };
@@ -8,16 +8,16 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
-/// Format computed
+/// Factors computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
 
-/// Format computer
+/// Factors computer
 #[derive(Default)]
 pub(crate) struct Computer;
 
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let lazy_frame = format(key)?;
+        let lazy_frame = compute(key)?;
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -29,10 +29,13 @@ impl ComputerMut<Key<'_>, Value> for Computer {
     }
 }
 
-/// Format key
+/// Factors key
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) ddof: u8,
+    pub(crate) factor: Factor,
+    pub(crate) normalize_factor: bool,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
@@ -42,6 +45,9 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
         Self {
             frame,
+            ddof: 1,
+            factor: settings.factor,
+            normalize_factor: settings.normalize_factor,
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
@@ -49,109 +55,83 @@ impl<'a> Key<'a> {
     }
 }
 
-/// Format value
+/// Factors value
 type Value = DataFrame;
 
-fn format(key: Key) -> PolarsResult<LazyFrame> {
-    let lazy_frame = key.frame.data_frame.clone().lazy();
-    let mut exprs = vec![col(LABEL), col(FATTY_ACID).fatty_acid().format()];
-    let mut sum = Vec::new();
-    for name in key
-        .frame
-        .data_frame
-        .get_column_names_str()
-        .into_iter()
-        .filter(|&name| !matches!(name, LABEL | FATTY_ACID | FILTER))
-    {
-        exprs.push(
-            as_struct(vec![
-                format_mean(col(name).clone().struct_().field_by_name(MEAN), key),
-                format_standard_deviation(
-                    col(name)
-                        .clone()
-                        .struct_()
-                        .field_by_name(STANDARD_DEVIATION),
-                    key,
-                )?,
-                format_array(col(name).struct_().field_by_name(SAMPLE), key)?,
-            ])
-            .alias(name),
-        );
-        sum.push(
-            as_struct(vec![
-                format_mean(col(name).clone().struct_().field_by_name(MEAN).sum(), key),
-                format_standard_deviation(
-                    col(name)
-                        .clone()
-                        .struct_()
-                        .field_by_name(STANDARD_DEVIATION)
-                        .pow(2)
-                        .sum()
-                        .sqrt(),
-                    key,
-                )?,
-                // TODO: Следить когда добавят возможность складывать массивы поэлементно
-                // format_array(
-                //     col(name)
-                //         .struct_()
-                //         .field_by_name(ARRAY)
-                //         .arr()
-                //         .eval(element().sum(), false),
-                //     key,
-                // )?,
-                format_array(
-                    concat_arr(vec![
-                        col(name)
-                            .struct_()
-                            .field_by_name(SAMPLE)
+fn compute(key: Key) -> PolarsResult<LazyFrame> {
+    let mut lazy_frame = key.frame.data_frame.clone().lazy();
+    println!(
+        "FF0: {}",
+        lazy_frame
+            .clone()
+            .select([col("К-2233.2025-10-29").struct_().field_by_name("*")])
+            // .unnest(cols(["К-2233.2025-10-29"]), None)
+            .collect()?
+    );
+    let stereospecific_numbers = |name: &PlSmallStr| {
+        (
+            col(name.clone())
+                .struct_()
+                .field_by_name(STEREOSPECIFIC_NUMBERS123),
+            col(name.clone())
+                .struct_()
+                .field_by_name(STEREOSPECIFIC_NUMBERS2),
+        )
+    };
+    let schema = lazy_frame.collect_schema()?;
+    let exprs = schema
+        .iter_names()
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
+        .map(|name| {
+            let (sn123, sn2) = stereospecific_numbers(name);
+            let tag = sn123.struct_().field_by_name("Array");
+            let mag2 = sn2.struct_().field_by_name("Array");
+            let mut factor = match key.factor {
+                Factor::Selectivity => {
+                    let fa = col(FATTY_ACID).fatty_acid();
+                    let unsaturated_mag2 = concat_arr(vec![
+                        mag2.clone()
+                            .filter(fa.clone().is_unsaturated(None))
                             .arr()
                             .to_struct(None)
                             .struct_()
                             .field_by_name("*")
                             .sum(),
-                    ])?
-                    .alias(SAMPLE),
-                    key,
-                )?,
+                    ])?;
+                    let unsaturated_tag = concat_arr(vec![
+                        tag.clone()
+                            .filter(fa.is_unsaturated(None))
+                            .arr()
+                            .to_struct(None)
+                            .struct_()
+                            .field_by_name("*")
+                            .sum(),
+                    ])?;
+                    (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
+                    // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
+                }
+                Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
+            };
+            if key.normalize_factor {
+                factor = factor / lit(3);
+            }
+            Ok(as_struct(vec![
+                factor.clone().arr().mean().alias(MEAN),
+                factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
+                factor.alias(SAMPLE),
             ])
-            .alias(name),
-        );
-    }
-    exprs.push(col(FILTER));
-    concat_lf_diagonal(
-        [
-            lazy_frame.clone().select(exprs),
-            lazy_frame.clone().select(sum),
-        ],
-        UnionArgs::default(),
-    )
-}
-
-fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key).alias(MEAN)
-}
-
-fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
-}
-
-fn format_array(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(ternary_expr(
-        expr.clone().arr().len().neq(1),
-        format_str(
-            "[{}]",
-            [expr
-                .arr()
-                .eval(format_float(element(), key), false)
-                .arr()
-                .join(lit(", "), false)],
-        )?,
-        lit(NULL),
-    ))
-}
-
-fn format_float(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
-        .precision(key.precision, key.significant)
-        .cast(DataType::String)
+            .alias(name.clone()))
+        })
+        .collect::<PolarsResult<Vec<_>>>()?;
+    lazy_frame = lazy_frame.with_columns(exprs);
+    println!(
+        "FF1: {:?}",
+        lazy_frame
+            .clone()
+            .select([nth(2).as_expr()])
+            .unnest(all(), None)
+            .collect()
+            .unwrap()
+    );
+    Ok(lazy_frame)
 }

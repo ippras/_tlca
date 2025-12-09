@@ -4,14 +4,15 @@ use crate::{
     app::{
         computers::fatty_acids::{
             Computed as FattyAcidsComputed, Key as FattyAcidsKey,
+            factors::{Computed as FactorsComputed, Key as FactorsKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
-            table::{Computed as FormatComputed, Key as FormatKey},
+            table::{Computed as TableComputed, Key as TableKey},
         },
         states::fatty_acids::{ID_SOURCE, Settings, State},
     },
     export::ron,
-    utils::HashedMetaDataFrame,
+    utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use anyhow::Result;
 use egui::{
@@ -27,25 +28,37 @@ use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, from_fn};
 use tracing::instrument;
 
 /// Fatty acids pane
 #[derive(Default, Deserialize, Serialize)]
 pub struct Pane {
+    id: Option<Id>,
     frames: Vec<HashedMetaDataFrame>,
+    calculated: HashedDataFrame,
 }
 
 impl Pane {
     pub(super) fn new(frames: Vec<HashedMetaDataFrame>) -> Self {
-        Self { frames }
+        Self {
+            id: None,
+            frames,
+            calculated: HashedDataFrame::EMPTY,
+        }
     }
 
     pub(super) fn title(&self) -> String {
         format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
     }
 
-    fn hash(&self) -> u64 {
-        hash(&self.frames)
+    fn id(&self) -> impl Display {
+        from_fn(|f| {
+            if let Some(id) = self.id {
+                write!(f, "{id:?}-")?;
+            }
+            write!(f, "{}", hash(&self.frames))
+        })
     }
 }
 
@@ -56,7 +69,9 @@ impl Pane {
         behavior: &mut Behavior,
         tile_id: TileId,
     ) -> UiResponse {
-        let mut state = State::load(ui.ctx(), Id::new(tile_id));
+        let id = *self.id.get_or_insert_with(|| ui.next_auto_id());
+        let mut state = State::load(ui.ctx(), id);
+        _ = self.init(ui, &mut state);
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
@@ -82,11 +97,12 @@ impl Pane {
             .frame(Frame::central_panel(&ui.style()))
             .show_inside(ui, |ui| {
                 self.central(ui, &mut state);
+                self.windows(ui, &mut state);
             });
-        if let Some(id) = behavior.close {
-            state.remove(ui.ctx(), Id::new(id));
+        if behavior.close == Some(tile_id) {
+            state.remove(ui.ctx(), id);
         } else {
-            state.store(ui.ctx(), Id::new(tile_id));
+            state.store(ui.ctx(), id);
         }
         if response.dragged() {
             UiResponse::DragStarted
@@ -95,11 +111,20 @@ impl Pane {
         }
     }
 
+    fn init(&mut self, ui: &mut Ui, state: &mut State) {
+        self.calculated = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<FattyAcidsComputed>()
+                .get(FattyAcidsKey::new(&self.frames, &state.settings))
+        });
+    }
+
     fn top(&mut self, ui: &mut Ui, state: &mut State) -> Response {
         let mut response = ui.heading(DROP).on_hover_text("FattyAcids");
         response |= ui.heading(self.title());
         response = response
-            .on_hover_text(format!("{:x}", self.hash()))
+            .on_hover_text(format!("{}/{:x}", self.id(), self.calculated.hash))
             .on_hover_ui(|ui| {
                 Label::new(format_list!(
                     self.frames.iter().map(|frame| frame.meta.format("."))
@@ -140,8 +165,27 @@ impl Pane {
         )
         .on_hover_text("ShowSettings");
         ui.separator();
-        // Sigma
+        self.sum_button(ui, state);
+        ui.separator();
+        self.save_button(ui);
+        ui.separator();
+        response
+    }
+
+    // Sum button
+    fn sum_button(&self, ui: &mut Ui, state: &mut State) {
         ui.menu_button(RichText::new(SIGMA).heading(), |ui| {
+            // Factors
+            ui.toggle_value(
+                &mut state.windows.open_factors,
+                (
+                    RichText::new(SIGMA).heading(),
+                    RichText::new(ui.localize("Factors")).heading(),
+                ),
+            )
+            .on_hover_ui(|ui| {
+                ui.label(ui.localize("Factors"));
+            });
             // Indices
             ui.toggle_value(
                 &mut state.windows.open_indices,
@@ -165,26 +209,10 @@ impl Pane {
                 ui.label(ui.localize("Metric?PluralCategory=other"));
             });
         });
-        ui.separator();
-        // Save
-        // if ui
-        //     .add_enabled(
-        //         self.frames.len() == 1,
-        //         Button::new(RichText::new(FLOPPY_DISK).heading()),
-        //     )
-        //     .on_hover_ui(|ui| {
-        //         ui.label("Save");
-        //     })
-        //     .on_hover_text(format!(
-        //         "{}.fa.utca.parquet",
-        //         self.frames[0].meta.format(".")
-        //     ))
-        //     .clicked()
-        // ui.add_enabled(
-        //     self.frames.len() == 1,
-        //     |ui| {
-        //     }
-        // );
+    }
+
+    /// Save button
+    fn save_button(&self, ui: &mut Ui) {
         ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
             let title = self.title();
             if ui
@@ -213,20 +241,17 @@ impl Pane {
             // }
             // _ = self.save();
         });
-        ui.separator();
-        response
     }
 
     #[instrument(skip_all, err)]
-    fn save_ron(&mut self, title: &str) -> Result<()> {
-        let frame = &mut self.frames[0];
+    fn save_ron(&self, title: &str) -> Result<()> {
+        let frame = &self.frames[0];
         let frame = MetaDataFrame::new(&frame.meta, &frame.data.data_frame);
         ron::save(&frame, &format!("{title}.fa.utca.ron"))?;
         Ok(())
     }
 
     fn central(&mut self, ui: &mut Ui, state: &mut State) {
-        self.windows(ui, state);
         if state.settings.editable {
             self.meta(ui);
             ui.separator();
@@ -244,17 +269,11 @@ impl Pane {
     }
 
     fn data(&mut self, ui: &mut Ui, state: &mut State) {
-        let frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<FattyAcidsComputed>()
-                .get(FattyAcidsKey::new(&self.frames, &state.settings))
-        });
         let data_frame = ui.memory_mut(|memory| {
             memory
                 .caches
-                .cache::<FormatComputed>()
-                .get(FormatKey::new(&frame, &state.settings))
+                .cache::<TableComputed>()
+                .get(TableKey::new(&self.calculated, &state.settings))
         });
         _ = TableView::new(&data_frame, state).show(ui);
     }
@@ -263,6 +282,7 @@ impl Pane {
 impl Pane {
     fn windows(&mut self, ui: &mut Ui, state: &mut State) {
         self.settings(ui, state);
+        self.factors(ui, state);
         self.indices(ui, state);
         self.metrics(ui, state);
     }
@@ -277,6 +297,25 @@ impl Pane {
             });
     }
 
+    fn factors(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} Factors"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Factors"))
+            .open(&mut state.windows.open_factors)
+            .show(ui.ctx(), |ui| self.factors_content(ui, &state.settings));
+    }
+
+    #[instrument(skip_all, err)]
+    fn factors_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
+        let data_frame = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<FactorsComputed>()
+                .get(FactorsKey::new(&self.calculated, settings))
+        });
+        // Factors::new(&data_frame, settings).show(ui)
+        Ok(())
+    }
+
     fn indices(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!("{SIGMA} Indices"))
             .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
@@ -286,17 +325,11 @@ impl Pane {
 
     #[instrument(skip_all, err)]
     fn indices_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<FattyAcidsComputed>()
-                .get(FattyAcidsKey::new(&self.frames, settings))
-        });
         let data_frame = ui.memory_mut(|memory| {
             memory
                 .caches
                 .cache::<IndicesComputed>()
-                .get(IndicesKey::new(&frame, settings))
+                .get(IndicesKey::new(&self.calculated, settings))
         });
         Indices::new(&data_frame, settings).show(ui)
     }
@@ -311,17 +344,11 @@ impl Pane {
 
     #[instrument(skip_all, err)]
     fn metrics_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<FattyAcidsComputed>()
-                .get(FattyAcidsKey::new(&self.frames, settings))
-        });
         let data_frame = ui.memory_mut(|memory| {
             memory
                 .caches
                 .cache::<MetricsComputed>()
-                .get(MetricsKey::new(&frame, settings))
+                .get(MetricsKey::new(&self.calculated, settings))
         });
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())

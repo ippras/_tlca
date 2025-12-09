@@ -65,12 +65,9 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
     {
         exprs.push(
             as_struct(vec![
-                format_mean(col(name).clone().struct_().field_by_name(MEAN), key),
+                format_mean(col(name).struct_().field_by_name(MEAN), key),
                 format_standard_deviation(
-                    col(name)
-                        .clone()
-                        .struct_()
-                        .field_by_name(STANDARD_DEVIATION),
+                    col(name).struct_().field_by_name(STANDARD_DEVIATION),
                     key,
                 )?,
                 format_array(col(name).struct_().field_by_name(SAMPLE), key)?,
@@ -79,10 +76,9 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
         );
         sum.push(
             as_struct(vec![
-                format_mean(col(name).clone().struct_().field_by_name(MEAN).sum(), key),
+                format_mean(col(name).struct_().field_by_name(MEAN).sum(), key),
                 format_standard_deviation(
                     col(name)
-                        .clone()
                         .struct_()
                         .field_by_name(STANDARD_DEVIATION)
                         .pow(2)
@@ -128,11 +124,15 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key).alias(MEAN)
+    format_float(expr, key)
 }
 
 fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
+    Ok(ternary_expr(
+        expr.clone().is_not_null(),
+        format_str("±{}", [format_float(expr, key)])?,
+        lit(NULL),
+    ))
 }
 
 fn format_array(expr: Expr, key: Key) -> PolarsResult<Expr> {

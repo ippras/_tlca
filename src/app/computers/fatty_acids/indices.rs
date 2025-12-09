@@ -44,7 +44,7 @@ impl<'a> Key<'a> {
         Self {
             frame,
             indices: &settings.indices,
-            stereospecific_numbers: settings.parameters.stereospecific_numbers,
+            stereospecific_numbers: settings.stereospecific_numbers,
         }
     }
 }

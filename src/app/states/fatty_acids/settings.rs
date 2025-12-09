@@ -9,6 +9,7 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::DOTS_SIX_VERTICAL;
+use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
@@ -67,7 +68,10 @@ pub(crate) struct Settings {
     // Indices settings
     pub(crate) indices: Indices,
 
-    pub(crate) parameters: Parameters,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) filter: Filter,
+    pub(crate) threshold: OrderedFloat<f64>,
+    pub(crate) sort: Sort,
 }
 
 impl Settings {
@@ -91,7 +95,10 @@ impl Settings {
             // Indices settings
             indices: Indices::new(),
 
-            parameters: Parameters::new(),
+            stereospecific_numbers: StereospecificNumbers::Sn123,
+            filter: Filter::Union,
+            threshold: OrderedFloat(0.0),
+            sort: Sort::Value,
         }
     }
 }
@@ -185,11 +192,11 @@ impl Settings {
                     ui.label(ui.localize("StereospecificNumber.abbreviation?number=other"));
                 });
             ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.stereospecific_numbers.text()))
+                .selected_text(ui.localize(self.stereospecific_numbers.text()))
                 .show_ui(ui, |ui| {
                     for stereospecific_number in STEREOSPECIFIC_NUMBERS {
                         ui.selectable_value(
-                            &mut self.parameters.stereospecific_numbers,
+                            &mut self.stereospecific_numbers,
                             stereospecific_number,
                             ui.localize(stereospecific_number.text()),
                         )
@@ -200,7 +207,7 @@ impl Settings {
                 })
                 .response
                 .on_hover_ui(|ui| {
-                    ui.label(ui.localize(self.parameters.stereospecific_numbers.hover_text()));
+                    ui.label(ui.localize(self.stereospecific_numbers.hover_text()));
                 });
         });
     }
@@ -212,10 +219,10 @@ impl Settings {
                 ui.label(ui.localize("Filter.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.filter.text()))
+                .selected_text(ui.localize(self.filter.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Intersection,
                         (
                             Filter::Intersection.icon(),
@@ -224,13 +231,13 @@ impl Settings {
                     )
                     .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Union,
                         (Filter::Union.icon(), ui.localize(Filter::Union.text())),
                     )
                     .on_hover_text(ui.localize(Filter::Union.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Difference,
                         (
                             Filter::Difference.icon(),
@@ -240,7 +247,7 @@ impl Settings {
                     .on_hover_text(ui.localize(Filter::Difference.hover_text()));
                 })
                 .response
-                .on_hover_text(RichText::new(self.parameters.filter.icon()).heading());
+                .on_hover_text(RichText::new(self.filter.icon()).heading());
         });
     }
 
@@ -251,7 +258,7 @@ impl Settings {
                 ui.label(ui.localize("Threshold.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.parameters.threshold.0;
+            let mut threshold = self.threshold.0;
             let response = Slider::new(&mut threshold, 0.0..=1.0)
                 .custom_formatter(|mut value, decimals| {
                     if self.percent {
@@ -272,7 +279,7 @@ impl Settings {
             if (response.drag_stopped() || response.lost_focus())
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
-                self.parameters.threshold.0 = threshold;
+                self.threshold.0 = threshold;
             }
         });
     }
@@ -284,23 +291,19 @@ impl Settings {
                 ui.label(ui.localize("Sort.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.sort.text()))
+                .selected_text(ui.localize(self.sort.text()))
                 .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.sort, Sort::Key, ui.localize(Sort::Key.text()))
+                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.sort,
-                        Sort::Key,
-                        ui.localize(Sort::Key.text()),
-                    )
-                    .on_hover_text(ui.localize(Sort::Key.hover_text()));
-                    ui.selectable_value(
-                        &mut self.parameters.sort,
+                        &mut self.sort,
                         Sort::Value,
                         ui.localize(Sort::Value.text()),
                     )
                     .on_hover_text(ui.localize(Sort::Value.hover_text()));
                 })
                 .response
-                .on_hover_text(ui.localize(self.parameters.sort.hover_text()));
+                .on_hover_text(ui.localize(self.sort.hover_text()));
         });
     }
 
@@ -413,38 +416,22 @@ impl Default for Settings {
     }
 }
 
-/// Fatty acids parameters
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) struct Parameters {
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) filter: Filter,
-    pub(crate) threshold: OrderedFloat<f64>,
-    pub(crate) sort: Sort,
-}
-
-impl Parameters {
-    pub(crate) fn new() -> Self {
-        Self {
-            stereospecific_numbers: StereospecificNumbers::Sn123,
-            filter: Filter::Union,
-            threshold: OrderedFloat(0.0),
-            sort: Sort::Value,
-        }
-    }
-}
-
-impl Default for Parameters {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Stereospecific numbers
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum StereospecificNumbers {
     Sn123,
     Sn13,
     Sn2,
+}
+
+impl StereospecificNumbers {
+    pub(crate) fn id(&self) -> &'static str {
+        match self {
+            StereospecificNumbers::Sn123 => STEREOSPECIFIC_NUMBERS123,
+            StereospecificNumbers::Sn13 => STEREOSPECIFIC_NUMBERS13,
+            StereospecificNumbers::Sn2 => STEREOSPECIFIC_NUMBERS2,
+        }
+    }
 }
 
 impl StereospecificNumbers {

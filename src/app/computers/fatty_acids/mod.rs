@@ -1,16 +1,14 @@
 use crate::{
     app::states::{
         Filter, Sort,
-        fatty_acids::{Display, Factor, Settings, StereospecificNumbers},
+        fatty_acids::{Settings, StereospecificNumbers},
     },
-    r#const::*,
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
-use egui::{
-    emath::OrderedFloat,
-    util::cache::{ComputerMut, FrameCache},
-};
+use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use tracing::instrument;
 
@@ -43,11 +41,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
-    pub(crate) ddof: u8,
-    pub(crate) display: Display,
-    pub(crate) factor: Factor,
     pub(crate) filter: Filter,
-    pub(crate) normalize_factor: bool,
     pub(crate) sort: Sort,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
@@ -57,14 +51,10 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
         Self {
             frames,
-            ddof: 1,
-            display: settings.parameters.display,
-            factor: settings.parameters.factor,
             filter: settings.parameters.filter,
-            normalize_factor: settings.normalize_factor,
             sort: settings.parameters.sort,
             stereospecific_numbers: settings.parameters.stereospecific_numbers,
-            threshold: settings.parameters.threshold.into(),
+            threshold: settings.parameters.threshold,
         }
     }
 }
@@ -129,236 +119,71 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 
 /// Values
 fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let stereospecific_numbers = |name: &PlSmallStr| match key.stereospecific_numbers {
+        StereospecificNumbers::Sn123 => col(name.clone())
+            .struct_()
+            .field_by_name(STEREOSPECIFIC_NUMBERS123),
+        StereospecificNumbers::Sn13 => col(name.clone())
+            .struct_()
+            .field_by_name(STEREOSPECIFIC_NUMBERS13),
+        StereospecificNumbers::Sn2 => col(name.clone())
+            .struct_()
+            .field_by_name(STEREOSPECIFIC_NUMBERS2),
+    };
     let schema = lazy_frame.collect_schema()?;
-    match key.display {
-        Display::StereospecificNumbers => {
-            let stereospecific_numbers = |name: &PlSmallStr| match key.stereospecific_numbers {
-                StereospecificNumbers::Sn123 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS123),
-                StereospecificNumbers::Sn13 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS13),
-                StereospecificNumbers::Sn2 => col(name.clone())
-                    .struct_()
-                    .field_by_name(STEREOSPECIFIC_NUMBERS2),
-            };
-            let exprs = schema
-                .iter_names()
-                .filter(|&name| name != LABEL && name != FATTY_ACID)
-                .map(|name| {
-                    let mean = stereospecific_numbers(name).struct_().field_by_name(MEAN);
-                    let standard_deviation = stereospecific_numbers(name)
-                        .struct_()
-                        .field_by_name(STANDARD_DEVIATION);
-                    let sample = stereospecific_numbers(name)
-                        .struct_()
-                        .field_by_name("Array");
-                    ternary_expr(
-                        mean.clone().neq(0),
-                        as_struct(vec![
-                            mean.alias(MEAN),
-                            standard_deviation.alias(STANDARD_DEVIATION),
-                            sample.alias(SAMPLE),
-                        ]),
-                        lit(NULL),
-                    )
-                    .alias(name.clone())
-                })
-                .collect::<Vec<_>>();
-            lazy_frame = lazy_frame.with_columns(exprs);
-        }
-        Display::Factor => {
-            // let mut lazy_frames = Vec::with_capacity(INDICES_LIST.len());
-            // for index in [] {
-            //     let exprs = schema
-            //         .iter_names()
-            //         .filter(|&name| name != LABEL && name != FATTY_ACID)
-            //         .map(|name| {
-            //             let expr = col(name.clone())
-            //                 .struct_()
-            //                 .field_by_name(match key.stereospecific_numbers {
-            //                     StereospecificNumbers::Sn123 => STEREOSPECIFIC_NUMBERS123,
-            //                     StereospecificNumbers::Sn1 => STEREOSPECIFIC_NUMBERS13,
-            //                     StereospecificNumbers::Sn2 => STEREOSPECIFIC_NUMBERS2,
-            //                     StereospecificNumbers::Sn3 => STEREOSPECIFIC_NUMBERS13,
-            //                 })
-            //                 .struct_()
-            //                 .field_by_name(MEAN);
-            //             let mean = col(FATTY_ACID).fatty_acid().unsaturated(expr, None);
-            //             let standard_deviation = lit(0.0).alias(STANDARD_DEVIATION);
-            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias(ARRAY);
-            //             as_struct(vec![
-            //                 mean.alias(MEAN),
-            //                 standard_deviation.alias(STANDARD_DEVIATION),
-            //                 array.alias(ARRAY),
-            //             ])
-            //             .alias(name.clone())
-            //         })
-            //         .collect::<Vec<_>>();
-            //     lazy_frames.push(lazy_frame.clone().select(exprs));
-            // }
-            // lazy_frame = concat(lazy_frames, Default::default())?;
-            // lazy_frame = lazy_frame.select([
-            //     lit(Series::new(
-            //         PlSmallStr::from_static(LABEL),
-            //         [
-            //             "Monounsaturated",
-            //             "Polyunsaturated",
-            //             "Saturated",
-            //             "Trans",
-            //             "Unsaturated",
-            //         ],
-            //     )),
-            //     lit(Series::from_any_values(
-            //         PlSmallStr::from_static(FATTY_ACID),
-            //         &vec![fatty_acid!(C0 {})?; INDICES_LIST.len()],
-            //         true,
-            //     )?),
-            //     all().as_expr(),
-            // ]);
-            println!("BEFORE 0: {:?}", lazy_frame.clone().collect().unwrap());
-            let stereospecific_numbers = |name: &PlSmallStr| {
-                (
-                    col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS123),
-                    col(name.clone())
-                        .struct_()
-                        .field_by_name(STEREOSPECIFIC_NUMBERS2),
-                )
-            };
-            let exprs = schema
-                .iter_names()
-                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID))
-                .map(|name| {
-                    let (sn123, sn2) = stereospecific_numbers(name);
-                    let tag = sn123.struct_().field_by_name("Array");
-                    let mag2 = sn2.struct_().field_by_name("Array");
-                    let mut factor = match key.factor {
-                        Factor::Selectivity => {
-                            let fa = col(FATTY_ACID).fatty_acid();
-                            let unsaturated_mag2 = concat_arr(vec![
-                                mag2.clone()
-                                    .filter(fa.clone().is_unsaturated(None))
-                                    .arr()
-                                    .to_struct(None)
-                                    .struct_()
-                                    .field_by_name("*")
-                                    .sum(),
-                            ])?;
-                            let unsaturated_tag = concat_arr(vec![
-                                tag.clone()
-                                    .filter(fa.clone().is_unsaturated(None))
-                                    .arr()
-                                    .to_struct(None)
-                                    .struct_()
-                                    .field_by_name("*")
-                                    .sum(),
-                            ])?;
-                            (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
-                            // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
-                        }
-                        Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
-                    };
-                    if key.normalize_factor {
-                        factor = factor / lit(3);
-                    }
-                    Ok(as_struct(vec![
-                        factor.clone().arr().mean().alias(MEAN),
-                        factor.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
-                        factor.alias(SAMPLE),
-                    ])
-                    .alias(name.clone()))
-                    // ternary_expr(
-                    //     mean.clone().neq(0),
-                    //     as_struct(vec![
-                    //         mean.alias(MEAN),
-                    //         standard_deviation.alias(STANDARD_DEVIATION),
-                    //         array.alias(ARRAY),
-                    //     ]),
-                    //     lit(NULL),
-                    // )
-                })
-                .collect::<PolarsResult<Vec<_>>>()?;
-            lazy_frame = lazy_frame.with_columns(exprs);
-            println!(
-                "AFTER !!!!!!: {:?}",
-                lazy_frame
-                    .clone()
-                    .select([nth(2).as_expr()])
-                    .unnest(all(), None)
-                    .collect()
-                    .unwrap()
-            );
-            // let exprs = [
-            //     lit(Series::new(
-            //         PlSmallStr::from_static(LABEL),
-            //         ["Monounsaturated"],
-            //     )),
-            //     lit(Series::from_any_values(
-            //         FATTY_ACID.into(),
-            //         &[fatty_acid!(C0 {}).unwrap()],
-            //         true,
-            //     )
-            //     .unwrap()),
-            // ]
-            // .into_iter()
-            // .chain(
-            //     schema
-            //         .iter_names()
-            //         .filter(|&name| name != LABEL && name != FATTY_ACID)
-            //         .map(|name| {
-            //             let mean = index(name);
-            //             let standard_deviation = lit(0.0).alias(STANDARD_DEVIATION);
-            //             let array = concat_arr(vec![lit(0.0)]).unwrap().alias(ARRAY);
-            //             as_struct(vec![
-            //                 mean.alias(MEAN),
-            //                 standard_deviation.alias(STANDARD_DEVIATION),
-            //                 array.alias(ARRAY),
-            //             ])
-            //             .alias(name.clone())
-            //         }),
-            // )
-            // .collect::<Vec<_>>();
-        }
-    }
+    let exprs = schema
+        .iter_names()
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID))
+        .map(|name| {
+            let mean = stereospecific_numbers(name).struct_().field_by_name(MEAN);
+            let standard_deviation = stereospecific_numbers(name)
+                .struct_()
+                .field_by_name(STANDARD_DEVIATION);
+            let sample = stereospecific_numbers(name)
+                .struct_()
+                .field_by_name("Array");
+            ternary_expr(
+                mean.clone().neq(0),
+                as_struct(vec![
+                    mean.alias(MEAN),
+                    standard_deviation.alias(STANDARD_DEVIATION),
+                    sample.alias(SAMPLE),
+                ]),
+                lit(NULL),
+            )
+            .alias(name.clone())
+        })
+        .collect::<Vec<_>>();
+    lazy_frame = lazy_frame.with_columns(exprs);
     Ok(lazy_frame)
 }
 
 /// Filter
 fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    match key.filter {
+    let expr = all().exclude_cols([LABEL, FATTY_ACID]).as_expr();
+    let mut predicate = match key.filter {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
-            lazy_frame = lazy_frame.filter(all_horizontal([all()
-                .exclude_cols([LABEL, FATTY_ACID])
-                .as_expr()
-                .is_not_null()])?);
+            all_horizontal([expr.clone().is_not_null()])?
         }
         Filter::Union => {
             // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
-            lazy_frame = lazy_frame.filter(any_horizontal([all()
-                .exclude_cols([LABEL, FATTY_ACID])
-                .as_expr()
-                .is_not_null()])?);
+            any_horizontal([expr.clone().is_not_null()])?
         }
         Filter::Difference => {
             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
-            lazy_frame = lazy_frame.filter(any_horizontal([all()
-                .exclude_cols([LABEL, FATTY_ACID])
-                .as_expr()
-                .is_null()])?);
+            any_horizontal([expr.clone().is_null()])?
         }
-    }
+    };
     // Threshold
     // Значение в одном или более столбцах больше threshold
-    lazy_frame = lazy_frame.filter(any_horizontal([all()
-        .exclude_cols([LABEL, FATTY_ACID])
-        .as_expr()
+    predicate = predicate.and(any_horizontal([expr
+        .clone()
         .struct_()
         .field_by_name(MEAN)
-        .gt(key.threshold.into_inner())])?);
+        .gt_eq(key.threshold.0)
+        .and(expr.is_not_null())])?);
+    lazy_frame = lazy_frame.with_column(predicate.alias("Filter"));
     Ok(lazy_frame)
 }
 
@@ -389,6 +214,7 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame
 }
 
-pub(crate) mod format;
+pub(crate) mod factors;
 pub(crate) mod indices;
 pub(crate) mod metrics;
+pub(crate) mod table;

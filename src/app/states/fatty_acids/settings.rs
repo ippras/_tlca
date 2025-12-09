@@ -2,20 +2,17 @@ use crate::app::{
     MAX_PRECISION,
     states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
 };
-use egui::{
-    ComboBox, Context, Grid, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget,
-    emath::Float as _,
-};
+use egui::{ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget};
 use egui_dnd::dnd;
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::DOTS_SIX_VERTICAL;
+use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::{
-    hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
@@ -50,7 +47,6 @@ const SEPARATORS: [usize; 3] = [3, 6, 9];
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
-    pub(crate) normalize_factor: bool,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     #[serde(skip)]
@@ -62,8 +58,14 @@ pub(crate) struct Settings {
     #[serde(skip)]
     pub(crate) editable: bool,
     pub(crate) sticky: usize,
+    // Factors settings
+    pub(crate) factor: Factor,
+    pub(crate) normalize_factor: bool,
     // Metrics settings
     pub(crate) chaddock: bool,
+    pub(crate) metric: Metric,
+    // Indices settings
+    pub(crate) indices: Indices,
 
     pub(crate) parameters: Parameters,
 }
@@ -71,18 +73,23 @@ pub(crate) struct Settings {
 impl Settings {
     pub(crate) fn new() -> Self {
         Self {
-            normalize_factor: false,
             percent: true,
             precision: 2,
             resizable: false,
             significant: false,
             standard_deviation: false,
             truncate: true,
-
+            // Table settings
             editable: false,
             sticky: 0,
-
+            // Factors settings
+            factor: Factor::Enrichment,
+            normalize_factor: false,
+            // Metrics settings
             chaddock: true,
+            metric: Metric::HellingerDistance,
+            // Indices settings
+            indices: Indices::new(),
 
             parameters: Parameters::new(),
         }
@@ -91,20 +98,116 @@ impl Settings {
 
 impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
-        Grid::new(*ID_SALT).show(ui, |ui| {
-            self.precision(ui);
-            self.percent(ui);
-            self.standard_deviation(ui);
-            self.normalize_factor(ui);
-            self.truncate(ui);
+        self.precision(ui);
+        self.significant(ui);
+        self.percent(ui);
+        self.standard_deviation(ui);
+        self.truncate(ui);
 
-            ui.separator();
-            ui.labeled_separator(ui.localize("Parameters"));
-            ui.end_row();
+        ui.separator();
+        ui.labeled_separator(ui.localize("Parameters"));
 
-            self.display(ui);
+        self.stereospecific_numbers(ui);
+        self.filter(ui);
+        self.threshold(ui);
+        self.sort(ui);
 
-            // Filter
+        ui.separator();
+        ui.labeled_separator(ui.localize("Factor?PluralCategory=other"));
+
+        self.factors(ui);
+
+        ui.separator();
+        ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
+
+        self.metrics(ui);
+
+        ui.separator();
+        ui.labeled_separator(ui.localize("Indices"));
+
+        self.indices(ui);
+    }
+
+    /// Precision
+    fn precision(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Precision"))
+                .on_hover_localized("Precision.hover");
+            Slider::new(&mut self.precision, 1..=MAX_PRECISION).ui(ui);
+        });
+    }
+
+    // Significant
+    fn significant(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Significant"))
+                .on_hover_localized("Significant.hover");
+            ui.checkbox(&mut self.significant, ());
+        });
+    }
+
+    /// Percent
+    fn percent(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Percent"))
+                .on_hover_localized("Percent.hover");
+            ui.checkbox(&mut self.percent, ());
+        });
+    }
+
+    /// Standard deviation
+    fn standard_deviation(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            let mut response = ui.label(ui.localize("StandardDeviation"));
+            response |= ui.checkbox(&mut self.standard_deviation, "");
+            response.on_hover_ui(|ui| {
+                ui.label(ui.localize("StandardDeviation.hover"));
+            });
+        });
+    }
+
+    /// Truncate
+    fn truncate(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            let mut response = ui.label(ui.localize("Truncate"));
+            response |= ui.checkbox(&mut self.truncate, "");
+            response.on_hover_ui(|ui| {
+                ui.label(ui.localize("Truncate.hover"));
+            });
+        });
+    }
+
+    /// Stereospecific numbers
+    fn stereospecific_numbers(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("StereospecificNumber?number=many"))
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize("StereospecificNumber.abbreviation?number=other"));
+                });
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.parameters.stereospecific_numbers.text()))
+                .show_ui(ui, |ui| {
+                    for stereospecific_number in STEREOSPECIFIC_NUMBERS {
+                        ui.selectable_value(
+                            &mut self.parameters.stereospecific_numbers,
+                            stereospecific_number,
+                            ui.localize(stereospecific_number.text()),
+                        )
+                        .on_hover_ui(|ui| {
+                            ui.label(ui.localize(stereospecific_number.hover_text()));
+                        });
+                    }
+                })
+                .response
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(self.parameters.stereospecific_numbers.hover_text()));
+                });
+        });
+    }
+
+    /// Filter
+    fn filter(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
             ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Filter.hover"));
             });
@@ -138,14 +241,17 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(RichText::new(self.parameters.filter.icon()).heading());
-            ui.end_row();
+        });
+    }
 
-            // Threshold
+    /// Threshold
+    fn threshold(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
             ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Threshold.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.parameters.threshold;
+            let mut threshold = self.parameters.threshold.0;
             let response = Slider::new(&mut threshold, 0.0..=1.0)
                 .custom_formatter(|mut value, decimals| {
                     if self.percent {
@@ -166,11 +272,14 @@ impl Settings {
             if (response.drag_stopped() || response.lost_focus())
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
-                self.parameters.threshold = threshold;
+                self.parameters.threshold.0 = threshold;
             }
-            ui.end_row();
+        });
+    }
 
-            // Sort
+    /// Sort
+    fn sort(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
             ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Sort.hover"));
             });
@@ -192,18 +301,56 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(ui.localize(self.parameters.sort.hover_text()));
-            ui.end_row();
+        });
+    }
 
-            ui.separator();
-            ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
-            ui.end_row();
+    /// Factors
+    fn factors(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Factor?Number=many"))
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize("Factor.abbreviation?Number=other"));
+                });
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.factor.text()))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.factor,
+                        Factor::Enrichment,
+                        ui.localize(Factor::Enrichment.text()),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize(Factor::Enrichment.hover_text()));
+                    });
+                    ui.selectable_value(
+                        &mut self.factor,
+                        Factor::Selectivity,
+                        ui.localize(Factor::Selectivity.text()),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize(Factor::Selectivity.hover_text()));
+                    });
+                })
+                .response
+                .on_hover_ui(|ui| {
+                    ui.label(ui.localize(self.factor.hover_text()));
+                });
+        });
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("NormalizeFactor"))
+                .on_hover_localized("NormalizeFactor.hover");
+            ui.checkbox(&mut self.normalize_factor, ());
+        });
+    }
 
-            // Metric
+    /// Metric
+    fn metrics(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
             ui.label(ui.localize("Metric?PluralCategory=one"))
                 .on_hover_text(ui.localize("Metric.hover"));
             #[allow(unused_variables)]
             let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.metric.text()))
+                .selected_text(ui.localize(self.metric.text()))
                 .show_ui(ui, |ui| {
                     for (index, metric) in METRICS.into_iter().enumerate() {
                         if SEPARATORS.contains(&index) {
@@ -211,7 +358,7 @@ impl Settings {
                         }
                         #[allow(unused_variables)]
                         let response = ui.selectable_value(
-                            &mut self.parameters.metric,
+                            &mut self.metric,
                             metric,
                             ui.localize(metric.text()),
                         );
@@ -224,29 +371,28 @@ impl Settings {
                 .response;
             #[cfg(feature = "markdown")]
             response.on_hover_ui(|ui| {
-                ui.markdown(self.parameters.metric.hover_markdown());
+                ui.markdown(self.metric.hover_markdown());
             });
-            ui.end_row();
+        });
 
-            // Chaddock
+        // Chaddock
+        ui.horizontal(|ui| {
             let mut response = ui.label(ui.localize("Chaddock"));
             response |= ui.checkbox(&mut self.chaddock, "");
             response.on_hover_ui(|ui| {
                 ui.label(ui.localize("Chaddock.hover"));
             });
-            ui.end_row();
+        });
+    }
 
-            ui.separator();
-            ui.labeled_separator(ui.localize("Indices"));
-            ui.end_row();
-
-            // Indices
+    /// Indices
+    fn indices(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
             ui.label(ui.localize("Indices")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Indices.hover"));
             });
             let selected_text = format_list_truncated!(
-                self.parameters
-                    .indices
+                self.indices
                     .0
                     .iter()
                     .filter(|index| index.visible)
@@ -256,160 +402,8 @@ impl Settings {
             ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
                 .selected_text(selected_text)
                 .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
-                .show_ui(ui, |ui| self.parameters.indices.show(ui));
-            ui.end_row();
+                .show_ui(ui, |ui| self.indices.show(ui));
         });
-    }
-
-    /// Precision
-    fn precision(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Precision"))
-            .on_hover_localized("Precision.hover");
-        Slider::new(&mut self.precision, 1..=MAX_PRECISION).ui(ui);
-        ui.end_row();
-    }
-
-    // Significant
-    fn significant(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Significant"))
-            .on_hover_localized("Significant.hover");
-        ui.checkbox(&mut self.significant, ());
-        ui.end_row();
-    }
-
-    /// Percent
-    fn percent(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Percent"))
-            .on_hover_localized("Percent.hover");
-        ui.checkbox(&mut self.percent, ());
-        ui.end_row();
-    }
-
-    /// Standard deviation
-    fn standard_deviation(&mut self, ui: &mut Ui) {
-        let mut response = ui.label(ui.localize("StandardDeviation"));
-        response |= ui.checkbox(&mut self.standard_deviation, "");
-        response.on_hover_ui(|ui| {
-            ui.label(ui.localize("StandardDeviation.hover"));
-        });
-        ui.end_row();
-    }
-
-    /// Normalize factor
-    fn normalize_factor(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("NormalizeFactor"))
-            .on_hover_localized("NormalizeFactor.hover");
-        ui.checkbox(&mut self.normalize_factor, ());
-        ui.end_row();
-    }
-
-    /// Truncate
-    fn truncate(&mut self, ui: &mut Ui) {
-        let mut response = ui.label(ui.localize("Truncate"));
-        response |= ui.checkbox(&mut self.truncate, "");
-        response.on_hover_ui(|ui| {
-            ui.label(ui.localize("Truncate.hover"));
-        });
-        ui.end_row();
-    }
-
-    /// Display
-    fn display(&mut self, ui: &mut Ui) {
-        // Display
-        ui.label(ui.localize("Display")).on_hover_ui(|ui| {
-            ui.label(ui.localize("Display.hover"));
-        });
-        ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-            .selected_text(ui.localize(self.parameters.display.text()))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(
-                    &mut self.parameters.display,
-                    Display::StereospecificNumbers,
-                    ui.localize(Display::StereospecificNumbers.text()),
-                )
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(Display::StereospecificNumbers.hover_text()));
-                });
-                ui.selectable_value(
-                    &mut self.parameters.display,
-                    Display::Factor,
-                    ui.localize(Display::Factor.text()),
-                )
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(Display::Factor.hover_text()));
-                });
-            })
-            .response
-            .on_hover_ui(|ui| {
-                ui.label(ui.localize(self.parameters.display.hover_text()));
-            });
-        ui.end_row();
-
-        // Stereospecific numbers
-        let enabled = self.parameters.display == Display::StereospecificNumbers;
-        ui.add_enabled_ui(enabled, |ui| {
-            ui.label(ui.localize("StereospecificNumber?number=many"))
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize("StereospecificNumber.abbreviation?number=other"));
-                });
-        });
-        ui.add_enabled_ui(enabled, |ui| {
-            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.stereospecific_numbers.text()))
-                .show_ui(ui, |ui| {
-                    for stereospecific_number in STEREOSPECIFIC_NUMBERS {
-                        ui.selectable_value(
-                            &mut self.parameters.stereospecific_numbers,
-                            stereospecific_number,
-                            ui.localize(stereospecific_number.text()),
-                        )
-                        .on_hover_ui(|ui| {
-                            ui.label(ui.localize(stereospecific_number.hover_text()));
-                        });
-                    }
-                })
-                .response
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(self.parameters.stereospecific_numbers.hover_text()));
-                });
-        });
-        ui.end_row();
-
-        // Factor
-        let enabled = self.parameters.display == Display::Factor;
-        ui.add_enabled_ui(enabled, |ui| {
-            ui.label(ui.localize("Factor?Number=many"))
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize("Factor.abbreviation?Number=other"));
-                });
-        });
-        ui.add_enabled_ui(enabled, |ui| {
-            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.parameters.factor.text()))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.parameters.factor,
-                        Factor::Enrichment,
-                        ui.localize(Factor::Enrichment.text()),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label(ui.localize(Factor::Enrichment.hover_text()));
-                    });
-                    ui.selectable_value(
-                        &mut self.parameters.factor,
-                        Factor::Selectivity,
-                        ui.localize(Factor::Selectivity.text()),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label(ui.localize(Factor::Selectivity.hover_text()));
-                    });
-                })
-                .response
-                .on_hover_ui(|ui| {
-                    ui.label(ui.localize(self.parameters.factor.hover_text()));
-                });
-        });
-        ui.end_row();
     }
 }
 
@@ -420,29 +414,21 @@ impl Default for Settings {
 }
 
 /// Fatty acids parameters
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Parameters {
-    pub(crate) display: Display,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) factor: Factor,
     pub(crate) filter: Filter,
-    pub(crate) threshold: f64,
+    pub(crate) threshold: OrderedFloat<f64>,
     pub(crate) sort: Sort,
-    pub(crate) metric: Metric,
-    pub(crate) indices: Indices,
 }
 
 impl Parameters {
     pub(crate) fn new() -> Self {
         Self {
-            display: Display::StereospecificNumbers,
             stereospecific_numbers: StereospecificNumbers::Sn123,
-            factor: Factor::Enrichment,
             filter: Filter::Union,
-            threshold: 0.0,
+            threshold: OrderedFloat(0.0),
             sort: Sort::Value,
-            metric: Metric::HellingerDistance,
-            indices: Indices::new(),
         }
     }
 }
@@ -450,39 +436,6 @@ impl Parameters {
 impl Default for Parameters {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Hash for Parameters {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.display.hash(state);
-        self.filter.hash(state);
-        self.threshold.ord().hash(state);
-        self.sort.hash(state);
-        self.metric.hash(state);
-    }
-}
-
-/// Display parameter
-#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum Display {
-    StereospecificNumbers,
-    Factor,
-}
-
-impl Display {
-    pub(crate) fn text(&self) -> &'static str {
-        match self {
-            Self::StereospecificNumbers => "StereospecificNumber?number=many",
-            Self::Factor => "Factor?Number=many",
-        }
-    }
-
-    pub(crate) fn hover_text(&self) -> &'static str {
-        match self {
-            Self::StereospecificNumbers => "StereospecificNumber.abbreviation?number=other",
-            Self::Factor => "Factor?Number=many.hover",
-        }
     }
 }
 

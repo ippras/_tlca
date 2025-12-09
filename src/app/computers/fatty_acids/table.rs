@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::Settings,
-    r#const::{SAMPLE, MEAN, STANDARD_DEVIATION},
+    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -8,10 +8,10 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
-/// Format computed
+/// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
 
-/// Format computer
+/// Table computer
 #[derive(Default)]
 pub(crate) struct Computer;
 
@@ -29,7 +29,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
     }
 }
 
-/// Format key
+/// Table key
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
@@ -44,12 +44,12 @@ impl<'a> Key<'a> {
             frame,
             percent: settings.percent,
             precision: settings.precision,
-            significant: false,
+            significant: settings.significant,
         }
     }
 }
 
-/// Format value
+/// Table value
 type Value = DataFrame;
 
 fn format(key: Key) -> PolarsResult<LazyFrame> {
@@ -61,7 +61,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
         .data_frame
         .get_column_names_str()
         .into_iter()
-        .filter(|&name| !matches!(name, LABEL | FATTY_ACID))
+        .filter(|&name| !matches!(name, LABEL | FATTY_ACID | FILTER))
     {
         exprs.push(
             as_struct(vec![
@@ -117,6 +117,7 @@ fn format(key: Key) -> PolarsResult<LazyFrame> {
             .alias(name),
         );
     }
+    exprs.push(col(FILTER));
     concat_lf_diagonal(
         [
             lazy_frame.clone().select(exprs),

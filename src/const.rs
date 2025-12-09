@@ -5,8 +5,9 @@ pub(crate) const LINKS: &str = "Links";
 pub(crate) const REPORT_AN_ISSUE: &str = "Report an issue";
 pub(crate) const WEB_PAGE_ADDRESS: &str = "Web page address";
 
-pub(crate) const SAMPLE: &str = "Sample";
+pub(crate) const FILTER: &str = "Filter";
 pub(crate) const MEAN: &str = "Mean";
+pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
 
 pub(crate) mod markdown {

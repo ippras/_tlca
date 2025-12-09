@@ -1,10 +1,11 @@
 use crate::{
-    app::states::{Metric, fatty_acids::Parameters},
+    app::states::{Metric, fatty_acids::Settings},
+    r#const::FILTER,
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
-use lipid::prelude::{FATTY_ACID, LABEL};
-use polars::{error::PolarsResult, prelude::*};
+use lipid::prelude::*;
+use polars::prelude::*;
 use std::f64::consts::{E, FRAC_1_SQRT_2};
 use tracing::instrument;
 
@@ -20,52 +21,32 @@ impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID]).as_expr()]);
+        lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr()]);
         let schema = lazy_frame.collect_schema()?;
         let mean = |expr: Expr| expr.struct_().field_by_name("Mean").fill_null(0);
         let exprs = schema
-            .iter_names_cloned()
-            .map(|left| -> PolarsResult<_> {
-                Ok(concat_arr(vec![match key.parameters.metric {
+            .iter_names()
+            .map(|name| -> PolarsResult<_> {
+                let left = mean(col(name.as_str()));
+                let right = mean(all().as_expr());
+                Ok(concat_arr(vec![match key.metric {
                     // Similarity between two discrete probability distributions
-                    Metric::HellingerDistance => {
-                        hellinger_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::JensenShannonDistance => {
-                        jensen_shannon_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::BhattacharyyaDistance => {
-                        bhattacharyya_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
+                    Metric::HellingerDistance => hellinger_distance(left, right),
+                    Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+                    Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
                     // Distance between two points
-                    Metric::ChebyshevDistance => {
-                        chebyshev_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::EuclideanDistance => {
-                        euclidean_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::ManhattanDistance => {
-                        manhattan_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
+                    Metric::ChebyshevDistance => chebyshev_distance(left, right),
+                    Metric::EuclideanDistance => euclidean_distance(left, right),
+                    Metric::ManhattanDistance => manhattan_distance(left, right),
                     // Distance between two series
-                    Metric::CosineDistance => {
-                        cosine_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::JaccardDistance => {
-                        jaccard_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::OverlapDistance => {
-                        overlap_distance(mean(col(left.clone())), mean(all().as_expr()))
-                    }
+                    Metric::CosineDistance => cosine_distance(left, right),
+                    Metric::JaccardDistance => jaccard_distance(left, right),
+                    Metric::OverlapDistance => overlap_distance(left, right),
                     // Correlation between two series
-                    Metric::PearsonCorrelation => {
-                        pearson_corr(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::SpearmanRankCorrelation => {
-                        spearman_rank_corr(mean(col(left.clone())), mean(all().as_expr()), false)
-                    }
+                    Metric::PearsonCorrelation => pearson_corr(left, right),
+                    Metric::SpearmanRankCorrelation => spearman_rank_corr(left, right, false),
                 }])?
-                .alias(left))
+                .alias(name.clone()))
             })
             .collect::<PolarsResult<Vec<_>>>()?;
         lazy_frame = lazy_frame.select(exprs).explode(all());
@@ -116,7 +97,16 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
-    pub(crate) parameters: &'a Parameters,
+    pub(crate) metric: Metric,
+}
+
+impl<'a> Key<'a> {
+    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
+        Self {
+            frame,
+            metric: settings.metric,
+        }
+    }
 }
 
 /// Metrics value

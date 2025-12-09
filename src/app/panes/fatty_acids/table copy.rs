@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
     },
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
+    r#const::*,
 };
 use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_l20n::UiExt;

@@ -4,9 +4,9 @@ use crate::{
     app::{
         computers::fatty_acids::{
             Computed as FattyAcidsComputed, Key as FattyAcidsKey,
-            format::{Computed as FormatComputed, Key as FormatKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
+            table::{Computed as FormatComputed, Key as FormatKey},
         },
         states::fatty_acids::{ID_SOURCE, Settings, State},
     },
@@ -268,30 +268,20 @@ impl Pane {
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
-        if let Some(inner_response) = Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
                 state.settings.show(ui);
-            })
-        {
-            inner_response.response.on_hover_ui(|ui| {
-                ui.label(format!("{DROP} {}", self.title()));
             });
-        }
     }
 
     fn indices(&mut self, ui: &mut Ui, state: &mut State) {
-        if let Some(inner_response) = Window::new(format!("{SIGMA} Indices"))
+        Window::new(format!("{SIGMA} Indices"))
             .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
             .open(&mut state.windows.open_indices)
-            .show(ui.ctx(), |ui| self.indices_content(ui, &state.settings))
-        {
-            inner_response.response.on_hover_ui(|ui| {
-                ui.label(format!("{DROP} {}", self.title()));
-            });
-        }
+            .show(ui.ctx(), |ui| self.indices_content(ui, &state.settings));
     }
 
     #[instrument(skip_all, err)]
@@ -312,16 +302,11 @@ impl Pane {
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {
-        if let Some(inner_response) = Window::new(format!("{SIGMA} Metrics"))
+        Window::new(format!("{SIGMA} Metrics"))
             .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_metrics)
-            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings))
-        {
-            inner_response.response.on_hover_ui(|ui| {
-                ui.label(format!("{DROP} {}", self.title()));
-            });
-        }
+            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings));
     }
 
     #[instrument(skip_all, err)]
@@ -333,10 +318,10 @@ impl Pane {
                 .get(FattyAcidsKey::new(&self.frames, settings))
         });
         let data_frame = ui.memory_mut(|memory| {
-            memory.caches.cache::<MetricsComputed>().get(MetricsKey {
-                frame: &frame,
-                parameters: &settings.parameters,
-            })
+            memory
+                .caches
+                .cache::<MetricsComputed>()
+                .get(MetricsKey::new(&frame, settings))
         });
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())

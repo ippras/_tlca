@@ -1,5 +1,6 @@
 use crate::{
     app::states::fatty_acids::{Indices, Settings, StereospecificNumbers},
+    r#const::FILTER,
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -42,7 +43,7 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            indices: &settings.parameters.indices,
+            indices: &settings.indices,
             stereospecific_numbers: settings.parameters.stereospecific_numbers,
         }
     }
@@ -65,7 +66,7 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
             ));
             let values = schema
                 .iter_names()
-                .filter(|&name| name != LABEL && name != FATTY_ACID)
+                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
                 .map(|name| {
                     let expr = col(name.clone()).struct_().field_by_name("Mean");
                     let mean = compute_index(&index.name, expr);

@@ -22,6 +22,7 @@ egui_table = "0.6.0"
 egui_tiles = "0.14.0"
 itertools = "0.14.0"
 log = "0.4.29"
+ordered-float = { version = "5.1.0", features = ["serde"] }
 parking_lot = "0.12.5"
 polars = { git = "https://github.com/pola-rs/polars", rev = "fea5335", default-features = false, features = [
     "array_arithmetic",

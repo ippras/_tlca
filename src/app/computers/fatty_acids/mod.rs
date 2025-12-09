@@ -19,6 +19,12 @@ pub(crate) type Computed = FrameCache<Value, Computer>;
 #[derive(Default)]
 pub(crate) struct Computer;
 
+// From:
+// ┌───────┬───────────┬──────────────────────────┬─────────────────────────┬────────────────────────┐
+// │ Label ┆ FattyAcid ┆ StereospecificNumbers123 ┆ StereospecificNumbers13 ┆ StereospecificNumbers2 │
+// ┆ ---   ┆ ---       ┆ ---                      ┆ ---                     ┆ ---                    │
+// │ str   ┆ struct[2] ┆ struct[3]                ┆ struct[3]               ┆ struct[3]              │
+// ╞═══════╪═══════════╪══════════════════════════╪═════════════════════════╪════════════════════════╡
 impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {

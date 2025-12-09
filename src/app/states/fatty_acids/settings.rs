@@ -13,7 +13,7 @@ use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_l20n::{ResponseExt, prelude::*};
-use egui_phosphor::regular::DOTS_SIX_VERTICAL;
+use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
@@ -146,6 +146,9 @@ impl Settings {
             ui.label(ui.localize("Precision"))
                 .on_hover_localized("Precision.hover");
             Slider::new(&mut self.precision, 1..=MAX_PRECISION).ui(ui);
+            if ui.button((BOOKMARK, "3")).clicked() {
+                self.precision = 3;
+            };
         });
     }
 
@@ -286,6 +289,9 @@ impl Settings {
             {
                 self.threshold.0 = threshold;
             }
+            if ui.button((BOOKMARK, "1.0")).clicked() {
+                self.threshold = OrderedFloat(0.01);
+            };
         });
     }
 

@@ -7,7 +7,7 @@ use crate::{
         },
         settings::Settings,
     },
-    r#const::{MEAN, STANDARD_DEVIATION},
+    r#const::{EM_DASH, MEAN, SPECIES, STANDARD_DEVIATION},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -130,7 +130,7 @@ fn format_label(key: Key) -> PolarsResult<Expr> {
 }
 
 fn format_species(key: Key) -> PolarsResult<Expr> {
-    Ok(col("Species")
+    Ok(col(SPECIES)
         .list()
         .eval(as_struct(vec![
             {
@@ -146,22 +146,24 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
                 .alias(LABEL)
             },
             {
-                let triacylglycerol = || element().struct_().field_by_name(TRIACYLGLYCEROL);
+                let triacylglycerol = element()
+                    .struct_()
+                    .field_by_name(TRIACYLGLYCEROL)
+                    .triacylglycerol();
                 format_str(
                     "[{}; {}; {}]",
                     [
-                        triacylglycerol()
-                            .triacylglycerol()
+                        triacylglycerol
+                            .clone()
                             .stereospecific_number1()
                             .fatty_acid()
                             .format(),
-                        triacylglycerol()
-                            .triacylglycerol()
+                        triacylglycerol
+                            .clone()
                             .stereospecific_number2()
                             .fatty_acid()
                             .format(),
-                        triacylglycerol()
-                            .triacylglycerol()
+                        triacylglycerol
                             .stereospecific_number3()
                             .fatty_acid()
                             .format(),
@@ -178,14 +180,14 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
                     .eval(ternary_expr(
                         element().is_not_null(),
                         format_float(element(), key),
-                        lit("-"),
+                        lit(EM_DASH),
                     ))
                     .list()
                     .join(lit(", "), false)],
             )?
             .alias("Values"),
         ]))
-        .alias("Species"))
+        .alias(SPECIES))
 }
 
 fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {

@@ -114,7 +114,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .triacylglycerol()
             .relative_atomic_mass(None)
             .round(ROUND_MASS, RoundMode::HalfToEven),
-        MASS_STEREO => col(TRIACYLGLYCEROL).triacylglycerol().map_expr(|expr| {
+        MASS_STEREO => col(TRIACYLGLYCEROL).triacylglycerol().map(|expr| {
             expr.fatty_acid()
                 .relative_atomic_mass(None)
                 .round(ROUND_MASS, RoundMode::HalfToEven)
@@ -124,7 +124,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .equivalent_carbon_number(),
         ECN_STEREO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .map_expr(|expr| expr.fatty_acid().equivalent_carbon_number()),
+            .map(|expr| expr.fatty_acid().equivalent_carbon_number()),
         SPECIES_MONO => col(LABEL).triacylglycerol().non_stereospecific(identity),
         SPECIES_POSITIONAL => col(LABEL).triacylglycerol().positional(identity),
         SPECIES_STEREO => col(LABEL),
@@ -132,19 +132,19 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .triacylglycerol()
             .non_stereospecific(|expr| expr.fatty_acid().is_saturated().not())
             .triacylglycerol()
-            .map_expr(|expr| expr.fatty_acid().r#type()),
+            .map(|expr| expr.fatty_acid().r#type()),
         TYPE_POSITIONAL => col(TRIACYLGLYCEROL)
             .triacylglycerol()
             .positional(|expr| expr.fatty_acid().is_saturated().not())
             .triacylglycerol()
-            .map_expr(|expr| expr.fatty_acid().r#type()),
+            .map(|expr| expr.fatty_acid().r#type()),
         TYPE_STEREO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .map_expr(|expr| expr.fatty_acid().r#type()),
+            .map(|expr| expr.fatty_acid().r#type()),
         UNSATURATION_MONO => col(TRIACYLGLYCEROL).triacylglycerol().unsaturation(),
         UNSATURATION_STEREO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .map_expr(|expr| expr.fatty_acid().unsaturation()),
+            .map(|expr| expr.fatty_acid().unsaturation()),
     }
     .alias(COMPOSITION)];
     let mut aggs = vec![

@@ -22,7 +22,7 @@ pub(crate) struct Computer;
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        lazy_frame = select(lazy_frame, key);
+        lazy_frame = unnest(lazy_frame, key);
         lazy_frame = filter(lazy_frame, key)?;
         lazy_frame = format(lazy_frame, key)?;
         let data_frame = lazy_frame.collect()?;
@@ -57,7 +57,7 @@ impl<'a> Key<'a> {
             precision: settings.precision,
             significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold,
+            threshold: settings.threshold.auto,
         }
     }
 }
@@ -65,8 +65,8 @@ impl<'a> Key<'a> {
 /// Table value
 type Value = DataFrame;
 
-/// Select
-fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+/// Unnest
+fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([all()
         .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
         .as_expr()

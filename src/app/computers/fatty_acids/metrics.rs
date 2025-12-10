@@ -24,7 +24,7 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        lazy_frame = select(lazy_frame, key);
+        lazy_frame = unnest(lazy_frame, key);
         lazy_frame = filter(lazy_frame, key)?;
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame =
@@ -117,7 +117,7 @@ impl<'a> Key<'a> {
             filter: settings.filter,
             metric: settings.metric,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold,
+            threshold: settings.threshold.auto,
         }
     }
 }
@@ -125,8 +125,8 @@ impl<'a> Key<'a> {
 /// Metrics value
 type Value = DataFrame;
 
-/// Select
-fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+/// Unnest
+fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([all()
         .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
         .as_expr()

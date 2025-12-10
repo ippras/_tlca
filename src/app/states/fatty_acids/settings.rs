@@ -75,7 +75,7 @@ pub(crate) struct Settings {
 
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) filter: Filter,
-    pub(crate) threshold: OrderedFloat<f64>,
+    pub(crate) threshold: Threshold,
     pub(crate) sort: Option<Sort>,
 }
 
@@ -83,7 +83,7 @@ impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             percent: true,
-            precision: 2,
+            precision: 1,
             resizable: false,
             significant: false,
             standard_deviation: false,
@@ -102,7 +102,7 @@ impl Settings {
 
             stereospecific_numbers: StereospecificNumbers::Sn123,
             filter: Filter::Union,
-            threshold: OrderedFloat(0.0),
+            threshold: Threshold::new(),
             sort: None,
         }
     }
@@ -121,7 +121,8 @@ impl Settings {
 
         self.stereospecific_numbers(ui);
         self.filter(ui);
-        self.threshold(ui);
+        self.is_auto_threshold(ui);
+        self.filter_thresholded(ui);
         self.sort(ui);
 
         ui.separator();
@@ -259,14 +260,14 @@ impl Settings {
         });
     }
 
-    /// Threshold
-    fn threshold(&mut self, ui: &mut Ui) {
+    /// Is auto threshold
+    fn is_auto_threshold(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Threshold.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.threshold.0;
+            let mut threshold = self.threshold.auto.0;
             let response = Slider::new(&mut threshold, 0.0..=1.0)
                 .custom_formatter(|mut value, decimals| {
                     if self.percent {
@@ -287,11 +288,20 @@ impl Settings {
             if (response.drag_stopped() || response.lost_focus())
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
-                self.threshold.0 = threshold;
+                self.threshold.auto.0 = threshold;
             }
             if ui.button((BOOKMARK, "1.0")).clicked() {
-                self.threshold = OrderedFloat(0.01);
+                self.threshold.auto = OrderedFloat(0.01);
             };
+        });
+    }
+
+    /// Filter thresholded
+    fn filter_thresholded(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("FilterThreshold"))
+                .on_hover_localized("FilterThreshold.hover");
+            ui.checkbox(&mut self.threshold.filter, ());
         });
     }
 
@@ -593,6 +603,26 @@ impl Index {
         Self {
             name: name.to_owned(),
             visible: true,
+        }
+    }
+}
+
+/// Threshold
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) struct Threshold {
+    pub(crate) auto: OrderedFloat<f64>,
+    pub(crate) filter: bool,
+    pub(crate) is_auto: bool,
+    pub(crate) manual: Vec<bool>,
+}
+
+impl Threshold {
+    pub(crate) fn new() -> Self {
+        Self {
+            auto: OrderedFloat(0.0),
+            filter: false,
+            is_auto: true,
+            manual: Vec::new(),
         }
     }
 }

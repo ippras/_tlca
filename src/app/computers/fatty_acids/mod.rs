@@ -60,7 +60,7 @@ impl<'a> Key<'a> {
             sort: settings.sort,
             // filter: settings.filter,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold,
+            threshold: settings.threshold.auto,
         }
     }
 }

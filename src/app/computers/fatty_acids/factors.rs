@@ -55,7 +55,7 @@ impl<'a> Key<'a> {
             precision: settings.precision,
             significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold,
+            threshold: settings.threshold.auto,
         }
     }
 }

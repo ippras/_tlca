@@ -121,15 +121,17 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr()]);
     let schema = lazy_frame.collect_schema()?;
-    let exprs = schema
-        .iter_names()
-        .map(|name| -> PolarsResult<_> {
-            let left = col(name.as_str())
-                .struct_()
-                .field_by_name(MEAN)
-                .fill_null(0);
-            let right = all().as_expr().struct_().field_by_name(MEAN).fill_null(0);
-            Ok(concat_arr(vec![match key.metric {
+    let mut exprs = Vec::with_capacity(schema.len());
+    for name in schema.iter_names()
+    // .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
+    {
+        let left = col(name.as_str())
+            .struct_()
+            .field_by_name(MEAN)
+            .fill_null(0);
+        let right = all().as_expr().struct_().field_by_name(MEAN).fill_null(0);
+        exprs.push(
+            concat_arr(vec![match key.metric {
                 // Similarity between two discrete probability distributions
                 Metric::HellingerDistance => hellinger_distance(left, right),
                 Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
@@ -143,9 +145,9 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 Metric::JaccardDistance => jaccard_distance(left, right),
                 Metric::OverlapDistance => overlap_distance(left, right),
             }])?
-            .alias(name.clone()))
-        })
-        .collect::<PolarsResult<Vec<_>>>()?;
+            .alias(name.clone()),
+        );
+    }
     lazy_frame = lazy_frame.select(exprs).explode(all());
     Ok(lazy_frame)
 }

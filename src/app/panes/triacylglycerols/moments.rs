@@ -1,6 +1,6 @@
 use crate::app::{
     panes::MARGIN,
-    states::triacylglycerols::{ID_SOURCE, Settings},
+    states::triacylglycerols::{ID_SOURCE, settings::Settings},
 };
 #[cfg(feature = "markdown")]
 use crate::r#const::markdown::{KURTOSIS, SKEWNESS};

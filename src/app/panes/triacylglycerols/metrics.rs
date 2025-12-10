@@ -1,6 +1,6 @@
 use crate::app::{
     panes::{MARGIN, metrics::Sign},
-    states::triacylglycerols::{ID_SOURCE, Settings},
+    states::triacylglycerols::{ID_SOURCE, settings::Settings},
 };
 use egui::{Id, Label, RichText, TextStyle, TextWrapMode, Ui, Widget};
 use egui_extras::{Column, TableBuilder};

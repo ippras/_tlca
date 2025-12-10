@@ -1,5 +1,5 @@
 use crate::{
-    app::states::{Metric, triacylglycerols::Parameters},
+    app::states::{Metric, triacylglycerols::settings::Parameters},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};

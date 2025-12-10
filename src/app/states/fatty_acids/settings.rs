@@ -1,6 +1,6 @@
 use crate::app::{
     MAX_PRECISION,
-    states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
+    states::{Filter, METRICS, Metric, SEPARATORS, Sort, fatty_acids::ID_SOURCE},
 };
 use egui::{
     ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,
@@ -27,22 +27,6 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
     StereospecificNumbers::Sn13,
     StereospecificNumbers::Sn2,
 ];
-
-const METRICS: [Metric; 9] = [
-    Metric::HellingerDistance,
-    Metric::JensenShannonDistance,
-    Metric::BhattacharyyaDistance,
-    //
-    Metric::CosineDistance,
-    Metric::JaccardDistance,
-    Metric::OverlapDistance,
-    //
-    Metric::EuclideanDistance,
-    Metric::ChebyshevDistance,
-    Metric::ManhattanDistance,
-];
-
-const SEPARATORS: [usize; 2] = [3, 6];
 
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]

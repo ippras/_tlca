@@ -2,6 +2,22 @@ use crate::r#const::markdown::*;
 use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
 use serde::{Deserialize, Serialize};
 
+const METRICS: [Metric; 9] = [
+    Metric::HellingerDistance,
+    Metric::JensenShannonDistance,
+    Metric::BhattacharyyaDistance,
+    //
+    Metric::CosineDistance,
+    Metric::JaccardDistance,
+    Metric::OverlapDistance,
+    //
+    Metric::EuclideanDistance,
+    Metric::ChebyshevDistance,
+    Metric::ManhattanDistance,
+];
+
+const SEPARATORS: [usize; 2] = [3, 6];
+
 /// Filter
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
 pub enum Filter {

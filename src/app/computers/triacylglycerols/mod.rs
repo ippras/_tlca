@@ -2,12 +2,12 @@ use crate::{
     app::states::{
         Filter, Sort,
         triacylglycerols::{
-            Settings,
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
                 SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_MONO, TYPE_POSITIONAL, TYPE_STEREO,
                 UNSATURATION_MONO, UNSATURATION_STEREO,
             },
+            settings::Settings,
         },
     },
     utils::{HashedDataFrame, HashedMetaDataFrame},

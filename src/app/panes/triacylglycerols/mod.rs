@@ -7,7 +7,7 @@ use crate::{
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
             moments::{Computed as MomentsComputed, Key as MomentsKey},
         },
-        states::triacylglycerols::{ID_SOURCE, Settings, State},
+        states::triacylglycerols::{ID_SOURCE, State, settings::Settings},
     },
     utils::HashedMetaDataFrame,
 };

@@ -255,21 +255,23 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Sort
 fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    match key.sort {
-        Sort::Key => {
-            lazy_frame = lazy_frame.sort_by_exprs(
-                [col(COMPOSITION)],
-                SortMultipleOptions::new().with_maintain_order(true),
-            );
-        }
-        Sort::Value => {
-            lazy_frame = lazy_frame.sort_by_exprs(
-                [all().exclude_cols([COMPOSITION, SPECIES]).as_expr()],
-                SortMultipleOptions::new()
-                    .with_maintain_order(true)
-                    .with_order_descending(true)
-                    .with_nulls_last(true),
-            );
+    if let Some(sort) = key.sort {
+        match sort {
+            Sort::Key => {
+                lazy_frame = lazy_frame.sort_by_exprs(
+                    [col(COMPOSITION)],
+                    SortMultipleOptions::new().with_maintain_order(true),
+                );
+            }
+            Sort::Value => {
+                lazy_frame = lazy_frame.sort_by_exprs(
+                    [all().exclude_cols([COMPOSITION, SPECIES]).as_expr()],
+                    SortMultipleOptions::new()
+                        .with_maintain_order(true)
+                        .with_order_descending(true)
+                        .with_nulls_last(true),
+                );
+            }
         }
     }
     lazy_frame

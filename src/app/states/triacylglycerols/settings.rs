@@ -88,7 +88,6 @@ impl Settings {
         // Table
         ui.separator();
         ui.labeled_separator(ui.localize("Parameters"));
-
         self.composition(ui);
         self.filter(ui);
         self.threshold(ui);
@@ -97,14 +96,12 @@ impl Settings {
         // Metrics
         ui.separator();
         ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
-
         self.metric(ui);
         self.chaddock(ui);
 
         // Moments
         ui.separator();
         ui.labeled_separator(ui.localize("Moments"));
-
         self.bias(ui);
     }
 
@@ -162,103 +159,109 @@ impl Settings {
 
     /// Composition
     fn composition(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Composition")).on_hover_ui(|ui| {
-            ui.label(ui.localize("Composition.hover"));
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Composition")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Composition.hover"));
+            });
+            ComboBox::from_id_salt(ui.auto_id_with("Composition"))
+                .selected_text(ui.localize(self.composition.text()))
+                .show_ui(ui, |ui| {
+                    for selected_value in COMPOSITIONS {
+                        ui.selectable_value(
+                            &mut self.composition,
+                            selected_value,
+                            ui.localize(selected_value.text()),
+                        )
+                        .on_hover_ui(|ui| {
+                            ui.label(ui.localize(selected_value.hover_text()));
+                        });
+                    }
+                })
+                .response
+                .on_hover_text(ui.localize(self.composition.hover_text()));
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
+            }) {
+                self.composition = self.composition.forward();
+            }
+            if ui.input_mut(|input| {
+                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+            }) {
+                self.composition = self.composition.backward();
+            }
         });
-        ComboBox::from_id_salt(ui.auto_id_with("Composition"))
-            .selected_text(ui.localize(self.composition.text()))
-            .show_ui(ui, |ui| {
-                for selected_value in COMPOSITIONS {
-                    ui.selectable_value(
-                        &mut self.composition,
-                        selected_value,
-                        ui.localize(selected_value.text()),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label(ui.localize(selected_value.hover_text()));
-                    });
-                }
-            })
-            .response
-            .on_hover_text(ui.localize(self.composition.hover_text()));
-        if ui.input_mut(|input| {
-            input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
-        }) {
-            self.composition = self.composition.forward();
-        }
-        if ui.input_mut(|input| {
-            input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
-        }) {
-            self.composition = self.composition.backward();
-        }
     }
 
     /// Filter
     fn filter(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
-            ui.label(ui.localize("Filter.hover"));
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Filter.hover"));
+            });
+            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.filter.text()))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.filter,
+                        Filter::Intersection,
+                        (
+                            Filter::Intersection.icon(),
+                            ui.localize(Filter::Intersection.text()),
+                        ),
+                    )
+                    .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
+                    ui.selectable_value(
+                        &mut self.filter,
+                        Filter::Union,
+                        (Filter::Union.icon(), ui.localize(Filter::Union.text())),
+                    )
+                    .on_hover_text(ui.localize(Filter::Union.hover_text()));
+                    ui.selectable_value(
+                        &mut self.filter,
+                        Filter::Difference,
+                        (
+                            Filter::Difference.icon(),
+                            ui.localize(Filter::Difference.text()),
+                        ),
+                    )
+                    .on_hover_text(ui.localize(Filter::Difference.hover_text()));
+                })
+                .response
+                .on_hover_text(RichText::new(self.filter.icon()).heading());
         });
-        ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-            .selected_text(ui.localize(self.filter.text()))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(
-                    &mut self.filter,
-                    Filter::Intersection,
-                    (
-                        Filter::Intersection.icon(),
-                        ui.localize(Filter::Intersection.text()),
-                    ),
-                )
-                .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
-                ui.selectable_value(
-                    &mut self.filter,
-                    Filter::Union,
-                    (Filter::Union.icon(), ui.localize(Filter::Union.text())),
-                )
-                .on_hover_text(ui.localize(Filter::Union.hover_text()));
-                ui.selectable_value(
-                    &mut self.filter,
-                    Filter::Difference,
-                    (
-                        Filter::Difference.icon(),
-                        ui.localize(Filter::Difference.text()),
-                    ),
-                )
-                .on_hover_text(ui.localize(Filter::Difference.hover_text()));
-            })
-            .response
-            .on_hover_text(RichText::new(self.filter.icon()).heading());
     }
 
     /// Threshold
     fn threshold(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
-            ui.label(ui.localize("Threshold.hover"));
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Threshold.hover"));
+            });
+            let number_formatter = ui.style().number_formatter.clone();
+            let mut threshold = self.threshold;
+            let response = Slider::new(&mut threshold.0, 0.0..=1.0)
+                .custom_formatter(|mut value, decimals| {
+                    if self.percent {
+                        value *= 100.0;
+                    }
+                    number_formatter.format(value, decimals)
+                })
+                .custom_parser(|value| {
+                    let mut value = value.parse().ok()?;
+                    if self.percent {
+                        value /= 100.0;
+                    }
+                    Some(value)
+                })
+                .logarithmic(true)
+                .update_while_editing(false)
+                .ui(ui);
+            if (response.drag_stopped() || response.lost_focus())
+                && !ui.input(|input| input.key_pressed(Key::Escape))
+            {
+                self.threshold = threshold;
+            }
         });
-        let number_formatter = ui.style().number_formatter.clone();
-        let mut threshold = self.threshold;
-        let response = Slider::new(&mut threshold.0, 0.0..=1.0)
-            .custom_formatter(|mut value, decimals| {
-                if self.percent {
-                    value *= 100.0;
-                }
-                number_formatter.format(value, decimals)
-            })
-            .custom_parser(|value| {
-                let mut value = value.parse().ok()?;
-                if self.percent {
-                    value /= 100.0;
-                }
-                Some(value)
-            })
-            .logarithmic(true)
-            .update_while_editing(false)
-            .ui(ui);
-        if (response.drag_stopped() || response.lost_focus())
-            && !ui.input(|input| input.key_pressed(Key::Escape))
-        {
-            self.threshold = threshold;
-        }
     }
 
     /// Sort
@@ -302,48 +305,56 @@ impl Settings {
 
     /// Metric
     fn metric(&mut self, ui: &mut Ui) {
-        ui.label(ui.localize("Metric?PluralCategory=one"))
-            .on_hover_text(ui.localize("Metric.hover"));
-        #[allow(unused_variables)]
-        let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-            .selected_text(ui.localize(self.metric.text()))
-            .show_ui(ui, |ui| {
-                for (index, metric) in METRICS.into_iter().enumerate() {
-                    if SEPARATORS.contains(&index) {
-                        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Metric?PluralCategory=one"))
+                .on_hover_text(ui.localize("Metric.hover"));
+            #[allow(unused_variables)]
+            let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                .selected_text(ui.localize(self.metric.text()))
+                .show_ui(ui, |ui| {
+                    for (index, metric) in METRICS.into_iter().enumerate() {
+                        if SEPARATORS.contains(&index) {
+                            ui.separator();
+                        }
+                        #[allow(unused_variables)]
+                        let response = ui.selectable_value(
+                            &mut self.metric,
+                            metric,
+                            ui.localize(metric.text()),
+                        );
+                        #[cfg(feature = "markdown")]
+                        response.on_hover_ui(|ui| {
+                            ui.markdown(metric.hover_markdown());
+                        });
                     }
-                    #[allow(unused_variables)]
-                    let response =
-                        ui.selectable_value(&mut self.metric, metric, ui.localize(metric.text()));
-                    #[cfg(feature = "markdown")]
-                    response.on_hover_ui(|ui| {
-                        ui.markdown(metric.hover_markdown());
-                    });
-                }
-            })
-            .response;
-        #[cfg(feature = "markdown")]
-        response.on_hover_ui(|ui| {
-            ui.markdown(self.metric.hover_markdown());
+                })
+                .response;
+            #[cfg(feature = "markdown")]
+            response.on_hover_ui(|ui| {
+                ui.markdown(self.metric.hover_markdown());
+            });
         });
     }
 
     /// Chaddock
     fn chaddock(&mut self, ui: &mut Ui) {
-        let mut response = ui.label(ui.localize("Chaddock"));
-        response |= ui.checkbox(&mut self.chaddock, "");
-        response.on_hover_ui(|ui| {
-            ui.label(ui.localize("Chaddock.hover"));
+        ui.horizontal(|ui| {
+            let mut response = ui.label(ui.localize("Chaddock"));
+            response |= ui.checkbox(&mut self.chaddock, "");
+            response.on_hover_ui(|ui| {
+                ui.label(ui.localize("Chaddock.hover"));
+            });
         });
-        ui.end_row();
     }
 
     /// Bias
     fn bias(&mut self, ui: &mut Ui) {
-        let mut response = ui.label(ui.localize("Bias"));
-        response |= ui.checkbox(&mut self.bias, "");
-        response.on_hover_ui(|ui| {
-            ui.label(ui.localize("Bias.hover"));
+        ui.horizontal(|ui| {
+            let mut response = ui.label(ui.localize("Bias"));
+            response |= ui.checkbox(&mut self.bias, "");
+            response.on_hover_ui(|ui| {
+                ui.label(ui.localize("Bias.hover"));
+            });
         });
     }
 }

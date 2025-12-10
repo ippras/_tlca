@@ -224,18 +224,13 @@ impl Pane {
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
-        if let Some(inner_response) = Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
                 state.settings.show(ui);
-            })
-        {
-            inner_response.response.on_hover_ui(|ui| {
-                ui.label(format!("{DROP}{DROP}{DROP} {}", self.title()));
             });
-        }
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {

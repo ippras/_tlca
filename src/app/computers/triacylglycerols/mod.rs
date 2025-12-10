@@ -53,7 +53,7 @@ pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) composition: Composition,
     pub(crate) filter: Filter,
-    pub(crate) sort: Sort,
+    pub(crate) sort: Option<Sort>,
     pub(crate) threshold: OrderedFloat<f64>,
 }
 

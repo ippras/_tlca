@@ -10,6 +10,7 @@ use crate::{
             settings::Settings,
         },
     },
+    r#const::{COMPOSITION, MEAN, SPECIES, STANDARD_DEVIATION, VALUE},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -74,30 +75,10 @@ type Value = HashedDataFrame;
 fn compute(key: Key) -> PolarsResult<LazyFrame> {
     println!("Triacylglycerols frames: {:?}", key.frames);
     let mut lazy_frame = join(key)?;
-    // println!(
-    //     "Triacylglycerols join: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     lazy_frame = compose(lazy_frame, key)?;
-    // println!(
-    //     "Triacylglycerols compose: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     lazy_frame = values(lazy_frame)?;
-    // println!(
-    //     "Triacylglycerols values: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     lazy_frame = filter(lazy_frame, key)?;
-    // println!(
-    //     "Triacylglycerols filter: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     lazy_frame = sort(lazy_frame, key);
-    // println!(
-    //     "Triacylglycerols sort: {}",
-    //     lazy_frame.clone().collect().unwrap()
-    // );
     Ok(lazy_frame)
 }
 
@@ -107,7 +88,7 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
         Ok(frame.data.data_frame.clone().lazy().select([
             col(LABEL),
             col(TRIACYLGLYCEROL),
-            col("Value").alias(frame.meta.format(".").to_string()),
+            col(VALUE).alias(frame.meta.format(".").to_string()),
         ]))
     };
     let mut lazy_frame = compute(&key.frames[0])?;
@@ -165,7 +146,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .triacylglycerol()
             .map_expr(|expr| expr.fatty_acid().unsaturation()),
     }
-    .alias("Composition")];
+    .alias(COMPOSITION)];
     let mut aggs = vec![
         as_struct(vec![
             col(LABEL),
@@ -174,17 +155,17 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .exclude_cols([LABEL, TRIACYLGLYCEROL])
                 .as_expr()
                 .struct_()
-                .field_by_name("Mean")])?
+                .field_by_name(MEAN)])?
             .alias("Values"),
         ])
-        .alias("Species"),
+        .alias(SPECIES),
     ];
     for frame in key.frames {
         let name = frame.meta.format(".").to_string();
         aggs.push(
             as_struct(vec![
-                col(&name).struct_().field_by_name("Mean"),
-                col(&name).struct_().field_by_name("StandardDeviation"),
+                col(&name).struct_().field_by_name(MEAN),
+                col(&name).struct_().field_by_name(STANDARD_DEVIATION),
             ])
             .alias(name),
         );
@@ -199,7 +180,7 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
     let exprs = schema
         .iter_names()
         .filter_map(|name| {
-            if name != "Composition" && name != "Species" {
+            if name != COMPOSITION && name != SPECIES {
                 Some(name)
             } else {
                 None
@@ -209,14 +190,14 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
             let mean = || {
                 col(name.clone())
                     .list()
-                    .eval(col("").struct_().field_by_name("Mean"))
+                    .eval(element().struct_().field_by_name(MEAN))
                     .list()
                     .sum()
             };
             let standard_deviation = || {
                 col(name.clone())
                     .list()
-                    .eval(col("").struct_().field_by_name("StandardDeviation").pow(2))
+                    .eval(element().struct_().field_by_name(STANDARD_DEVIATION).pow(2))
                     .list()
                     .sum()
                     .sqrt()
@@ -224,8 +205,8 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
             ternary_expr(
                 mean().neq(0),
                 as_struct(vec![
-                    mean().alias("Mean"),
-                    standard_deviation().alias("StandardDeviation"),
+                    mean().alias(MEAN),
+                    standard_deviation().alias(STANDARD_DEVIATION),
                 ]),
                 lit(NULL),
             )
@@ -242,21 +223,21 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
             lazy_frame = lazy_frame.filter(all_horizontal([all()
-                .exclude_cols(["Composition", "Species"])
+                .exclude_cols([COMPOSITION, SPECIES])
                 .as_expr()
                 .is_not_null()])?);
         }
         Filter::Union => {
             // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
             lazy_frame = lazy_frame.filter(any_horizontal([all()
-                .exclude_cols(["Composition", "Species"])
+                .exclude_cols([COMPOSITION, SPECIES])
                 .as_expr()
                 .is_not_null()])?);
         }
         Filter::Difference => {
             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
             lazy_frame = lazy_frame.filter(any_horizontal([all()
-                .exclude_cols(["Composition", "Species"])
+                .exclude_cols([COMPOSITION, SPECIES])
                 .as_expr()
                 .is_null()])?);
         }
@@ -264,11 +245,11 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     // Threshold
     // Значение в одном или более столбцах больше threshold
     lazy_frame = lazy_frame.filter(any_horizontal([all()
-        .exclude_cols(["Composition", "Species"])
+        .exclude_cols([COMPOSITION, SPECIES])
         .as_expr()
         .struct_()
-        .field_by_name("Mean")
-        .gt(key.threshold.into_inner())])?);
+        .field_by_name(MEAN)
+        .gt(key.threshold.0)])?);
     Ok(lazy_frame)
 }
 
@@ -277,17 +258,15 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     match key.sort {
         Sort::Key => {
             lazy_frame = lazy_frame.sort_by_exprs(
-                [
-                    col("Composition"),
-                    all().exclude_cols(["Composition", "Species"]).as_expr(),
-                ],
-                SortMultipleOptions::new(),
+                [col(COMPOSITION)],
+                SortMultipleOptions::new().with_maintain_order(true),
             );
         }
         Sort::Value => {
             lazy_frame = lazy_frame.sort_by_exprs(
-                [all().exclude_cols(["Composition", "Species"]).as_expr()],
+                [all().exclude_cols([COMPOSITION, SPECIES]).as_expr()],
                 SortMultipleOptions::new()
+                    .with_maintain_order(true)
                     .with_order_descending(true)
                     .with_nulls_last(true),
             );

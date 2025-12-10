@@ -7,6 +7,7 @@ use crate::{
         },
         settings::Settings,
     },
+    r#const::{MEAN, STANDARD_DEVIATION},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -81,7 +82,7 @@ fn format_label(key: Key) -> PolarsResult<Expr> {
     let expr = match key.composition {
         ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", [col("Composition")])?,
         SPECIES_MONO | TYPE_MONO => format_str(
-            "({}, {}, {})", // { 1, 2, 3: {}, {}, {}}
+            "[{}/3; {}/3; {}/3]",
             [
                 col("Composition")
                     .triacylglycerol()
@@ -96,7 +97,7 @@ fn format_label(key: Key) -> PolarsResult<Expr> {
         )?,
         ECN_STEREO | MASS_STEREO | SPECIES_STEREO | TYPE_STEREO | UNSATURATION_STEREO => {
             format_str(
-                "[{}; {}; {}]", // { 1: {}; 2: {}; 3: {}}
+                "[{}; {}; {}]",
                 [
                     col("Composition")
                         .triacylglycerol()
@@ -111,17 +112,17 @@ fn format_label(key: Key) -> PolarsResult<Expr> {
             )?
         }
         SPECIES_POSITIONAL | TYPE_POSITIONAL => format_str(
-            "{1, 3: {}, {}; 2: {}}",
+            "[{}/2; {}; {}/2}",
             [
                 col("Composition")
                     .triacylglycerol()
                     .stereospecific_number1(),
                 col("Composition")
                     .triacylglycerol()
-                    .stereospecific_number3(),
+                    .stereospecific_number2(),
                 col("Composition")
                     .triacylglycerol()
-                    .stereospecific_number2(),
+                    .stereospecific_number3(),
             ],
         )?,
     };
@@ -133,7 +134,7 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
         .list()
         .eval(as_struct(vec![
             {
-                let label = || col("").struct_().field_by_name(LABEL);
+                let label = || element().struct_().field_by_name(LABEL);
                 format_str(
                     "[{}; {}; {}]",
                     [
@@ -145,7 +146,7 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
                 .alias(LABEL)
             },
             {
-                let triacylglycerol = || col("").struct_().field_by_name(TRIACYLGLYCEROL);
+                let triacylglycerol = || element().struct_().field_by_name(TRIACYLGLYCEROL);
                 format_str(
                     "[{}; {}; {}]",
                     [
@@ -170,13 +171,13 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
             },
             format_str(
                 "[{}]",
-                [col("")
+                [element()
                     .struct_()
                     .field_by_name("Values")
                     .list()
                     .eval(ternary_expr(
-                        col("").is_not_null(),
-                        format_float(col(""), key),
+                        element().is_not_null(),
+                        format_float(element(), key),
                         lit("-"),
                     ))
                     .list()
@@ -193,7 +194,7 @@ fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
             nth(index as _)
                 .as_expr()
                 .struct_()
-                .field_by_name("Mean")
+                .field_by_name(MEAN)
                 .sum(),
             key,
         ),
@@ -201,7 +202,7 @@ fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
             nth(index as _)
                 .as_expr()
                 .struct_()
-                .field_by_name("StandardDeviation")
+                .field_by_name(STANDARD_DEVIATION)
                 .pow(2)
                 .sum()
                 .sqrt(),
@@ -212,26 +213,23 @@ fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
 
 fn format_value(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
     Ok([
-        format_mean(
-            nth(index as _).as_expr().struct_().field_by_name("Mean"),
-            key,
-        ),
+        format_mean(nth(index as _).as_expr().struct_().field_by_name(MEAN), key),
         format_standard_deviation(
             nth(index as _)
                 .as_expr()
                 .struct_()
-                .field_by_name("StandardDeviation"),
+                .field_by_name(STANDARD_DEVIATION),
             key,
         )?,
     ])
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key).alias("Mean")
+    format_float(expr, key).alias(MEAN)
 }
 
 fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(format_str("±{}", [format_float(expr, key)])?.alias("StandardDeviation"))
+    Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
 }
 
 fn format_float(expr: Expr, key: Key) -> Expr {

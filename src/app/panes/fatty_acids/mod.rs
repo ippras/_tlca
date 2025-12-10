@@ -9,7 +9,7 @@ use crate::{
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
             table::{Computed as TableComputed, Key as TableKey},
         },
-        states::fatty_acids::{ID_SOURCE, Settings, State},
+        states::fatty_acids::{ID_SOURCE, State, settings::Settings},
     },
     export::ron,
     utils::{HashedDataFrame, HashedMetaDataFrame},

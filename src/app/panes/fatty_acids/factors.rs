@@ -1,7 +1,7 @@
 use crate::{
     app::{
         panes::MARGIN,
-        states::fatty_acids::{ID_SOURCE, Settings},
+        states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
     r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
 };

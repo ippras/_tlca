@@ -1,14 +1,13 @@
 use crate::{
     app::states::{
         Sort,
-        fatty_acids::{Settings, StereospecificNumbers},
+        fatty_acids::settings::{Settings, StereospecificNumbers, Threshold},
     },
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use tracing::instrument;
 
@@ -48,19 +47,17 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) sort: Option<Sort>,
-    // pub(crate) filter: Filter,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) threshold: OrderedFloat<f64>,
+    pub(crate) threshold: &'a Threshold,
 }
 
 impl<'a> Key<'a> {
-    pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
+    pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &'a Settings) -> Self {
         Self {
             frames,
             sort: settings.sort,
-            // filter: settings.filter,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold.auto,
+            threshold: &settings.threshold,
         }
     }
 }
@@ -153,7 +150,7 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .field_by_name(key.stereospecific_numbers.id())
         .struct_()
         .field_by_name(MEAN)
-        .gt_eq(key.threshold.0)
+        .gt_eq(key.threshold.auto.0)
         .and(expr.is_not_null())])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
     Ok(lazy_frame)

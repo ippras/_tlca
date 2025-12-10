@@ -1,6 +1,4 @@
-pub(crate) use self::settings::{Factor, Indices, Settings, StereospecificNumbers};
-
-use self::windows::Windows;
+use self::{settings::Settings, windows::Windows};
 use egui::{Context, Id};
 use serde::{Deserialize, Serialize};
 
@@ -45,5 +43,6 @@ impl State {
     }
 }
 
-mod settings;
+pub(crate) mod settings;
+
 mod windows;

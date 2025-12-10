@@ -7,7 +7,7 @@ use crate::{
 };
 use egui::{Id, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_extras::{Column, TableBuilder};
-use egui_l20n::UiExt as _;
+use egui_l20n::prelude::*;
 use polars::prelude::*;
 use polars_utils::format_list;
 use tracing::instrument;

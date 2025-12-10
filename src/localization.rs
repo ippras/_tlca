@@ -1,5 +1,5 @@
 use egui::Context;
-use egui_l20n::{ContextExt as _, Localization};
+use egui_l20n::prelude::*;
 
 /// Extension methods for [`Context`]
 pub(crate) trait ContextExt {

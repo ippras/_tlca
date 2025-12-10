@@ -1,6 +1,6 @@
 use crate::utils::HashedMetaDataFrame;
 use egui::{Response, Ui, Vec2, WidgetText, vec2};
-use egui_l20n::UiExt as _;
+use egui_l20n::prelude::*;
 use egui_tiles::{TileId, UiResponse};
 use polars::prelude::*;
 

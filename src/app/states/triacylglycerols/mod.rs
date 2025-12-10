@@ -11,7 +11,7 @@ use egui::{
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
-use egui_l20n::UiExt as _;
+use egui_l20n::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 

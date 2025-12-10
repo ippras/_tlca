@@ -14,7 +14,7 @@ use egui::{
     Sense, TextStyle, TextWrapMode, Ui, Widget,
 };
 use egui_ext::InnerResponseExt as _;
-use egui_l20n::UiExt;
+use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;

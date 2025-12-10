@@ -1,9 +1,6 @@
-use crate::{
-    app::{
-        MAX_PRECISION,
-        states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
-    },
-    r#const::EM_DASH,
+use crate::app::{
+    MAX_PRECISION,
+    states::{Filter, Metric, Sort, fatty_acids::ID_SOURCE},
 };
 use egui::{
     ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,
@@ -12,7 +9,7 @@ use egui_dnd::dnd;
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
-use egui_l20n::{ResponseExt, prelude::*};
+use egui_l20n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;

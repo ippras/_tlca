@@ -6,7 +6,7 @@ use crate::{
     r#const::*,
 };
 use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
-use egui_l20n::UiExt;
+use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;

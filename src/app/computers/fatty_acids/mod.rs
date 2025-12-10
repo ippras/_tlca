@@ -30,7 +30,10 @@ impl Computer {
         if key.frames.is_empty() {
             return Ok(HashedDataFrame::EMPTY);
         }
-        let lazy_frame = compute(key)?;
+        let mut lazy_frame = join(key)?;
+        lazy_frame = values(lazy_frame)?;
+        lazy_frame = threshold(lazy_frame, key)?;
+        lazy_frame = sort(lazy_frame, key);
         let data_frame = lazy_frame.collect()?;
         HashedDataFrame::new(data_frame)
     }
@@ -64,14 +67,6 @@ impl<'a> Key<'a> {
 
 /// Fatty acids value
 type Value = HashedDataFrame;
-
-fn compute(key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frame = join(key)?;
-    lazy_frame = values(lazy_frame)?;
-    lazy_frame = threshold(lazy_frame, key)?;
-    lazy_frame = sort(lazy_frame, key);
-    Ok(lazy_frame)
-}
 
 /// Join
 fn join(key: Key) -> PolarsResult<LazyFrame> {
@@ -142,17 +137,28 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
 
 /// Threshold
 fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let expr = all().exclude_cols([LABEL, FATTY_ACID]).as_expr();
-    // Значение в одном или более столбцах больше threshold
-    let predicate = any_horizontal([expr
-        .clone()
+    // Значение в одном или более столбцах больше threshold,
+    let predicate = any_horizontal([all()
+        .exclude_cols([LABEL, FATTY_ACID])
+        .as_expr()
         .struct_()
         .field_by_name(key.stereospecific_numbers.id())
         .struct_()
         .field_by_name(MEAN)
-        .gt_eq(key.threshold.auto.0)
-        .and(expr.is_not_null())])?;
+        .fill_null(lit(0))
+        .gt_eq(key.threshold.auto.0)])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
+    if key.threshold.filter {
+        lazy_frame = lazy_frame.filter(col(THRESHOLD));
+    }
+    if key.threshold.sort {
+        lazy_frame = lazy_frame.sort(
+            [THRESHOLD],
+            SortMultipleOptions::new()
+                .with_maintain_order(true)
+                .with_order_descending(true),
+        );
+    }
     Ok(lazy_frame)
 }
 

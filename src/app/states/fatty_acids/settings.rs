@@ -121,9 +121,14 @@ impl Settings {
 
         self.stereospecific_numbers(ui);
         self.filter(ui);
-        self.is_auto_threshold(ui);
-        self.filter_thresholded(ui);
+
         self.sort(ui);
+
+        ui.labeled_separator(ui.localize("Threshold"));
+
+        self.threshold_auto(ui);
+        self.threshold_sort(ui);
+        self.threshold_filter(ui);
 
         ui.separator();
         ui.labeled_separator(ui.localize("Factor?PluralCategory=other"));
@@ -260,11 +265,11 @@ impl Settings {
         });
     }
 
-    /// Is auto threshold
-    fn is_auto_threshold(&mut self, ui: &mut Ui) {
+    /// Auto threshold
+    fn threshold_auto(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Threshold.hover"));
+            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Threshold_Auto.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
             let mut threshold = self.threshold.auto.0;
@@ -289,18 +294,32 @@ impl Settings {
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
                 self.threshold.auto.0 = threshold;
+                self.threshold.is_auto = true;
             }
-            if ui.button((BOOKMARK, "1.0")).clicked() {
-                self.threshold.auto = OrderedFloat(0.01);
+            if ui
+                .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
+                .clicked()
+            {
+                self.threshold.auto.0 = 0.01;
+                self.threshold.is_auto = true;
             };
         });
     }
 
-    /// Filter thresholded
-    fn filter_thresholded(&mut self, ui: &mut Ui) {
+    /// Threshold sort
+    fn threshold_sort(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.label(ui.localize("FilterThreshold"))
-                .on_hover_localized("FilterThreshold.hover");
+            ui.label(ui.localize("Threshold_Sort"))
+                .on_hover_localized("Threshold_Sort.hover");
+            ui.checkbox(&mut self.threshold.sort, ());
+        });
+    }
+
+    /// Threshold filter
+    fn threshold_filter(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Filter"))
+                .on_hover_localized("Threshold_Filter.hover");
             ui.checkbox(&mut self.threshold.filter, ());
         });
     }
@@ -311,31 +330,36 @@ impl Settings {
             ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Sort.hover"));
             });
-            let text = match self.sort {
-                Some(sort) => WidgetText::from(ui.localize(sort.text())),
-                None => WidgetText::from(EM_DASH),
-            };
-            let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(text)
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.sort,
-                        Some(Sort::Key),
-                        ui.localize(Sort::Key.text()),
-                    )
-                    .on_hover_text(ui.localize(Sort::Key.hover_text()));
-                    ui.selectable_value(
-                        &mut self.sort,
-                        Some(Sort::Value),
-                        ui.localize(Sort::Value.text()),
-                    )
-                    .on_hover_text(ui.localize(Sort::Value.hover_text()));
-                    ui.selectable_value(&mut self.sort, None, EM_DASH);
-                })
-                .response;
-            if let Some(sort) = self.sort {
-                response.on_hover_localized(sort.hover_text());
+            let mut checked = self.sort.is_some();
+            if ui.checkbox(&mut checked, ()).changed() {
+                self.sort = if checked { Some(Sort::Key) } else { None };
             }
+            ui.add_enabled_ui(checked, |ui| {
+                let text = match self.sort {
+                    Some(sort) => WidgetText::from(ui.localize(sort.text())),
+                    None => WidgetText::from(""),
+                };
+                let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+                    .selected_text(text)
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.sort,
+                            Some(Sort::Key),
+                            ui.localize(Sort::Key.text()),
+                        )
+                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
+                        ui.selectable_value(
+                            &mut self.sort,
+                            Some(Sort::Value),
+                            ui.localize(Sort::Value.text()),
+                        )
+                        .on_hover_text(ui.localize(Sort::Value.hover_text()));
+                    })
+                    .response;
+                if let Some(sort) = self.sort {
+                    response.on_hover_localized(sort.hover_text());
+                }
+            });
         });
     }
 
@@ -614,6 +638,7 @@ pub(crate) struct Threshold {
     pub(crate) filter: bool,
     pub(crate) is_auto: bool,
     pub(crate) manual: Vec<bool>,
+    pub(crate) sort: bool,
 }
 
 impl Threshold {
@@ -623,6 +648,7 @@ impl Threshold {
             filter: false,
             is_auto: true,
             manual: Vec::new(),
+            sort: false,
         }
     }
 }

@@ -4,11 +4,13 @@ use crate::{
         fatty_acids::settings::{Settings, StereospecificNumbers},
     },
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
-    utils::{HashedDataFrame, polars::sum_arr},
+    utils::{
+        HashedDataFrame,
+        polars::{eval_arr, sum_arr},
+    },
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
@@ -40,24 +42,25 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) ddof: u8,
     pub(crate) filter: Filter,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
         Self {
             frame,
+            // ddof: settings.ddof,
+            ddof: 1,
             filter: settings.filter,
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold.auto,
         }
     }
 }
@@ -118,31 +121,17 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             ])
             .alias(name),
         );
+        let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |element| {
+            element.filter(THRESHOLD).sum()
+        })?;
         sum.push(
             as_struct(vec![
-                format_mean(col(name).struct_().field_by_name(MEAN).sum(), key),
+                format_mean(array.clone().arr().mean().alias(MEAN), key),
                 format_standard_deviation(
-                    col(name)
-                        .struct_()
-                        .field_by_name(STANDARD_DEVIATION)
-                        .pow(2)
-                        .sum()
-                        .sqrt(),
+                    array.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
                     key,
                 )?,
-                // TODO: Следить когда добавят возможность складывать массивы поэлементно
-                // format_array(
-                //     col(name)
-                //         .struct_()
-                //         .field_by_name(ARRAY)
-                //         .arr()
-                //         .eval(element().sum(), false),
-                //     key,
-                // )?,
-                format_array(
-                    sum_arr(col(name).struct_().field_by_name(SAMPLE))?.alias(SAMPLE),
-                    key,
-                )?,
+                format_array(array.alias(SAMPLE), key)?,
             ])
             .alias(name),
         );
@@ -164,7 +153,16 @@ fn format_mean(expr: Expr, key: Key) -> Expr {
 fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
     Ok(ternary_expr(
         expr.clone().is_not_null(),
-        format_str("±{}", [format_float(expr, key)])?,
+        format_str(
+            "±{}",
+            [format_float(
+                expr,
+                Key {
+                    precision: key.precision + 1,
+                    ..key
+                },
+            )],
+        )?,
         lit(NULL),
     ))
 }

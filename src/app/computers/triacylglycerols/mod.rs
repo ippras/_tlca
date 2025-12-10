@@ -10,8 +10,8 @@ use crate::{
             settings::Settings,
         },
     },
-    r#const::{COMPOSITION, MEAN, SPECIES, STANDARD_DEVIATION, VALUE},
-    utils::{HashedDataFrame, HashedMetaDataFrame},
+    r#const::{COMPOSITION, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, THRESHOLD, VALUE},
+    utils::{HashedDataFrame, HashedMetaDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -51,6 +51,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) composition: Composition,
+    pub(crate) ddof: u8,
     pub(crate) filter: Filter,
     pub(crate) sort: Option<Sort>,
     pub(crate) threshold: &'a Threshold,
@@ -61,6 +62,7 @@ impl<'a> Key<'a> {
         Self {
             frames,
             composition: settings.composition,
+            ddof: 1,
             filter: settings.filter,
             sort: settings.sort,
             threshold: &settings.threshold,
@@ -72,11 +74,10 @@ impl<'a> Key<'a> {
 type Value = HashedDataFrame;
 
 fn compute(key: Key) -> PolarsResult<LazyFrame> {
-    println!("Triacylglycerols frames: {:?}", key.frames);
     let mut lazy_frame = join(key)?;
     lazy_frame = compose(lazy_frame, key)?;
-    lazy_frame = values(lazy_frame)?;
     lazy_frame = filter(lazy_frame, key)?;
+    lazy_frame = threshold(lazy_frame, key)?;
     lazy_frame = sort(lazy_frame, key);
     Ok(lazy_frame)
 }
@@ -162,51 +163,21 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     ];
     for frame in key.frames {
         let name = frame.meta.format(".").to_string();
+        // TODO SAMPLE
+        let array = eval_arr(col(&name).struct_().field_by_name("Array"), |expr| {
+            expr.sum()
+        })?;
         aggs.push(
             as_struct(vec![
-                col(&name).struct_().field_by_name(MEAN),
-                col(&name).struct_().field_by_name(STANDARD_DEVIATION),
+                array.clone().arr().mean().alias(MEAN),
+                array.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
+                array.alias(SAMPLE),
             ])
             .alias(name),
         );
     }
     lazy_frame = lazy_frame.group_by(by).agg(aggs);
     println!("GGG!!! 1: {}", lazy_frame.clone().collect()?);
-    Ok(lazy_frame)
-}
-
-/// Values
-fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
-    let schema = lazy_frame.collect_schema()?;
-    let exprs = schema
-        .iter_names()
-        .filter(|name| !matches!(name.as_str(), COMPOSITION | SPECIES))
-        .map(|name| {
-            // let mean = col(name.clone())
-            //     .list()
-            //     .eval(element().struct_().field_by_name(MEAN))
-            //     .list()
-            //     .sum();
-            // let standard_deviation = col(name.clone())
-            //     .list()
-            //     .eval(element().struct_().field_by_name(STANDARD_DEVIATION).pow(2))
-            //     .list()
-            //     .sum()
-            //     .sqrt();
-            // ternary_expr(
-            //     mean.clone().neq(0),
-            //     as_struct(vec![
-            //         mean.alias(MEAN),
-            //         standard_deviation.alias(STANDARD_DEVIATION),
-            //     ]),
-            //     lit(NULL),
-            // )
-            // .alias(name.clone())
-            
-        })
-        .collect::<Vec<_>>();
-    lazy_frame = lazy_frame.with_columns(exprs);
-    println!("GGG!!! 4: {}", lazy_frame.clone().collect()?);
     Ok(lazy_frame)
 }
 
@@ -235,16 +206,57 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .is_null()])?);
         }
     }
-    // Threshold
+    Ok(lazy_frame)
+}
+
+/// Threshold
+fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     // Значение в одном или более столбцах больше threshold
-    lazy_frame = lazy_frame.filter(any_horizontal([all()
+    let predicate = any_horizontal([all()
         .exclude_cols([COMPOSITION, SPECIES])
         .as_expr()
         .struct_()
         .field_by_name(MEAN)
-        .gt(key.threshold.auto.0)])?);
+        .gt(key.threshold.auto.0)])?;
+    lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
+    if key.threshold.filter {
+        lazy_frame = lazy_frame.filter(col(THRESHOLD));
+    }
+    if key.threshold.sort {
+        lazy_frame = lazy_frame.sort(
+            [THRESHOLD],
+            SortMultipleOptions::new()
+                .with_maintain_order(true)
+                .with_order_descending(true),
+        );
+    }
     Ok(lazy_frame)
 }
+// fn _threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+//     // Значение в одном или более столбцах больше threshold,
+//     let predicate = any_horizontal([all()
+//         .exclude_cols([LABEL, FATTY_ACID])
+//         .as_expr()
+//         .struct_()
+//         .field_by_name(key.stereospecific_numbers.id())
+//         .struct_()
+//         .field_by_name(MEAN)
+//         .fill_null(0)
+//         .gt_eq(key.threshold.auto.0)])?;
+//     lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
+//     if key.threshold.filter {
+//         lazy_frame = lazy_frame.filter(col(THRESHOLD));
+//     }
+//     if key.threshold.sort {
+//         lazy_frame = lazy_frame.sort(
+//             [THRESHOLD],
+//             SortMultipleOptions::new()
+//                 .with_maintain_order(true)
+//                 .with_order_descending(true),
+//         );
+//     }
+//     Ok(lazy_frame)
+// }
 
 /// Sort
 fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
@@ -258,7 +270,9 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
             }
             Sort::Value => {
                 lazy_frame = lazy_frame.sort_by_exprs(
-                    [all().exclude_cols([COMPOSITION, SPECIES]).as_expr()],
+                    [all()
+                        .exclude_cols([COMPOSITION, SPECIES, THRESHOLD])
+                        .as_expr()],
                     SortMultipleOptions::new()
                         .with_maintain_order(true)
                         .with_order_descending(true)

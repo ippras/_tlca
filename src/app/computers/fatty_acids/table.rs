@@ -118,8 +118,8 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             ])
             .alias(name),
         );
-        let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |element| {
-            element.filter(THRESHOLD).sum()
+        let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |expr| {
+            expr.filter(THRESHOLD).sum()
         })?;
         sum.push(
             as_struct(vec![

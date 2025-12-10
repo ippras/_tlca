@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) const ID_SOURCE: &str = "Triacylglycerols";
 
 /// State
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct State {
     pub reset_table_state: bool,
     pub settings: Settings,

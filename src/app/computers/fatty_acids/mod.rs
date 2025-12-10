@@ -1,7 +1,7 @@
 use crate::{
     app::states::{
-        fatty_acids::settings::{Settings, StereospecificNumbers, Threshold},
-        settings::Sort,
+        fatty_acids::settings::{Settings, StereospecificNumbers},
+        settings::{Sort, Threshold},
     },
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, HashedMetaDataFrame},

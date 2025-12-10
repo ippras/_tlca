@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        settings::{Filter, Sort},
+        settings::{Filter, Sort, Threshold},
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
@@ -15,7 +15,6 @@ use crate::{
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use std::convert::identity;
 use tracing::instrument;
@@ -54,17 +53,17 @@ pub(crate) struct Key<'a> {
     pub(crate) composition: Composition,
     pub(crate) filter: Filter,
     pub(crate) sort: Option<Sort>,
-    pub(crate) threshold: OrderedFloat<f64>,
+    pub(crate) threshold: &'a Threshold,
 }
 
 impl<'a> Key<'a> {
-    pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
+    pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &'a Settings) -> Self {
         Self {
             frames,
             composition: settings.composition,
             filter: settings.filter,
             sort: settings.sort,
-            threshold: settings.threshold,
+            threshold: &settings.threshold,
         }
     }
 }
@@ -182,38 +181,28 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
     let exprs = schema
         .iter_names()
         .filter(|name| !matches!(name.as_str(), COMPOSITION | SPECIES))
-        //     {
-        //     if name != COMPOSITION && name != SPECIES {
-        //         Some(name)
-        //     } else {
-        //         None
-        //     }
-        // })
         .map(|name| {
-            let mean = || {
-                col(name.clone())
-                    .list()
-                    .eval(element().struct_().field_by_name(MEAN))
-                    .list()
-                    .sum()
-            };
-            let standard_deviation = || {
-                col(name.clone())
-                    .list()
-                    .eval(element().struct_().field_by_name(STANDARD_DEVIATION).pow(2))
-                    .list()
-                    .sum()
-                    .sqrt()
-            };
-            ternary_expr(
-                mean().neq(0),
-                as_struct(vec![
-                    mean().alias(MEAN),
-                    standard_deviation().alias(STANDARD_DEVIATION),
-                ]),
-                lit(NULL),
-            )
-            .alias(name.clone())
+            // let mean = col(name.clone())
+            //     .list()
+            //     .eval(element().struct_().field_by_name(MEAN))
+            //     .list()
+            //     .sum();
+            // let standard_deviation = col(name.clone())
+            //     .list()
+            //     .eval(element().struct_().field_by_name(STANDARD_DEVIATION).pow(2))
+            //     .list()
+            //     .sum()
+            //     .sqrt();
+            // ternary_expr(
+            //     mean.clone().neq(0),
+            //     as_struct(vec![
+            //         mean.alias(MEAN),
+            //         standard_deviation.alias(STANDARD_DEVIATION),
+            //     ]),
+            //     lit(NULL),
+            // )
+            // .alias(name.clone())
+            
         })
         .collect::<Vec<_>>();
     lazy_frame = lazy_frame.with_columns(exprs);
@@ -253,7 +242,7 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .as_expr()
         .struct_()
         .field_by_name(MEAN)
-        .gt(key.threshold.0)])?);
+        .gt(key.threshold.auto.0)])?);
     Ok(lazy_frame)
 }
 

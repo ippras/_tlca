@@ -2,7 +2,7 @@ use crate::app::{
     MAX_PRECISION,
     states::{
         fatty_acids::ID_SOURCE,
-        settings::{Filter, METRICS, Metric, SEPARATORS, Sort},
+        settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
     },
 };
 use egui::{
@@ -15,7 +15,6 @@ use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL};
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -53,11 +52,11 @@ pub(crate) struct Settings {
     pub(crate) metric: Metric,
     // Indices settings
     pub(crate) indices: Indices,
-
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    //
     pub(crate) filter: Filter,
-    pub(crate) threshold: Threshold,
     pub(crate) sort: Option<Sort>,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: Threshold,
 }
 
 impl Settings {
@@ -608,28 +607,6 @@ impl Index {
         Self {
             name: name.to_owned(),
             visible: true,
-        }
-    }
-}
-
-/// Threshold
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) struct Threshold {
-    pub(crate) auto: OrderedFloat<f64>,
-    pub(crate) filter: bool,
-    pub(crate) is_auto: bool,
-    pub(crate) manual: Vec<bool>,
-    pub(crate) sort: bool,
-}
-
-impl Threshold {
-    pub(crate) fn new() -> Self {
-        Self {
-            auto: OrderedFloat(0.0),
-            filter: false,
-            is_auto: true,
-            manual: Vec::new(),
-            sort: false,
         }
     }
 }

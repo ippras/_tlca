@@ -1,5 +1,6 @@
 use crate::r#const::markdown::*;
 use egui_phosphor::regular::{EXCLUDE, INTERSECT, UNITE};
+use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -162,6 +163,28 @@ impl Metric {
             Self::CosineDistance => COSINE_COEFFICIENT,
             Self::JaccardDistance => JACCARD_COEFFICIENT,
             Self::OverlapDistance => OVERLAP_COEFFICIENT,
+        }
+    }
+}
+
+/// Threshold
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) struct Threshold {
+    pub(crate) auto: OrderedFloat<f64>,
+    pub(crate) filter: bool,
+    pub(crate) is_auto: bool,
+    pub(crate) manual: Vec<bool>,
+    pub(crate) sort: bool,
+}
+
+impl Threshold {
+    pub(crate) fn new() -> Self {
+        Self {
+            auto: OrderedFloat(0.0),
+            filter: false,
+            is_auto: true,
+            manual: Vec::new(),
+            sort: false,
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        settings::{Filter, METRICS, Metric, SEPARATORS, Sort},
+        settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
         triacylglycerols::{
             ID_SOURCE,
             composition::{COMPOSITIONS, Composition, SPECIES_STEREO},
@@ -16,14 +16,13 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
-use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
 /// Settings
-#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct Settings {
     pub percent: bool,
     pub precision: usize,
@@ -41,13 +40,12 @@ pub struct Settings {
     pub chaddock: bool,
     // Moment settings
     pub bias: bool,
-
     //
     pub composition: Composition,
     pub filter: Filter,
-    pub threshold: OrderedFloat<f64>,
-    pub sort: Option<Sort>,
     pub metric: Metric,
+    pub sort: Option<Sort>,
+    pub threshold: Threshold,
 }
 
 impl Settings {
@@ -60,19 +58,19 @@ impl Settings {
             standard_deviation: false,
             truncate: true,
 
+            // Table settings
             editable: false,
             sticky: 0,
-
+            // Metrics settings
             chaddock: true,
-
+            // Moment settings
             bias: true,
-
             //
             composition: SPECIES_STEREO,
             filter: Filter::Union,
-            threshold: OrderedFloat(0.0),
-            sort: None,
             metric: Metric::HellingerDistance,
+            sort: None,
+            threshold: Threshold::new(),
         }
     }
 }
@@ -90,8 +88,13 @@ impl Settings {
         ui.labeled_separator(ui.localize("Parameters"));
         self.composition(ui);
         self.filter(ui);
-        self.threshold(ui);
         self.sort(ui);
+
+        ui.labeled_separator(ui.localize("Threshold"));
+
+        self.threshold_auto(ui);
+        self.threshold_sort(ui);
+        self.threshold_filter(ui);
 
         // Metrics
         ui.separator();
@@ -231,15 +234,15 @@ impl Settings {
         });
     }
 
-    /// Threshold
-    fn threshold(&mut self, ui: &mut Ui) {
+    /// Auto threshold
+    fn threshold_auto(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Threshold.hover"));
+            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Threshold_Auto.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.threshold;
-            let response = Slider::new(&mut threshold.0, 0.0..=1.0)
+            let mut threshold = self.threshold.auto.0;
+            let response = Slider::new(&mut threshold, 0.0..=1.0)
                 .custom_formatter(|mut value, decimals| {
                     if self.percent {
                         value *= 100.0;
@@ -259,10 +262,69 @@ impl Settings {
             if (response.drag_stopped() || response.lost_focus())
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
-                self.threshold = threshold;
+                self.threshold.auto.0 = threshold;
+                self.threshold.is_auto = true;
             }
+            if ui
+                .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
+                .clicked()
+            {
+                self.threshold.auto.0 = 0.01;
+                self.threshold.is_auto = true;
+            };
         });
     }
+
+    /// Threshold sort
+    fn threshold_sort(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Sort"))
+                .on_hover_localized("Threshold_Sort.hover");
+            ui.checkbox(&mut self.threshold.sort, ());
+        });
+    }
+
+    /// Threshold filter
+    fn threshold_filter(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Filter"))
+                .on_hover_localized("Threshold_Filter.hover");
+            ui.checkbox(&mut self.threshold.filter, ());
+        });
+    }
+
+    // /// Threshold
+    // fn threshold(&mut self, ui: &mut Ui) {
+    //     ui.horizontal(|ui| {
+    //         ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
+    //             ui.label(ui.localize("Threshold.hover"));
+    //         });
+    //         let number_formatter = ui.style().number_formatter.clone();
+    //         let mut threshold = self.threshold;
+    //         let response = Slider::new(&mut threshold.auto.0, 0.0..=1.0)
+    //             .custom_formatter(|mut value, decimals| {
+    //                 if self.percent {
+    //                     value *= 100.0;
+    //                 }
+    //                 number_formatter.format(value, decimals)
+    //             })
+    //             .custom_parser(|value| {
+    //                 let mut value = value.parse().ok()?;
+    //                 if self.percent {
+    //                     value /= 100.0;
+    //                 }
+    //                 Some(value)
+    //             })
+    //             .logarithmic(true)
+    //             .update_while_editing(false)
+    //             .ui(ui);
+    //         if (response.drag_stopped() || response.lost_focus())
+    //             && !ui.input(|input| input.key_pressed(Key::Escape))
+    //         {
+    //             self.threshold = threshold;
+    //         }
+    //     });
+    // }
 
     /// Sort
     fn sort(&mut self, ui: &mut Ui) {

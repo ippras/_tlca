@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        Filter, METRICS, Metric, SEPARATORS, Sort,
+        settings::{Filter, METRICS, Metric, SEPARATORS, Sort},
         triacylglycerols::{
             ID_SOURCE,
             composition::{COMPOSITIONS, Composition, SPECIES_STEREO},

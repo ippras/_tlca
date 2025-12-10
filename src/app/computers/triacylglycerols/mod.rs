@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        Filter, Sort,
+        settings::{Filter, Sort},
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
@@ -109,6 +109,7 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 
 /// Compose
 fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    println!("GGG!!! 0: {}", lazy_frame.clone().collect()?);
     let by = [match key.composition {
         MASS_MONO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
@@ -171,6 +172,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         );
     }
     lazy_frame = lazy_frame.group_by(by).agg(aggs);
+    println!("GGG!!! 1: {}", lazy_frame.clone().collect()?);
     Ok(lazy_frame)
 }
 
@@ -179,13 +181,14 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     let exprs = schema
         .iter_names()
-        .filter_map(|name| {
-            if name != COMPOSITION && name != SPECIES {
-                Some(name)
-            } else {
-                None
-            }
-        })
+        .filter(|name| !matches!(name.as_str(), COMPOSITION | SPECIES))
+        //     {
+        //     if name != COMPOSITION && name != SPECIES {
+        //         Some(name)
+        //     } else {
+        //         None
+        //     }
+        // })
         .map(|name| {
             let mean = || {
                 col(name.clone())
@@ -214,6 +217,7 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
         })
         .collect::<Vec<_>>();
     lazy_frame = lazy_frame.with_columns(exprs);
+    println!("GGG!!! 4: {}", lazy_frame.clone().collect()?);
     Ok(lazy_frame)
 }
 

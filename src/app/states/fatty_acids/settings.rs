@@ -1,6 +1,9 @@
 use crate::app::{
     MAX_PRECISION,
-    states::{Filter, METRICS, Metric, SEPARATORS, Sort, fatty_acids::ID_SOURCE},
+    states::{
+        fatty_acids::ID_SOURCE,
+        settings::{Filter, METRICS, Metric, SEPARATORS, Sort},
+    },
 };
 use egui::{
     ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,

@@ -123,15 +123,15 @@ impl Metric {
 impl Metric {
     pub fn text(&self) -> &'static str {
         match self {
-            Self::HellingerDistance => "Metric_HellingerDistance",
-            Self::JensenShannonDistance => "Metric_JensenShannonDistance",
-            Self::BhattacharyyaDistance => "Metric_BhattacharyyaDistance",
-            Self::EuclideanDistance => "Metric_EuclideanDistance",
-            Self::ChebyshevDistance => "Metric_ChebyshevDistance",
-            Self::ManhattanDistance => "Metric_ManhattanDistance",
-            Self::CosineDistance => "Metric_CosineDistance",
-            Self::JaccardDistance => "Metric_JaccardDistance",
-            Self::OverlapDistance => "Metric_OverlapDistance",
+            Self::HellingerDistance => "HellingerDistance",
+            Self::JensenShannonDistance => "JensenShannonDistance",
+            Self::BhattacharyyaDistance => "BhattacharyyaDistance",
+            Self::EuclideanDistance => "EuclideanDistance",
+            Self::ChebyshevDistance => "ChebyshevDistance",
+            Self::ManhattanDistance => "ManhattanDistance",
+            Self::CosineDistance => "CosineDistance",
+            Self::JaccardDistance => "JaccardDistance",
+            Self::OverlapDistance => "OverlapDistance",
         }
     }
 

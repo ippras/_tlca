@@ -3,14 +3,13 @@ use crate::{
         Filter, Metric,
         fatty_acids::settings::{Settings, StereospecificNumbers},
     },
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    r#const::{MEAN, SAMPLE, THRESHOLD},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars::prelude::*;
-use polars_ext::expr::ExprExt as _;
 use std::f64::consts::{E, FRAC_1_SQRT_2};
 use tracing::instrument;
 
@@ -76,11 +75,8 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
-    pub(crate) ddof: u8,
     pub(crate) filter: Filter,
     pub(crate) metric: Metric,
-    pub(crate) precision: usize,
-    pub(crate) significant: bool,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
 }
@@ -89,11 +85,8 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: 1,
             filter: settings.filter,
             metric: settings.metric,
-            precision: settings.precision,
-            significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold.auto,
         }
@@ -134,56 +127,51 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .struct_()
             .field_by_name(SAMPLE)
             .arr()
-            .to_struct(None)
+            .to_struct(Some(PlanCallback::new(|index| {
+                Ok(format!("Left[{index}]"))
+            })))
             .struct_()
             .field_by_name("*")
             .fill_null(0);
-        let mut input = Vec::with_capacity(schema.len());
-        for name in schema.iter_names() {
-            let right = col(name.as_str())
-                .struct_()
-                .field_by_name(SAMPLE)
-                .arr()
-                .to_struct(None)
-                .struct_()
-                .field_by_name("*")
-                .fill_null(0);
-            let array = concat_arr(vec![match key.metric {
+        let right = all()
+            .as_expr()
+            .struct_()
+            .field_by_name(SAMPLE)
+            .arr()
+            .to_struct(Some(PlanCallback::new(|index| {
+                Ok(format!("Right[{index}]"))
+            })))
+            .fill_null(0);
+        println!(
+            "GGGGGGGGGGGGGGGGGGGGGGGG1: {}",
+            lazy_frame
+                .clone()
+                .select([hellinger_distance(left.clone(), right.clone())])
+                .collect()
+                .unwrap()
+        );
+        exprs.push(
+            concat_arr(vec![match key.metric {
                 // Similarity between two discrete probability distributions
-                Metric::HellingerDistance => hellinger_distance(left.clone(), right),
-                Metric::JensenShannonDistance => jensen_shannon_distance(left.clone(), right),
-                Metric::BhattacharyyaDistance => bhattacharyya_distance(left.clone(), right),
+                Metric::HellingerDistance => hellinger_distance(left, right),
+                Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+                Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
                 // Distance between two points
-                Metric::ChebyshevDistance => chebyshev_distance(left.clone(), right),
-                Metric::EuclideanDistance => euclidean_distance(left.clone(), right),
-                Metric::ManhattanDistance => manhattan_distance(left.clone(), right),
+                Metric::ChebyshevDistance => chebyshev_distance(left, right),
+                Metric::EuclideanDistance => euclidean_distance(left, right),
+                Metric::ManhattanDistance => manhattan_distance(left, right),
                 // Distance between two series
-                Metric::CosineDistance => cosine_distance(left.clone(), right),
-                Metric::JaccardDistance => jaccard_distance(left.clone(), right),
-                Metric::OverlapDistance => overlap_distance(left.clone(), right),
-            }])?;
-            // Mean, standard deviation and sample
-            input.push(as_struct(vec![
-                array
-                    .clone()
-                    .arr()
-                    .mean()
-                    .precision(key.precision, key.significant)
-                    .alias(MEAN),
-                array
-                    .clone()
-                    .arr()
-                    .std(key.ddof)
-                    .precision(key.precision + 1, key.significant)
-                    .alias(STANDARD_DEVIATION),
-                array
-                    .arr()
-                    .eval(element().precision(key.precision, key.significant), false)
-                    .alias(SAMPLE),
-            ]));
-        }
-        exprs.push(concat_arr(input)?.alias(name.clone()));
+                Metric::CosineDistance => cosine_distance(left, right),
+                Metric::JaccardDistance => jaccard_distance(left, right),
+                Metric::OverlapDistance => overlap_distance(left, right),
+            }])?
+            .alias(name.clone()),
+        );
     }
+    println!(
+        "GGGGGGGGGGGGGGGGGGGGGGGG0: {}",
+        lazy_frame.clone().collect().unwrap()
+    );
     lazy_frame = lazy_frame.select(exprs).explode(all());
     Ok(lazy_frame)
 }

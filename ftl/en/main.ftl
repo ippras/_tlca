@@ -69,17 +69,6 @@ Sort_Key = Key
     .hover = Sort by key.
 Sort_Value = Value
     .hover = Sort by value.
-Metric_BhattacharyyaDistance = Bhattacharyya distance
-Metric_ChebyshevDistance = Chebyshev distance
-Metric_CosineDistance = Cosine distance
-Metric_EuclideanDistance = Euclidean distance
-Metric_HellingerDistance = Hellinger distance
-Metric_JaccardDistance = Jaccard distance
-Metric_JensenShannonDistance = Jensen shannon distance
-Metric_ManhattanDistance = Manhattan distance
-Metric_OverlapDistance = Overlap distance
-Metric_PearsonCorrelation = Pearson correlation
-Metric_SpearmanRankCorrelation = Spearman rank correlation
 Parameters = Parameters
 Chaddock = Chaddock
     .hover = Chaddock scale.
@@ -120,3 +109,17 @@ Threshold_Filter = Filter
     .hover = Filter minor fatty acids.
 Threshold_Sort = Sort
     .hover = Sort by minor major.
+
+# Metrics
+
+BhattacharyyaDistance = Bhattacharyya distance
+ChebyshevDistance = Chebyshev distance
+CosineDistance = Cosine distance
+EuclideanDistance = Euclidean distance
+HellingerDistance = Hellinger distance
+JaccardDistance = Jaccard distance
+JensenShannonDistance = Jensen shannon distance
+ManhattanDistance = Manhattan distance
+OverlapDistance = Overlap distance
+PearsonCorrelation = Pearson correlation
+SpearmanRankCorrelation = Spearman rank correlation

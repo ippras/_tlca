@@ -1,9 +1,4 @@
-use self::{
-    composition::{COMPOSITIONS, Composition, SPECIES_STEREO},
-    settings::Settings,
-    windows::Windows,
-};
-use super::{Filter, Metric, Sort};
+use self::{settings::Settings, windows::Windows};
 use egui::{Context, Id};
 use serde::{Deserialize, Serialize};
 

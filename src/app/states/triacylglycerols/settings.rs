@@ -8,16 +8,13 @@ use crate::app::{
         },
     },
 };
-use egui::{
-    ComboBox, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Slider, Ui, Widget,
-    emath::Float as _,
-};
+use egui::{ComboBox, Grid, Id, Key, KeyboardShortcut, Modifiers, RichText, Slider, Ui, Widget};
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
+use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
 
 /// Settings
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
@@ -36,7 +33,12 @@ pub struct Settings {
     // Moment settings
     pub bias: bool,
 
-    pub parameters: Parameters,
+    //
+    pub composition: Composition,
+    pub filter: Filter,
+    pub threshold: OrderedFloat<f64>,
+    pub sort: Sort,
+    pub metric: Metric,
 }
 
 impl Settings {
@@ -54,7 +56,12 @@ impl Settings {
 
             bias: true,
 
-            parameters: Parameters::new(),
+            //
+            composition: SPECIES_STEREO,
+            filter: Filter::Union,
+            threshold: OrderedFloat(0.0),
+            sort: Sort::Value,
+            metric: Metric::HellingerDistance,
         }
     }
 }
@@ -95,11 +102,11 @@ impl Settings {
                 ui.label(ui.localize("Composition.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with("Composition"))
-                .selected_text(ui.localize(self.parameters.composition.text()))
+                .selected_text(ui.localize(self.composition.text()))
                 .show_ui(ui, |ui| {
                     for selected_value in COMPOSITIONS {
                         ui.selectable_value(
-                            &mut self.parameters.composition,
+                            &mut self.composition,
                             selected_value,
                             ui.localize(selected_value.text()),
                         )
@@ -109,16 +116,16 @@ impl Settings {
                     }
                 })
                 .response
-                .on_hover_text(ui.localize(self.parameters.composition.hover_text()));
+                .on_hover_text(ui.localize(self.composition.hover_text()));
             if ui.input_mut(|input| {
                 input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
             }) {
-                self.parameters.composition = self.parameters.composition.forward();
+                self.composition = self.composition.forward();
             }
             if ui.input_mut(|input| {
                 input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
             }) {
-                self.parameters.composition = self.parameters.composition.backward();
+                self.composition = self.composition.backward();
             }
             ui.end_row();
 
@@ -127,10 +134,10 @@ impl Settings {
                 ui.label(ui.localize("Filter.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(ui.localize(self.parameters.filter.text()))
+                .selected_text(ui.localize(self.filter.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Intersection,
                         (
                             Filter::Intersection.icon(),
@@ -139,13 +146,13 @@ impl Settings {
                     )
                     .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Union,
                         (Filter::Union.icon(), ui.localize(Filter::Union.text())),
                     )
                     .on_hover_text(ui.localize(Filter::Union.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.filter,
+                        &mut self.filter,
                         Filter::Difference,
                         (
                             Filter::Difference.icon(),
@@ -155,7 +162,7 @@ impl Settings {
                     .on_hover_text(ui.localize(Filter::Difference.hover_text()));
                 })
                 .response
-                .on_hover_text(RichText::new(self.parameters.filter.icon()).heading());
+                .on_hover_text(RichText::new(self.filter.icon()).heading());
             ui.end_row();
 
             // Threshold
@@ -163,8 +170,8 @@ impl Settings {
                 ui.label(ui.localize("Threshold.hover"));
             });
             let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.parameters.threshold;
-            let response = Slider::new(&mut threshold, 0.0..=1.0)
+            let mut threshold = self.threshold;
+            let response = Slider::new(&mut threshold.0, 0.0..=1.0)
                 .custom_formatter(|mut value, decimals| {
                     if self.percent {
                         value *= 100.0;
@@ -184,7 +191,7 @@ impl Settings {
             if (response.drag_stopped() || response.lost_focus())
                 && !ui.input(|input| input.key_pressed(Key::Escape))
             {
-                self.parameters.threshold = threshold;
+                self.threshold = threshold;
             }
             ui.end_row();
 
@@ -193,23 +200,19 @@ impl Settings {
                 ui.label(ui.localize("Sort.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(ui.localize(self.parameters.sort.text()))
+                .selected_text(ui.localize(self.sort.text()))
                 .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.sort, Sort::Key, ui.localize(Sort::Key.text()))
+                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
                     ui.selectable_value(
-                        &mut self.parameters.sort,
-                        Sort::Key,
-                        ui.localize(Sort::Key.text()),
-                    )
-                    .on_hover_text(ui.localize(Sort::Key.hover_text()));
-                    ui.selectable_value(
-                        &mut self.parameters.sort,
+                        &mut self.sort,
                         Sort::Value,
                         ui.localize(Sort::Value.text()),
                     )
                     .on_hover_text(ui.localize(Sort::Value.hover_text()));
                 })
                 .response
-                .on_hover_text(ui.localize(self.parameters.sort.hover_text()));
+                .on_hover_text(ui.localize(self.sort.hover_text()));
             ui.end_row();
 
             ui.separator();
@@ -221,7 +224,7 @@ impl Settings {
                 .on_hover_text(ui.localize("Metric.hover"));
             #[allow(unused_variables)]
             let response = ComboBox::from_id_salt(ui.auto_id_with(id_salt))
-                .selected_text(ui.localize(self.parameters.metric.text()))
+                .selected_text(ui.localize(self.metric.text()))
                 .show_ui(ui, |ui| {
                     for (index, metric) in METRICS.into_iter().enumerate() {
                         if SEPARATORS.contains(&index) {
@@ -229,7 +232,7 @@ impl Settings {
                         }
                         #[allow(unused_variables)]
                         let response = ui.selectable_value(
-                            &mut self.parameters.metric,
+                            &mut self.metric,
                             metric,
                             ui.localize(metric.text()),
                         );
@@ -242,7 +245,7 @@ impl Settings {
                 .response;
             #[cfg(feature = "markdown")]
             response.on_hover_ui(|ui| {
-                ui.markdown(self.parameters.metric.hover_markdown());
+                ui.markdown(self.metric.hover_markdown());
             });
             ui.end_row();
 
@@ -277,38 +280,26 @@ impl Default for Settings {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct Parameters {
-    pub composition: Composition,
-    pub filter: Filter,
-    pub threshold: f64,
-    pub sort: Sort,
-    pub metric: Metric,
-}
+pub struct Parameters {}
 
 impl Parameters {
     pub fn new() -> Self {
-        Self {
-            composition: SPECIES_STEREO,
-            filter: Filter::Union,
-            threshold: 0.0,
-            sort: Sort::Value,
-            metric: Metric::HellingerDistance,
-        }
+        Self {}
     }
 }
 
-impl Default for Parameters {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl Default for Parameters {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
-impl Hash for Parameters {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.composition.hash(state);
-        self.filter.hash(state);
-        self.threshold.ord().hash(state);
-        self.sort.hash(state);
-        self.metric.hash(state);
-    }
-}
+// impl Hash for Parameters {
+//     fn hash<H: Hasher>(&self, state: &mut H) {
+//         self.composition.hash(state);
+//         self.filter.hash(state);
+//         self.threshold.ord().hash(state);
+//         self.sort.hash(state);
+//         self.metric.hash(state);
+//     }
+// }

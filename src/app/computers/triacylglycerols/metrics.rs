@@ -1,5 +1,8 @@
 use crate::{
-    app::states::{Metric, triacylglycerols::settings::Parameters},
+    app::states::{
+        Metric,
+        triacylglycerols::settings::{Parameters, Settings},
+    },
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -25,7 +28,7 @@ impl Computer {
         let exprs = schema
             .iter_names_cloned()
             .map(|left| -> PolarsResult<_> {
-                Ok(concat_arr(vec![match key.parameters.metric {
+                Ok(concat_arr(vec![match key.metric {
                     // Similarity between two discrete probability distributions
                     Metric::HellingerDistance => {
                         hellinger_distance(mean(col(left.clone())), mean(all().as_expr()))
@@ -107,8 +110,17 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 /// Metrics key
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
-    pub(crate) frame: &'a HashedDataFrame,
-    pub(crate) parameters: &'a Parameters,
+    frame: &'a HashedDataFrame,
+    metric: Metric,
+}
+
+impl<'a> Key<'a> {
+    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
+        Self {
+            frame,
+            metric: settings.metric,
+        }
+    }
 }
 
 /// Metrics value

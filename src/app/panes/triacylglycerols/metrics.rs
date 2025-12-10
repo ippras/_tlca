@@ -70,7 +70,7 @@ impl Metrics<'_> {
             let text = format!("{value:.0$}", self.settings.precision);
             let sign = Sign::from(value);
             let mut color = ui.style().visuals.text_color();
-            if self.settings.parameters.metric.is_finite() {
+            if self.settings.metric.is_finite() {
                 if self.settings.chaddock {
                     color = sign.chaddock().color(color);
                 } else {

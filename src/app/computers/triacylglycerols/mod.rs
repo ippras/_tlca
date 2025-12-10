@@ -12,11 +12,9 @@ use crate::{
     },
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
-use egui::{
-    emath::OrderedFloat,
-    util::cache::{ComputerMut, FrameCache},
-};
+use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use std::convert::identity;
 use tracing::instrument;
@@ -62,10 +60,10 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &Settings) -> Self {
         Self {
             frames,
-            composition: settings.parameters.composition,
-            filter: settings.parameters.filter,
-            sort: settings.parameters.sort,
-            threshold: settings.parameters.threshold.into(),
+            composition: settings.composition,
+            filter: settings.filter,
+            sort: settings.sort,
+            threshold: settings.threshold,
         }
     }
 }

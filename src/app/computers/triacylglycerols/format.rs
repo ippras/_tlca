@@ -51,7 +51,7 @@ impl<'a> Key<'a> {
         Self {
             frame,
             column,
-            composition: settings.parameters.composition,
+            composition: settings.composition,
             percent: settings.percent,
             precision: settings.precision,
             significant: false,

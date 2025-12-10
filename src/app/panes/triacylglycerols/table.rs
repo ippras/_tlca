@@ -92,11 +92,9 @@ impl TableView<'_> {
                 ui.heading(HASH);
             }
             (0, TAG) => {
-                ui.heading(ui.localize(self.state.settings.parameters.composition.text()))
+                ui.heading(ui.localize(self.state.settings.composition.text()))
                     .on_hover_ui(|ui| {
-                        ui.label(
-                            ui.localize(self.state.settings.parameters.composition.hover_text()),
-                        );
+                        ui.label(ui.localize(self.state.settings.composition.hover_text()));
                     });
             }
             (0, _) => {

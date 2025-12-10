@@ -260,10 +260,10 @@ impl Pane {
                 .get(TriacylglycerolsKey::new(&self.frames, settings))
         });
         let data_frame = ui.memory_mut(|memory| {
-            memory.caches.cache::<MetricsComputed>().get(MetricsKey {
-                frame: &frame,
-                parameters: &settings.parameters,
-            })
+            memory
+                .caches
+                .cache::<MetricsComputed>()
+                .get(MetricsKey::new(&frame, &settings))
         });
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())

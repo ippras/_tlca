@@ -4,10 +4,7 @@ use crate::{
         fatty_acids::settings::{Settings, StereospecificNumbers},
     },
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
-    utils::{
-        HashedDataFrame,
-        polars::{eval_arr, sum_arr},
-    },
+    utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;

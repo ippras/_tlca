@@ -31,7 +31,7 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
     StereospecificNumbers::Sn2,
 ];
 
-const METRICS: [Metric; 11] = [
+const METRICS: [Metric; 9] = [
     Metric::HellingerDistance,
     Metric::JensenShannonDistance,
     Metric::BhattacharyyaDistance,
@@ -43,12 +43,9 @@ const METRICS: [Metric; 11] = [
     Metric::EuclideanDistance,
     Metric::ChebyshevDistance,
     Metric::ManhattanDistance,
-    //
-    Metric::PearsonCorrelation,
-    Metric::SpearmanRankCorrelation,
 ];
 
-const SEPARATORS: [usize; 3] = [3, 6, 9];
+const SEPARATORS: [usize; 2] = [3, 6];
 
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]

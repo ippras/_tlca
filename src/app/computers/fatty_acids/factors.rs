@@ -126,7 +126,7 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
                     .arr()
                     .std(key.ddof)
                     .percent_if(key.percent)
-                    .precision(key.precision, key.significant)
+                    .precision(key.precision + 1, key.significant)
                     .alias(STANDARD_DEVIATION),
                 factor
                     .arr()

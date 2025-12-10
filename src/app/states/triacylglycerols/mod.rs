@@ -17,7 +17,7 @@ use std::hash::{Hash, Hasher};
 
 pub(crate) const ID_SOURCE: &str = "Triacylglycerols";
 
-const METRICS: [Metric; 11] = [
+const METRICS: [Metric; 9] = [
     Metric::HellingerDistance,
     Metric::JensenShannonDistance,
     Metric::BhattacharyyaDistance,
@@ -29,12 +29,9 @@ const METRICS: [Metric; 11] = [
     Metric::EuclideanDistance,
     Metric::ChebyshevDistance,
     Metric::ManhattanDistance,
-    //
-    Metric::PearsonCorrelation,
-    Metric::SpearmanRankCorrelation,
 ];
 
-const SEPARATORS: [usize; 3] = [3, 6, 9];
+const SEPARATORS: [usize; 2] = [3, 6];
 
 /// State
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]

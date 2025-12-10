@@ -3,11 +3,13 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
-    r#const::MEAN,
+    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION},
 };
-use egui::{Id, TextStyle, TextWrapMode, Ui};
+use egui::{Id, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_extras::{Column, TableBuilder};
+use egui_l20n::UiExt as _;
 use polars::prelude::*;
+use polars_utils::format_list;
 use tracing::instrument;
 
 /// Indices widget
@@ -65,21 +67,44 @@ impl<'a> Indices<'a> {
     fn body_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: usize) -> PolarsResult<()> {
         match column {
             0 => {
-                ui.label(self.data_frame[0].get(row)?.str_value());
+                ui.label(ui.localize(&self.data_frame[0].get(row)?.str_value()));
             }
             column => {
-                if let Some(mean) = self.data_frame[column]
+                let mean_series = self.data_frame[column].struct_()?.field_by_name(MEAN)?;
+                let mean = mean_series.f64()?.get(row);
+                let standard_deviation_series = self.data_frame[column]
                     .struct_()?
-                    .field_by_name(MEAN)?
-                    .f64()?
-                    .get(row)
-                {
-                    let text = format!("{mean:.0$}", self.settings.precision);
-                    ui.label(text);
-                    // Label::new(RichText::new(text).color(color))
-                    //     .ui(ui)
-                    //     .on_hover_text(value.to_string())
-                    //     .on_hover_text(format!("{sign:?}"));
+                    .field_by_name(STANDARD_DEVIATION)?;
+                let standard_deviation = standard_deviation_series.f64()?.get(row);
+                let text = match mean {
+                    Some(mean)
+                        if self.settings.standard_deviation
+                            && let Some(standard_deviation) = standard_deviation =>
+                    {
+                        WidgetText::from(format!("{mean} ±{standard_deviation}"))
+                    }
+                    Some(mean) => WidgetText::from(mean.to_string()),
+                    None => WidgetText::from(EM_DASH),
+                };
+                let mut response = ui.label(text);
+                if response.hovered() {
+                    // Standard deviation
+                    if let Some(standard_deviation) = standard_deviation {
+                        response = response.on_hover_ui(|ui| {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                            ui.heading(ui.localize(STANDARD_DEVIATION));
+                            ui.label(format!("±{standard_deviation}"));
+                        });
+                    }
+                    // Sample
+                    let sample_series = self.data_frame[column].struct_()?.field_by_name(SAMPLE)?;
+                    if let Some(sample) = sample_series.array()?.get_as_series(row) {
+                        response = response.on_hover_ui(|ui| {
+                            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                            ui.heading(ui.localize(SAMPLE));
+                            ui.label(format_list!(sample.iter()));
+                        });
+                    }
                 }
             }
         }

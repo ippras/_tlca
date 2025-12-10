@@ -75,9 +75,6 @@ pub enum Metric {
     CosineDistance,
     JaccardDistance,
     OverlapDistance,
-    // Correlation between two series
-    PearsonCorrelation,
-    SpearmanRankCorrelation,
 }
 
 impl Metric {
@@ -89,8 +86,6 @@ impl Metric {
                 | Metric::CosineDistance
                 | Metric::JaccardDistance
                 | Metric::OverlapDistance
-                | Metric::PearsonCorrelation
-                | Metric::SpearmanRankCorrelation
         )
     }
 }
@@ -106,9 +101,7 @@ impl Metric {
             Self::ManhattanDistance => Self::CosineDistance,
             Self::CosineDistance => Self::JaccardDistance,
             Self::JaccardDistance => Self::OverlapDistance,
-            Self::OverlapDistance => Self::PearsonCorrelation,
-            Self::PearsonCorrelation => Self::SpearmanRankCorrelation,
-            Self::SpearmanRankCorrelation => Self::SpearmanRankCorrelation,
+            Self::OverlapDistance => Self::OverlapDistance,
         }
     }
 
@@ -123,8 +116,6 @@ impl Metric {
             Self::CosineDistance => Self::ManhattanDistance,
             Self::JaccardDistance => Self::CosineDistance,
             Self::OverlapDistance => Self::JaccardDistance,
-            Self::PearsonCorrelation => Self::OverlapDistance,
-            Self::SpearmanRankCorrelation => Self::PearsonCorrelation,
         }
     }
 }
@@ -141,8 +132,6 @@ impl Metric {
             Self::CosineDistance => "Metric_CosineDistance",
             Self::JaccardDistance => "Metric_JaccardDistance",
             Self::OverlapDistance => "Metric_OverlapDistance",
-            Self::PearsonCorrelation => "Metric_PearsonCorrelation",
-            Self::SpearmanRankCorrelation => "Metric_SpearmanRankCorrelation",
         }
     }
 
@@ -157,8 +146,6 @@ impl Metric {
             Self::CosineDistance => COSINE_COEFFICIENT,
             Self::JaccardDistance => JACCARD_COEFFICIENT,
             Self::OverlapDistance => OVERLAP_COEFFICIENT,
-            Self::PearsonCorrelation => PEARSON_CORRELATION_COEFFICIENT,
-            Self::SpearmanRankCorrelation => SPEARMAN_RANK_CORRELATION_COEFFICIENT,
         }
     }
 }

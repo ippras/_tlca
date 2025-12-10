@@ -94,7 +94,7 @@ impl<'a> Factors<'a> {
                         if self.settings.standard_deviation
                             && let Some(standard_deviation) = standard_deviation =>
                     {
-                        WidgetText::from(format!("{mean} {standard_deviation}"))
+                        WidgetText::from(format!("{mean} ±{standard_deviation}"))
                     }
                     Some(mean) => WidgetText::from(mean.to_string()),
                     None => WidgetText::from(EM_DASH),

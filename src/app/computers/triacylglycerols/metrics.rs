@@ -56,13 +56,6 @@ impl Computer {
                     Metric::OverlapDistance => {
                         overlap_distance(mean(col(left.clone())), mean(all().as_expr()))
                     }
-                    // Correlation between two series
-                    Metric::PearsonCorrelation => {
-                        pearson_corr(mean(col(left.clone())), mean(all().as_expr()))
-                    }
-                    Metric::SpearmanRankCorrelation => {
-                        spearman_rank_corr(mean(col(left.clone())), mean(all().as_expr()), false)
-                    }
                 }])?
                 .alias(left))
             })

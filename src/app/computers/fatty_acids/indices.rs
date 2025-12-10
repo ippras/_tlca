@@ -3,14 +3,15 @@ use crate::{
         Filter,
         fatty_acids::settings::{Indices, Settings, StereospecificNumbers},
     },
-    r#const::THRESHOLD,
-    utils::HashedDataFrame,
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars::prelude::*;
-use std::{iter::once, num::NonZeroI8};
+use polars_ext::expr::ExprExt as _;
+use std::num::NonZeroI8;
 use tracing::instrument;
 
 /// Indices computed
@@ -42,8 +43,11 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) ddof: u8,
     pub(crate) filter: Filter,
     pub(crate) indices: &'a Indices,
+    pub(crate) precision: usize,
+    pub(crate) significant: bool,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: OrderedFloat<f64>,
 }
@@ -52,8 +56,11 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
+            ddof: 1,
             filter: settings.filter,
             indices: &settings.indices,
+            precision: settings.precision,
+            significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold.auto,
         }
@@ -86,36 +93,45 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Compute
 fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    // let schema = lazy_frame.collect_schema()?;
-    let schema = key.frame.schema();
-    let lazy_frames = key
-        .indices
-        .iter()
-        .filter(|index| index.visible)
-        .map(|index| {
-            let id = lit(Series::new(
-                PlSmallStr::from_static("Index"),
-                [index.name.clone()],
-            ));
-            let values = schema
-                .iter_names()
-                .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
-                .map(|name| {
-                    let expr = col(name.clone()).struct_().field_by_name("Mean");
-                    let mean = compute_index(&index.name, expr);
-                    let standard_deviation = lit(0.0).alias("StandardDeviation");
-                    let array = concat_arr(vec![lit(0.0)]).unwrap().alias("Array");
-                    as_struct(vec![
-                        mean.alias("Mean"),
-                        standard_deviation.alias("StandardDeviation"),
-                        array.alias("Array"),
-                    ])
-                    .alias(name.clone())
-                });
-            let exprs = once(id).chain(values).collect::<Vec<_>>();
-            lazy_frame.clone().select(exprs)
-        })
-        .collect::<Vec<_>>();
+    let mut lazy_frames = Vec::with_capacity(key.indices.len());
+    for index in key.indices.iter().filter(|index| index.visible) {
+        let mut exprs = vec![lit(Series::new(
+            PlSmallStr::from_static(INDEX),
+            [index.name.clone()],
+        ))];
+        for name in key
+            .frame
+            .schema()
+            .iter_names()
+            .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
+        {
+            let array = eval_arr(col(name.clone()).struct_().field_by_name(SAMPLE), |expr| {
+                compute_index(&index.name, expr)
+            })?;
+            exprs.push(
+                as_struct(vec![
+                    array
+                        .clone()
+                        .arr()
+                        .mean()
+                        .precision(key.precision, key.significant)
+                        .alias(MEAN),
+                    array
+                        .clone()
+                        .arr()
+                        .std(key.ddof)
+                        .precision(key.precision + 1, key.significant)
+                        .alias(STANDARD_DEVIATION),
+                    array
+                        .arr()
+                        .eval(element().precision(key.precision, key.significant), false)
+                        .alias(SAMPLE),
+                ])
+                .alias(name.clone()),
+            );
+        }
+        lazy_frames.push(lazy_frame.clone().select(exprs))
+    }
     concat(lazy_frames, Default::default())
 }
 

@@ -3,7 +3,7 @@ use crate::{
         Filter, Metric,
         fatty_acids::settings::{Settings, StereospecificNumbers},
     },
-    r#const::THRESHOLD,
+    r#const::{MEAN, THRESHOLD},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -27,48 +27,19 @@ impl Computer {
         lazy_frame = unnest(lazy_frame, key);
         lazy_frame = filter(lazy_frame, key)?;
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame =
-            lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr()]);
-        let schema = lazy_frame.collect_schema()?;
-        let mean = |expr: Expr| expr.struct_().field_by_name("Mean").fill_null(0);
-        let exprs = schema
-            .iter_names()
-            .map(|name| -> PolarsResult<_> {
-                let left = mean(col(name.as_str()));
-                let right = mean(all().as_expr());
-                Ok(concat_arr(vec![match key.metric {
-                    // Similarity between two discrete probability distributions
-                    Metric::HellingerDistance => hellinger_distance(left, right),
-                    Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
-                    Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
-                    // Distance between two points
-                    Metric::ChebyshevDistance => chebyshev_distance(left, right),
-                    Metric::EuclideanDistance => euclidean_distance(left, right),
-                    Metric::ManhattanDistance => manhattan_distance(left, right),
-                    // Distance between two series
-                    Metric::CosineDistance => cosine_distance(left, right),
-                    Metric::JaccardDistance => jaccard_distance(left, right),
-                    Metric::OverlapDistance => overlap_distance(left, right),
-                    // Correlation between two series
-                    Metric::PearsonCorrelation => pearson_corr(left, right),
-                    Metric::SpearmanRankCorrelation => spearman_rank_corr(left, right, false),
-                }])?
-                .alias(name.clone()))
-            })
-            .collect::<PolarsResult<Vec<_>>>()?;
-        lazy_frame = lazy_frame.select(exprs).explode(all());
+        lazy_frame = compute(lazy_frame, key)?;
         // lazy_frame = lazy_frame
         //     .select([
         //         nth(2)
         //             .as_expr()
         //             .struct_()
-        //             .field_by_name("Mean")
+        //             .field_by_name(MEAN)
         //             .fill_null(0)
         //             .alias(LEFT),
         //         nth(3)
         //             .as_expr()
         //             .struct_()
-        //             .field_by_name("Mean")
+        //             .field_by_name(MEAN)
         //             .fill_null(0)
         //             .alias(RIGHT),
         //     ])
@@ -144,6 +115,39 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         Filter::Union => any_horizontal([expr.is_not_null()])?,
         Filter::Difference => any_horizontal([expr.is_null()])?,
     }))
+}
+
+/// Compute
+fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr()]);
+    let schema = lazy_frame.collect_schema()?;
+    let exprs = schema
+        .iter_names()
+        .map(|name| -> PolarsResult<_> {
+            let left = col(name.as_str())
+                .struct_()
+                .field_by_name(MEAN)
+                .fill_null(0);
+            let right = all().as_expr().struct_().field_by_name(MEAN).fill_null(0);
+            Ok(concat_arr(vec![match key.metric {
+                // Similarity between two discrete probability distributions
+                Metric::HellingerDistance => hellinger_distance(left, right),
+                Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+                Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
+                // Distance between two points
+                Metric::ChebyshevDistance => chebyshev_distance(left, right),
+                Metric::EuclideanDistance => euclidean_distance(left, right),
+                Metric::ManhattanDistance => manhattan_distance(left, right),
+                // Distance between two series
+                Metric::CosineDistance => cosine_distance(left, right),
+                Metric::JaccardDistance => jaccard_distance(left, right),
+                Metric::OverlapDistance => overlap_distance(left, right),
+            }])?
+            .alias(name.clone()))
+        })
+        .collect::<PolarsResult<Vec<_>>>()?;
+    lazy_frame = lazy_frame.select(exprs).explode(all());
+    Ok(lazy_frame)
 }
 
 // fn hierarchical_cluster(data_frame: DataFrame) {

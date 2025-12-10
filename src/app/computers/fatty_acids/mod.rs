@@ -145,7 +145,7 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .field_by_name(key.stereospecific_numbers.id())
         .struct_()
         .field_by_name(MEAN)
-        .fill_null(lit(0))
+        .fill_null(0)
         .gt_eq(key.threshold.auto.0)])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
     if key.threshold.filter {

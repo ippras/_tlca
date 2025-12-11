@@ -107,7 +107,7 @@ fn label(key: Key) -> PolarsResult<Expr> {
     Ok(match key.composition {
         ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", [col(COMPOSITION)])?,
         SPECIES_MONO | TYPE_MONO => format_str(
-            "[{}/3; {}/3; {}/3]",
+            "[{}/3;{}/3;{}/3]",
             [
                 col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number2(),
@@ -116,7 +116,7 @@ fn label(key: Key) -> PolarsResult<Expr> {
         )?,
         ECN_STEREO | MASS_STEREO | SPECIES_STEREO | TYPE_STEREO | UNSATURATION_STEREO => {
             format_str(
-                "[{}; {}; {}]",
+                "[{};{};{}]",
                 [
                     col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                     col(COMPOSITION).triacylglycerol().stereospecific_number2(),
@@ -125,7 +125,7 @@ fn label(key: Key) -> PolarsResult<Expr> {
             )?
         }
         SPECIES_POSITIONAL | TYPE_POSITIONAL => format_str(
-            "[{}/2; {}; {}/2]",
+            "[{}/2;{};{}/2]",
             [
                 col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number2(),
@@ -162,7 +162,7 @@ fn species(key: Key) -> PolarsResult<Expr> {
             {
                 let label = element().struct_().field_by_name(LABEL);
                 format_str(
-                    "[{}; {}; {}]",
+                    "[{};{};{}]",
                     [
                         label.clone().triacylglycerol().stereospecific_number1(),
                         label.clone().triacylglycerol().stereospecific_number2(),
@@ -177,7 +177,7 @@ fn species(key: Key) -> PolarsResult<Expr> {
                     .field_by_name(TRIACYLGLYCEROL)
                     .triacylglycerol();
                 format_str(
-                    "[{}; {}; {}]",
+                    "[{};{};{}]",
                     [
                         triacylglycerol
                             .clone()

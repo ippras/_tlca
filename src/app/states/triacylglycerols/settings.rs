@@ -5,7 +5,8 @@ use crate::app::{
         triacylglycerols::{
             ID_SOURCE,
             composition::{
-                COMPOSITIONS, Composition, SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_POSITIONAL,
+                COMPOSITIONS, Composition, SPECIES_MONO, SPECIES_POSITIONAL, SPECIES_STEREO,
+                TYPE_MONO, TYPE_POSITIONAL, UNSATURATION_MONO,
             },
         },
     },
@@ -187,8 +188,17 @@ impl Settings {
             if ui.button((BOOKMARK, "PSC")).clicked() {
                 self.composition = SPECIES_POSITIONAL;
             };
+            if ui.button((BOOKMARK, "MSC")).clicked() {
+                self.composition = SPECIES_MONO;
+            };
             if ui.button((BOOKMARK, "PTC")).clicked() {
                 self.composition = TYPE_POSITIONAL;
+            };
+            if ui.button((BOOKMARK, "MTC")).clicked() {
+                self.composition = TYPE_MONO;
+            };
+            if ui.button((BOOKMARK, "MUC")).clicked() {
+                self.composition = UNSATURATION_MONO;
             };
             // if ui.input_mut(|input| {
             //     input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))

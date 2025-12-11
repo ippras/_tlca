@@ -65,18 +65,6 @@ type Value = DataFrame;
 
 fn compute(key: Key) -> PolarsResult<LazyFrame> {
     let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    println!(
-        "FF0: {}",
-        lazy_frame
-            .clone()
-            .select([col("К-2233.2025-10-29")
-                .struct_()
-                .field_by_index(0)
-                .struct_()
-                .field_by_index(2)])
-            // .unnest(cols(["К-2233.2025-10-29"]), None)
-            .collect()?
-    );
     let exprs = key
         .frame
         .schema()

@@ -130,75 +130,59 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     let mut exprs = Vec::with_capacity(schema.len());
     for name in schema.iter_names() {
-        // Метрики сравниваем по среднему, потому как сравнивать повторности
-        // пришлось бы попарно все пары.
         let left = col(name.as_str())
             .struct_()
-            .field_by_name(MEAN)
+            .field_by_name(SAMPLE)
+            .arr()
+            .to_struct(None)
+            .struct_()
+            .field_by_name("*")
             .fill_null(0);
-        let right = all().as_expr().struct_().field_by_name(MEAN).fill_null(0);
-        let expr = match key.metric {
-            // Similarity between two discrete probability distributions
-            Metric::HellingerDistance => hellinger_distance(left, right),
-            Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
-            Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
-            // Distance between two points
-            Metric::ChebyshevDistance => chebyshev_distance(left, right),
-            Metric::EuclideanDistance => euclidean_distance(left, right),
-            Metric::ManhattanDistance => manhattan_distance(left, right),
-            // Distance between two series
-            Metric::CosineDistance => cosine_distance(left, right),
-            Metric::JaccardDistance => jaccard_distance(left, right),
-            Metric::OverlapDistance => overlap_distance(left, right),
-        };
-        exprs.push(
-            concat_arr(vec![expr.precision(key.precision, key.significant)])?.alias(name.clone()),
-        );
-        // let mut input = Vec::with_capacity(schema.len());
-        // for name in schema.iter_names() {
-        //     let right = col(name.as_str())
-        //         .struct_()
-        //         .field_by_name(SAMPLE)
-        //         .arr()
-        //         .to_struct(None)
-        //         .struct_()
-        //         .field_by_name("*")
-        //         .fill_null(0);
-        //     let array = concat_arr(vec![match key.metric {
-        //         // Similarity between two discrete probability distributions
-        //         Metric::HellingerDistance => hellinger_distance(left.clone(), right),
-        //         Metric::JensenShannonDistance => jensen_shannon_distance(left.clone(), right),
-        //         Metric::BhattacharyyaDistance => bhattacharyya_distance(left.clone(), right),
-        //         // Distance between two points
-        //         Metric::ChebyshevDistance => chebyshev_distance(left.clone(), right),
-        //         Metric::EuclideanDistance => euclidean_distance(left.clone(), right),
-        //         Metric::ManhattanDistance => manhattan_distance(left.clone(), right),
-        //         // Distance between two series
-        //         Metric::CosineDistance => cosine_distance(left.clone(), right),
-        //         Metric::JaccardDistance => jaccard_distance(left.clone(), right),
-        //         Metric::OverlapDistance => overlap_distance(left.clone(), right),
-        //     }])?;
-        //     // Mean, standard deviation and sample
-        //     input.push(as_struct(vec![
-        //         array
-        //             .clone()
-        //             .arr()
-        //             .mean()
-        //             .precision(key.precision, key.significant)
-        //             .alias(MEAN),
-        //         array
-        //             .clone()
-        //             .arr()
-        //             .std(key.ddof)
-        //             .precision(key.precision + 1, key.significant)
-        //             .alias(STANDARD_DEVIATION),
-        //         array
-        //             .arr()
-        //             .eval(element().precision(key.precision, key.significant), false)
-        //             .alias(SAMPLE),
-        //     ]));
-        // }
-        // exprs.push(concat_arr(input)?.alias(name.clone()));
+        let mut input = Vec::with_capacity(schema.len());
+        for name in schema.iter_names() {
+            let right = col(name.as_str())
+                .struct_()
+                .field_by_name(SAMPLE)
+                .arr()
+                .to_struct(None)
+                .struct_()
+                .field_by_name("*")
+                .fill_null(0);
+            let array = concat_arr(vec![match key.metric {
+                // Similarity between two discrete probability distributions
+                Metric::HellingerDistance => hellinger_distance(left.clone(), right),
+                Metric::JensenShannonDistance => jensen_shannon_distance(left.clone(), right),
+                Metric::BhattacharyyaDistance => bhattacharyya_distance(left.clone(), right),
+                // Distance between two points
+                Metric::ChebyshevDistance => chebyshev_distance(left.clone(), right),
+                Metric::EuclideanDistance => euclidean_distance(left.clone(), right),
+                Metric::ManhattanDistance => manhattan_distance(left.clone(), right),
+                // Distance between two series
+                Metric::CosineDistance => cosine_distance(left.clone(), right),
+                Metric::JaccardDistance => jaccard_distance(left.clone(), right),
+                Metric::OverlapDistance => overlap_distance(left.clone(), right),
+            }])?;
+            // Mean, standard deviation and sample
+            input.push(as_struct(vec![
+                array
+                    .clone()
+                    .arr()
+                    .mean()
+                    .precision(key.precision, key.significant)
+                    .alias(MEAN),
+                array
+                    .clone()
+                    .arr()
+                    .std(key.ddof)
+                    .precision(key.precision + 1, key.significant)
+                    .alias(STANDARD_DEVIATION),
+                array
+                    .arr()
+                    .eval(element().precision(key.precision, key.significant), false)
+                    .alias(SAMPLE),
+            ]));
+        }
+        exprs.push(concat_arr(input)?.alias(name.clone()));
     }
     lazy_frame = lazy_frame.select(exprs).explode(all());
     Ok(lazy_frame)

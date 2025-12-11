@@ -32,6 +32,7 @@ mod sources {
 
     pub(super) const EN: &[&str] = &[
         asset!("/ftl/en/aocs.org.ftl"),
+        asset!("/ftl/en/aocs.org.ext.ftl"),
         asset!("/ftl/en/main.ftl"),
         asset!("/ftl/en/main.ext.ftl"),
         asset!("/ftl/en/properties.ftl"),
@@ -39,6 +40,7 @@ mod sources {
 
     pub(super) const RU: &[&str] = &[
         asset!("/ftl/en/aocs.org.ftl"),
+        asset!("/ftl/en/aocs.org.ext.ftl"),
         // asset!("/ftl/ru/main.ftl"),
     ];
 }

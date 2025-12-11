@@ -179,7 +179,7 @@ impl TableView<'_> {
                         .get(FormatKey::new(&self.target, &self.state.settings))
                 });
                 MeanAndStandardDeviation::new(&data_frame, column.start, row)
-                    .with_standard_deviation(true)
+                    .with_standard_deviation(self.state.settings.standard_deviation)
                     .with_sample(true)
                     .show(ui)?;
             }

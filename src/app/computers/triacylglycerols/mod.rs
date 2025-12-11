@@ -265,7 +265,8 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
             Sort::Key => {
                 println!("GGG!!! Sort0: {}", lazy_frame.clone().collect().unwrap());
                 lazy_frame = lazy_frame.sort_by_exprs(
-                    [col(COMPOSITION).over([col(THRESHOLD)])],
+                    // [col(COMPOSITION).over([col(THRESHOLD)])],
+                    [col(COMPOSITION)],
                     SortMultipleOptions::new().with_maintain_order(true),
                 );
             }
@@ -273,8 +274,8 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
                 lazy_frame = lazy_frame.sort_by_exprs(
                     [all()
                         .exclude_cols([COMPOSITION, SPECIES, THRESHOLD])
-                        .as_expr()
-                        .over([col(THRESHOLD)])],
+                        .as_expr()],
+                    // .over([col(THRESHOLD)])],
                     SortMultipleOptions::new()
                         .with_maintain_order(true)
                         .with_order_descending(true)

@@ -8,7 +8,7 @@ use crate::{
         settings::Settings,
     },
     r#const::{COMPOSITION, EM_DASH, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, THRESHOLD},
-    utils::HashedDataFrame,
+    utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -42,6 +42,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) composition: Composition,
+    pub(crate) ddof: u8,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
@@ -52,6 +53,7 @@ impl<'a> Key<'a> {
         Self {
             frame,
             composition: settings.composition,
+            ddof: 1,
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
@@ -64,7 +66,7 @@ type Value = DataFrame;
 
 fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let mut exprs = vec![label(key)?, species(key)?];
-    // let mut sum = Vec::new();
+    let mut sum = Vec::new();
     for name in key
         .frame
         .get_column_names_str()
@@ -73,27 +75,32 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     {
         exprs.push(
             as_struct(vec![
-                col(name)
-                    .struct_()
-                    .field_by_name(MEAN)
-                    .percent_if(key.percent)
-                    .precision(key.precision, key.significant),
-                col(name)
-                    .struct_()
-                    .field_by_name(STANDARD_DEVIATION)
-                    .percent_if(key.percent)
-                    .precision(key.precision + 1, key.significant),
-                col(name).struct_().field_by_name(SAMPLE).arr().eval(
-                    element()
-                        .percent_if(key.percent)
-                        .precision(key.precision, key.significant),
-                    false,
+                format_mean(col(name).struct_().field_by_name(MEAN), key),
+                format_standard_deviation(
+                    col(name).struct_().field_by_name(STANDARD_DEVIATION),
+                    key,
                 ),
+                format_sample(col(name).struct_().field_by_name(SAMPLE), key),
+            ])
+            .alias(name),
+        );
+        let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |expr| {
+            expr.filter(THRESHOLD).sum()
+        })?;
+        sum.push(
+            as_struct(vec![
+                format_mean(array.clone().arr().mean(), key).alias(MEAN),
+                format_standard_deviation(array.clone().arr().std(key.ddof), key)
+                    .alias(STANDARD_DEVIATION),
+                format_sample(array, key).alias(SAMPLE),
             ])
             .alias(name),
         );
     }
-    Ok(lazy_frame.clone().with_columns(exprs))
+    concat_lf_diagonal(
+        [lazy_frame.clone().select(exprs), lazy_frame.select(sum)],
+        UnionArgs::default(),
+    )
 }
 
 fn label(key: Key) -> PolarsResult<Expr> {
@@ -129,18 +136,37 @@ fn label(key: Key) -> PolarsResult<Expr> {
     .alias(LABEL))
 }
 
+fn format_mean(expr: Expr, key: Key) -> Expr {
+    expr.percent_if(key.percent)
+        .precision(key.precision, key.significant)
+}
+
+fn format_standard_deviation(expr: Expr, key: Key) -> Expr {
+    expr.percent_if(key.percent)
+        .precision(key.precision + 1, key.significant)
+}
+
+fn format_sample(expr: Expr, key: Key) -> Expr {
+    expr.arr().eval(
+        element()
+            .percent_if(key.percent)
+            .precision(key.precision, key.significant),
+        false,
+    )
+}
+
 fn species(key: Key) -> PolarsResult<Expr> {
     Ok(col(SPECIES)
         .list()
         .eval(as_struct(vec![
             {
-                let label = || element().struct_().field_by_name(LABEL);
+                let label = element().struct_().field_by_name(LABEL);
                 format_str(
-                    "[{}; {}; {}]",
+                    "[{}; {}; {}]",
                     [
-                        label().triacylglycerol().stereospecific_number1(),
-                        label().triacylglycerol().stereospecific_number2(),
-                        label().triacylglycerol().stereospecific_number3(),
+                        label.clone().triacylglycerol().stereospecific_number1(),
+                        label.clone().triacylglycerol().stereospecific_number2(),
+                        label.triacylglycerol().stereospecific_number3(),
                     ],
                 )?
                 .alias(LABEL)
@@ -151,7 +177,7 @@ fn species(key: Key) -> PolarsResult<Expr> {
                     .field_by_name(TRIACYLGLYCEROL)
                     .triacylglycerol();
                 format_str(
-                    "[{}; {}; {}]",
+                    "[{}; {}; {}]",
                     [
                         triacylglycerol
                             .clone()
@@ -179,7 +205,9 @@ fn species(key: Key) -> PolarsResult<Expr> {
                     .list()
                     .eval(ternary_expr(
                         element().is_not_null(),
-                        format_float(element(), key),
+                        element()
+                            .percent_if(key.percent)
+                            .precision(key.precision, key.significant),
                         lit(EM_DASH),
                     ))
                     .list()
@@ -212,16 +240,3 @@ fn species(key: Key) -> PolarsResult<Expr> {
 //         )?,
 //     ])
 // }
-
-// fn format_mean(expr: Expr, key: Key) -> Expr {
-//     format_float(expr, key).alias(MEAN)
-// }
-
-// fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-//     Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
-// }
-
-fn format_float(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
-        .precision(key.precision, key.significant)
-}

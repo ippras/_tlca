@@ -209,14 +209,16 @@ impl TableView<'_> {
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
         if !matches!(column, headers::INDEX | headers::TAG) && column.end != self.target.width() {
-            // let data_frame = ui.memory_mut(|memory| {
-            //     memory
-            //         .caches
-            //         .cache::<FormatComputed>()
-            //         .get(FormatKey::new(&self.target, &self.state.settings))
-            // });
-            // let row = data_frame.height() - 1;
-            // mean_and_standard_deviation(ui, &data_frame, row)?;
+            let data_frame = ui.memory_mut(|memory| {
+                memory
+                    .caches
+                    .cache::<FormatComputed>()
+                    .get(FormatKey::new(&self.target, &self.state.settings))
+            });
+            MeanAndStandardDeviation::new(&data_frame, column.start, data_frame.height() - 1)
+                .with_standard_deviation(self.state.settings.standard_deviation)
+                .with_sample(true)
+                .show(ui)?;
         }
         Ok(())
     }

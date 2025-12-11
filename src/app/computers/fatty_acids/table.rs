@@ -135,10 +135,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     }
     exprs.push(col(THRESHOLD));
     concat_lf_diagonal(
-        [
-            lazy_frame.clone().select(exprs),
-            lazy_frame.clone().select(sum),
-        ],
+        [lazy_frame.clone().select(exprs), lazy_frame.select(sum)],
         UnionArgs::default(),
     )
 }

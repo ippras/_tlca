@@ -9,9 +9,9 @@ pub struct MeanAndStandardDeviation<'a> {
     data_frame: &'a DataFrame,
     column: usize,
     row: usize,
-    standard_deviation: bool,
-    sample: bool,
     color: Option<Color32>,
+    sample: bool,
+    standard_deviation: bool,
 }
 
 impl<'a> MeanAndStandardDeviation<'a> {
@@ -20,10 +20,18 @@ impl<'a> MeanAndStandardDeviation<'a> {
             data_frame,
             column,
             row,
-            standard_deviation: true,
-            sample: false,
             color: None,
+            sample: false,
+            standard_deviation: false,
         }
+    }
+
+    pub fn with_color(self, color: Option<Color32>) -> Self {
+        Self { color, ..self }
+    }
+
+    pub fn with_sample(self, sample: bool) -> Self {
+        Self { sample, ..self }
     }
 
     pub fn with_standard_deviation(self, standard_deviation: bool) -> Self {
@@ -31,10 +39,6 @@ impl<'a> MeanAndStandardDeviation<'a> {
             standard_deviation,
             ..self
         }
-    }
-
-    pub fn with_sample(self, sample: bool) -> Self {
-        Self { sample, ..self }
     }
 }
 

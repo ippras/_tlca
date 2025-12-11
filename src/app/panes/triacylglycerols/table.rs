@@ -8,25 +8,21 @@ use crate::{
         states::triacylglycerols::{ID_SOURCE, State},
         widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
-    r#const::SPECIES,
+    r#const::{SPECIES, THRESHOLD},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
     Align, Context, Frame, Grid, Id, Label, Layout, Margin, Popup, PopupCloseBehavior, ScrollArea,
     Sense, TextStyle, TextWrapMode, Ui, Widget,
 };
-use egui_ext::InnerResponseExt as _;
+use egui_ext::{InnerResponseExt as _, ResponseExt};
 use egui_l20n::prelude::*;
-use egui_phosphor::regular::HASH;
+use egui_phosphor::regular::{HASH, LIST};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;
 use polars::prelude::*;
 use std::ops::Range;
 use tracing::instrument;
-
-const INDEX: Range<usize> = 0..1;
-const TAG: Range<usize> = INDEX.end..INDEX.end + 1;
-const LEN: usize = TAG.end;
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -63,7 +59,7 @@ impl TableView<'_> {
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         let num_rows = self.target.height() as u64 + 1;
         let value = self.target.width() - 2;
-        let num_columns = LEN + value;
+        let num_columns = headers::LEN + value;
         Table::new()
             .id_salt(id_salt)
             .num_rows(num_rows)
@@ -76,7 +72,12 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: vec![INDEX, TAG, LEN..num_columns],
+                    groups: vec![
+                        headers::INDEX,
+                        headers::TAG,
+                        headers::LEN..num_columns - 1,
+                        num_columns - 1..num_columns,
+                    ],
                 },
                 HeaderRow::new(height),
             ])
@@ -90,23 +91,27 @@ impl TableView<'_> {
         }
         match (row, column) {
             // Top
-            (0, INDEX) => {
+            (0, headers::INDEX) => {
                 ui.heading(HASH);
             }
-            (0, TAG) => {
+            (0, headers::TAG) => {
                 ui.heading(ui.localize(self.state.settings.composition.text()))
                     .on_hover_ui(|ui| {
                         ui.label(ui.localize(self.state.settings.composition.hover_text()));
                     });
             }
-            (0, _) => {
+            (0, column) if column.end != self.target.width() => {
                 ui.heading(ui.localize("Value"));
             }
+            (0, _) => {
+                ui.heading(ui.localize(SPECIES));
+            }
             // Bottom
-            (1, INDEX) => {}
-            (1, TAG) => {}
-            (1, range) => {
-                ui.heading(self.target[range.start].name().to_string());
+            (1, column)
+                if !matches!(column, headers::INDEX | headers::TAG)
+                    && column.end != self.target.width() =>
+            {
+                ui.heading(self.target[column.start].name().to_string());
             }
             //     ui.label(LayoutJob::subscripted_text(
             //         ui,
@@ -141,11 +146,16 @@ impl TableView<'_> {
         row: usize,
         column: Range<usize>,
     ) -> PolarsResult<()> {
-        match (row, &column) {
-            (row, &INDEX) => {
+        if let Some(threshold) = self.target[THRESHOLD].bool()?.get(row)
+            && !threshold
+        {
+            ui.multiply_opacity(ui.visuals().disabled_alpha());
+        }
+        match (row, column) {
+            (row, headers::INDEX) => {
                 ui.label(row.to_string());
             }
-            (row, &TAG) => {
+            (row, headers::TAG) => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory
                         .caches
@@ -161,35 +171,52 @@ impl TableView<'_> {
                         .transpose()?;
                 }
             }
-            (row, range) => {
+            (row, column) if column.end != self.target.width() => {
                 let data_frame = ui.memory_mut(|memory| {
                     memory
                         .caches
                         .cache::<FormatComputed>()
                         .get(FormatKey::new(&self.target, &self.state.settings))
                 });
-                MeanAndStandardDeviation::new(&data_frame, range.start, row)
+                MeanAndStandardDeviation::new(&data_frame, column.start, row)
+                    .with_standard_deviation(true)
                     .with_sample(true)
                     .show(ui)?;
+            }
+            (row, _last) => {
+                let data_frame = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<FormatComputed>()
+                        .get(FormatKey::new(&self.target, &self.state.settings))
+                });
+                let response = ui.button(LIST).try_on_hover_ui(|ui| -> PolarsResult<()> {
+                    if let Some(length) = data_frame[SPECIES].list()?.lst_lengths().get(row) {
+                        ui.label(length.to_string());
+                    }
+                    Ok(())
+                })?;
+                Popup::menu(&response)
+                    .id(ui.auto_id_with(SPECIES))
+                    .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+                    .show(|ui| species(ui, &data_frame, row))
+                    .transpose()?;
             }
         }
         Ok(())
     }
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
-        // match column {
-        //     INDEX | TAG => {}
-        //     range => {
-        //         let data_frame = ui.memory_mut(|memory| {
-        //             memory
-        //                 .caches
-        //                 .cache::<FormatComputed>()
-        //                 .get(FormatKey::new(&self.target, &self.state.settings))
-        //         });
-        //         let row = data_frame.height() - 1;
-        //         mean_and_standard_deviation(ui, &data_frame, row)?;
-        //     }
-        // }
+        if !matches!(column, headers::INDEX | headers::TAG) && column.end != self.target.width() {
+            // let data_frame = ui.memory_mut(|memory| {
+            //     memory
+            //         .caches
+            //         .cache::<FormatComputed>()
+            //         .get(FormatKey::new(&self.target, &self.state.settings))
+            // });
+            // let row = data_frame.height() - 1;
+            // mean_and_standard_deviation(ui, &data_frame, row)?;
+        }
         Ok(())
     }
 }
@@ -256,4 +283,12 @@ fn species(ui: &mut Ui, data_frame: &DataFrame, row: usize) -> PolarsResult<()> 
             .inner?;
     }
     Ok(())
+}
+
+mod headers {
+    use super::*;
+
+    pub(super) const INDEX: Range<usize> = 0..1;
+    pub(super) const TAG: Range<usize> = INDEX.end..INDEX.end + 1;
+    pub(super) const LEN: usize = TAG.end;
 }

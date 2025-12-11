@@ -8,6 +8,8 @@ ResetGui = reset GUI
     .hover= Reset application GUI.
 Value = Value
     .hover = Value.
+Species = Species
+    .hover = Species.
 
 ### Settings
 

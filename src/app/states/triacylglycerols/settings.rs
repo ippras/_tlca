@@ -4,7 +4,9 @@ use crate::app::{
         settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
         triacylglycerols::{
             ID_SOURCE,
-            composition::{COMPOSITIONS, Composition, SPECIES_STEREO},
+            composition::{
+                COMPOSITIONS, Composition, SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_POSITIONAL,
+            },
         },
     },
 };
@@ -182,16 +184,22 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(ui.localize(self.composition.hover_text()));
-            if ui.input_mut(|input| {
-                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
-            }) {
-                self.composition = self.composition.forward();
-            }
-            if ui.input_mut(|input| {
-                input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
-            }) {
-                self.composition = self.composition.backward();
-            }
+            if ui.button((BOOKMARK, "PSC")).clicked() {
+                self.composition = SPECIES_POSITIONAL;
+            };
+            if ui.button((BOOKMARK, "PTC")).clicked() {
+                self.composition = TYPE_POSITIONAL;
+            };
+            // if ui.input_mut(|input| {
+            //     input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
+            // }) {
+            //     self.composition = self.composition.forward();
+            // }
+            // if ui.input_mut(|input| {
+            //     input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowUp))
+            // }) {
+            //     self.composition = self.composition.backward();
+            // }
         });
     }
 
@@ -292,39 +300,6 @@ impl Settings {
             ui.checkbox(&mut self.threshold.filter, ());
         });
     }
-
-    // /// Threshold
-    // fn threshold(&mut self, ui: &mut Ui) {
-    //     ui.horizontal(|ui| {
-    //         ui.label(ui.localize("Threshold")).on_hover_ui(|ui| {
-    //             ui.label(ui.localize("Threshold.hover"));
-    //         });
-    //         let number_formatter = ui.style().number_formatter.clone();
-    //         let mut threshold = self.threshold;
-    //         let response = Slider::new(&mut threshold.auto.0, 0.0..=1.0)
-    //             .custom_formatter(|mut value, decimals| {
-    //                 if self.percent {
-    //                     value *= 100.0;
-    //                 }
-    //                 number_formatter.format(value, decimals)
-    //             })
-    //             .custom_parser(|value| {
-    //                 let mut value = value.parse().ok()?;
-    //                 if self.percent {
-    //                     value /= 100.0;
-    //                 }
-    //                 Some(value)
-    //             })
-    //             .logarithmic(true)
-    //             .update_while_editing(false)
-    //             .ui(ui);
-    //         if (response.drag_stopped() || response.lost_focus())
-    //             && !ui.input(|input| input.key_pressed(Key::Escape))
-    //         {
-    //             self.threshold = threshold;
-    //         }
-    //     });
-    // }
 
     /// Sort
     fn sort(&mut self, ui: &mut Ui) {

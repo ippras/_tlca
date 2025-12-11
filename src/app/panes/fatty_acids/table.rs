@@ -81,8 +81,8 @@ impl TableView<'_> {
             // Bottom
             (1, INDEX) => {}
             (1, ID) => {}
-            (1, range) => {
-                ui.heading(self.data_frame[range.start].name().to_string());
+            (1, column) => {
+                ui.heading(self.data_frame[column.start].name().to_string());
             }
             _ => {}
         };
@@ -116,8 +116,8 @@ impl TableView<'_> {
                     }
                 }
             }
-            (row, range) => {
-                self.with_array(ui, range.start, row)?;
+            (row, column) => {
+                self.with_array(ui, column.start, row)?;
             }
         }
         Ok(())

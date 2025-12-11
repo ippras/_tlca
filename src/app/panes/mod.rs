@@ -1,5 +1,8 @@
-use crate::utils::HashedMetaDataFrame;
-use egui::{Response, Ui, Vec2, WidgetText, vec2};
+use crate::{
+    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION},
+    utils::HashedMetaDataFrame,
+};
+use egui::{Response, TextWrapMode, Ui, Vec2, WidgetText, vec2};
 use egui_l20n::prelude::*;
 use egui_tiles::{TileId, UiResponse};
 use polars::prelude::*;
@@ -44,28 +47,28 @@ impl egui_tiles::Behavior<Pane> for Behavior {
     }
 }
 
-fn mean_and_standard_deviation(
-    ui: &mut Ui,
-    data_frame: &DataFrame,
-    row: usize,
-) -> PolarsResult<Response> {
-    Ok(if let Some(mean) = data_frame["Mean"].str()?.get(row) {
-        let mut response = ui.label(mean);
-        if response.hovered()
-            && let Some(standard_deviation) = data_frame["StandardDeviation"].str()?.get(row)
-        {
-            response = response.on_hover_ui(|ui| {
-                // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                ui.set_max_width(ui.spacing().tooltip_width);
-                ui.heading(ui.localize("StandardDeviation"));
-                ui.label(standard_deviation);
-            });
-        };
-        response
-    } else {
-        ui.label("—")
-    })
-}
+// fn mean_and_standard_deviation(
+//     ui: &mut Ui,
+//     data_frame: &DataFrame,
+//     row: usize,
+// ) -> PolarsResult<Response> {
+//     Ok(if let Some(mean) = data_frame[MEAN].str()?.get(row) {
+//         let mut response = ui.label(mean);
+//         if response.hovered()
+//             && let Some(standard_deviation) = data_frame[STANDARD_DEVIATION].str()?.get(row)
+//         {
+//             response = response.on_hover_ui(|ui| {
+//                 // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+//                 ui.set_max_width(ui.spacing().tooltip_width);
+//                 ui.heading(ui.localize(STANDARD_DEVIATION));
+//                 ui.label(standard_deviation);
+//             });
+//         };
+//         response
+//     } else {
+//         ui.label(EM_DASH)
+//     })
+// }
 
 pub(crate) mod fatty_acids;
 pub(crate) mod triacylglycerols;

@@ -2,11 +2,13 @@ use crate::{
     app::{
         computers::triacylglycerols::{
             Computed as TriacylglycerolsComputed, Key as TriacylglycerolsKey,
-            format::{Computed as FormatComputed, Key as FormatKey},
+            table::{Computed as FormatComputed, Key as FormatKey},
         },
-        panes::{MARGIN, mean_and_standard_deviation},
+        panes::MARGIN,
         states::triacylglycerols::{ID_SOURCE, State},
+        widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
+    r#const::SPECIES,
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
@@ -153,7 +155,7 @@ impl TableView<'_> {
                 if let Some(label) = data_frame[LABEL].str()?.get(row) {
                     let response = Label::new(label).sense(Sense::click()).ui(ui);
                     Popup::menu(&response)
-                        .id(ui.auto_id_with("Species"))
+                        .id(ui.auto_id_with(SPECIES))
                         .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
                         .show(|ui| species(ui, &data_frame, row))
                         .transpose()?;
@@ -166,26 +168,28 @@ impl TableView<'_> {
                         .cache::<FormatComputed>()
                         .get(FormatKey::new(&self.target, &self.state.settings))
                 });
-                mean_and_standard_deviation(ui, &data_frame, row)?;
+                MeanAndStandardDeviation::new(&data_frame, range.start, row)
+                    .with_sample(true)
+                    .show(ui)?;
             }
         }
         Ok(())
     }
 
     fn footer_cell_content_ui(&mut self, ui: &mut Ui, column: Range<usize>) -> PolarsResult<()> {
-        match column {
-            INDEX | TAG => {}
-            range => {
-                let data_frame = ui.memory_mut(|memory| {
-                    memory
-                        .caches
-                        .cache::<FormatComputed>()
-                        .get(FormatKey::new(&self.target, &self.state.settings))
-                });
-                let row = data_frame.height() - 1;
-                mean_and_standard_deviation(ui, &data_frame, row)?;
-            }
-        }
+        // match column {
+        //     INDEX | TAG => {}
+        //     range => {
+        //         let data_frame = ui.memory_mut(|memory| {
+        //             memory
+        //                 .caches
+        //                 .cache::<FormatComputed>()
+        //                 .get(FormatKey::new(&self.target, &self.state.settings))
+        //         });
+        //         let row = data_frame.height() - 1;
+        //         mean_and_standard_deviation(ui, &data_frame, row)?;
+        //     }
+        // }
         Ok(())
     }
 }
@@ -217,9 +221,8 @@ impl TableDelegate for TableView<'_> {
 }
 
 fn species(ui: &mut Ui, data_frame: &DataFrame, row: usize) -> PolarsResult<()> {
-    if let Some(species) = data_frame["Species"].list()?.get_as_series(row) {
-        ui.heading("Species")
-            .on_hover_text(species.len().to_string());
+    if let Some(species) = data_frame[SPECIES].list()?.get_as_series(row) {
+        ui.heading(SPECIES).on_hover_text(species.len().to_string());
         ui.separator();
         ScrollArea::vertical()
             // .auto_shrink([false, true])

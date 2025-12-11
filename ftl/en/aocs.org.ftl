@@ -72,15 +72,15 @@ c10e9 =
     .systematic = dec-9-enoic
 
 c10c2c4 =
-    .common = cis,cis-Stillingic
+    .common = cis,cis‑Stillingic
     .systematic = (2Z,4Z)-deca-2,4-dienoic
 
 c10t2c4 =
-    .common = trans,cis-Stillingic
+    .common = trans,cis‑Stillingic
     .systematic = (2E,4Z)-deca-2,4-dienoic
 
 c10c2a4a6 =
-    .common = cis-Lachnophyllic
+    .common = cis‑Lachnophyllic
     .systematic = (2Z)-dec-2-ene-4,6-diynoic
 
 c10c2a4a6t8 =
@@ -266,7 +266,7 @@ c18c10 =
 
 c18c11 =
     .common = Asclepic
-    .synonyms = cis-Vaccenic
+    .synonyms = cis‑Vaccenic
     .systematic = (11Z)-octadec-11-enoic
 
 c18t11 =
@@ -652,7 +652,7 @@ c24c15 =
     .systematic = (15Z)-tetracos-15-enoic
 
 c24t15 =
-    .common = trans-Selacholeic
+    .common = trans‑Selacholeic
     .systematic = (15E)-tetracos-=15-enoic
 
 c24c6c9c12c15c18c21 =

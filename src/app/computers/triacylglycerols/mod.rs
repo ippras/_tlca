@@ -284,6 +284,6 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame
 }
 
-pub(crate) mod format;
 pub(crate) mod metrics;
 pub(crate) mod moments;
+pub(crate) mod table;

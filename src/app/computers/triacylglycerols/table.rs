@@ -7,7 +7,7 @@ use crate::{
         },
         settings::Settings,
     },
-    r#const::{EM_DASH, MEAN, SPECIES, STANDARD_DEVIATION},
+    r#const::{COMPOSITION, EM_DASH, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, THRESHOLD},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -15,16 +15,17 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
 
-/// Display computed
+/// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
 
-/// Display computer
+/// Table computer
 #[derive(Default)]
 pub(crate) struct Computer;
 
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let lazy_frame = format(key)?;
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        lazy_frame = format(lazy_frame, key)?;
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -36,7 +37,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
     }
 }
 
-/// Display key
+/// Table key
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
@@ -58,77 +59,77 @@ impl<'a> Key<'a> {
     }
 }
 
-/// Display value
+/// Table value
 type Value = DataFrame;
 
-fn format(key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    lazy_frame = lazy_frame.select([format_label(key)?, format_species(key)?]);
-    // match key.column {
-    //     1 => {
-    //         lazy_frame = lazy_frame.select([format_label(key)?, format_species(key)?]);
-    //     }
-    //     index => {
-    //         let values = lazy_frame.clone().select(format_value(index, key)?);
-    //         let sum = lazy_frame.select(format_sum(index, key)?);
-    //         lazy_frame = concat_lf_diagonal([values, sum], UnionArgs::default())?;
-    //     }
-    // }
-    Ok(lazy_frame)
+fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let mut exprs = vec![label(key)?, species(key)?];
+    // let mut sum = Vec::new();
+    for name in key
+        .frame
+        .get_column_names_str()
+        .into_iter()
+        .filter(|&name| !matches!(name, COMPOSITION | SPECIES | THRESHOLD))
+    {
+        exprs.push(
+            as_struct(vec![
+                col(name)
+                    .struct_()
+                    .field_by_name(MEAN)
+                    .percent_if(key.percent)
+                    .precision(key.precision, key.significant),
+                col(name)
+                    .struct_()
+                    .field_by_name(STANDARD_DEVIATION)
+                    .percent_if(key.percent)
+                    .precision(key.precision + 1, key.significant),
+                col(name).struct_().field_by_name(SAMPLE).arr().eval(
+                    element()
+                        .percent_if(key.percent)
+                        .precision(key.precision, key.significant),
+                    false,
+                ),
+            ])
+            .alias(name),
+        );
+    }
+    Ok(lazy_frame.clone().with_columns(exprs))
 }
 
-fn format_label(key: Key) -> PolarsResult<Expr> {
-    let expr = match key.composition {
-        ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", [col("Composition")])?,
+fn label(key: Key) -> PolarsResult<Expr> {
+    Ok(match key.composition {
+        ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", [col(COMPOSITION)])?,
         SPECIES_MONO | TYPE_MONO => format_str(
             "[{}/3; {}/3; {}/3]",
             [
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number1(),
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number2(),
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number3(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number1(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number2(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number3(),
             ],
         )?,
         ECN_STEREO | MASS_STEREO | SPECIES_STEREO | TYPE_STEREO | UNSATURATION_STEREO => {
             format_str(
                 "[{}; {}; {}]",
                 [
-                    col("Composition")
-                        .triacylglycerol()
-                        .stereospecific_number1(),
-                    col("Composition")
-                        .triacylglycerol()
-                        .stereospecific_number2(),
-                    col("Composition")
-                        .triacylglycerol()
-                        .stereospecific_number3(),
+                    col(COMPOSITION).triacylglycerol().stereospecific_number1(),
+                    col(COMPOSITION).triacylglycerol().stereospecific_number2(),
+                    col(COMPOSITION).triacylglycerol().stereospecific_number3(),
                 ],
             )?
         }
         SPECIES_POSITIONAL | TYPE_POSITIONAL => format_str(
             "[{}/2; {}; {}/2}",
             [
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number1(),
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number2(),
-                col("Composition")
-                    .triacylglycerol()
-                    .stereospecific_number3(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number1(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number2(),
+                col(COMPOSITION).triacylglycerol().stereospecific_number3(),
             ],
         )?,
-    };
-    Ok(expr.alias(LABEL))
+    }
+    .alias(LABEL))
 }
 
-fn format_species(key: Key) -> PolarsResult<Expr> {
+fn species(key: Key) -> PolarsResult<Expr> {
     Ok(col(SPECIES)
         .list()
         .eval(as_struct(vec![
@@ -189,52 +190,38 @@ fn format_species(key: Key) -> PolarsResult<Expr> {
         .alias(SPECIES))
 }
 
-fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
-    Ok([
-        format_mean(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name(MEAN)
-                .sum(),
-            key,
-        ),
-        format_standard_deviation(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name(STANDARD_DEVIATION)
-                .pow(2)
-                .sum()
-                .sqrt(),
-            key,
-        )?,
-    ])
-}
+// fn format_sum(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
+//     Ok([
+//         format_mean(
+//             nth(index as _)
+//                 .as_expr()
+//                 .struct_()
+//                 .field_by_name(MEAN)
+//                 .sum(),
+//             key,
+//         ),
+//         format_standard_deviation(
+//             nth(index as _)
+//                 .as_expr()
+//                 .struct_()
+//                 .field_by_name(STANDARD_DEVIATION)
+//                 .pow(2)
+//                 .sum()
+//                 .sqrt(),
+//             key,
+//         )?,
+//     ])
+// }
 
-fn format_value(index: usize, key: Key) -> PolarsResult<[Expr; 2]> {
-    Ok([
-        format_mean(nth(index as _).as_expr().struct_().field_by_name(MEAN), key),
-        format_standard_deviation(
-            nth(index as _)
-                .as_expr()
-                .struct_()
-                .field_by_name(STANDARD_DEVIATION),
-            key,
-        )?,
-    ])
-}
+// fn format_mean(expr: Expr, key: Key) -> Expr {
+//     format_float(expr, key).alias(MEAN)
+// }
 
-fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key).alias(MEAN)
-}
-
-fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
-}
+// fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
+//     Ok(format_str("±{}", [format_float(expr, key)])?.alias(STANDARD_DEVIATION))
+// }
 
 fn format_float(expr: Expr, key: Key) -> Expr {
     expr.percent_if(key.percent)
         .precision(key.precision, key.significant)
-        .cast(DataType::String)
 }

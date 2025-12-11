@@ -6,6 +6,7 @@ pub(crate) const REPORT_AN_ISSUE: &str = "Report an issue";
 pub(crate) const WEB_PAGE_ADDRESS: &str = "Web page address";
 
 pub(crate) const EM_DASH: &str = "—";
+pub(crate) const NON_BREAKING_HYPHEN: &str = "‑";
 
 pub(crate) const COMPOSITION: &str = "Composition";
 pub(crate) const MEAN: &str = "Mean";

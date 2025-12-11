@@ -5,6 +5,7 @@ use self::{
     windows::About,
 };
 use crate::{
+    app::widgets::reactive_button::ReactiveButton,
     localization::ContextExt as _,
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
@@ -13,7 +14,7 @@ use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, DroppedFile, FontDefinitions, Frame, Id,
     LayerId, Layout, MenuBar, Order, RichText, ScrollArea, SidePanel, Sides, TextStyle,
-    TopBottomPanel, Visuals, warn_if_debug_build,
+    TopBottomPanel, Visuals, Widget as _, warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LightDarkButton};
 use egui_extras::install_image_loaders;
@@ -54,6 +55,7 @@ fn custom_visuals<T: BorrowMut<Visuals>>(mut visuals: T) -> T {
 pub struct App {
     // Panels
     left_panel: bool,
+    reactive: bool,
     // Data
     // #[serde(skip)]
     data: Data,
@@ -69,6 +71,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             left_panel: true,
+            reactive: false,
             data: Default::default(),
             tree: Tree::empty("CentralTree"),
             about: Default::default(),
@@ -161,6 +164,10 @@ impl App {
                     .on_hover_ui(|ui| {
                         ui.label("LeftPanel");
                     });
+                    ui.separator();
+                    ReactiveButton::new(&mut self.reactive)
+                        .size(ICON_SIZE)
+                        .ui(ui);
                     ui.separator();
                     // Light/Dark
                     ui.light_dark_button(ICON_SIZE);
@@ -402,6 +409,9 @@ impl eframe::App for App {
         self.windows(ctx);
         // Post update
         self.drag_and_drop(ctx);
+        if self.reactive {
+            ctx.request_repaint();
+        }
     }
 }
 

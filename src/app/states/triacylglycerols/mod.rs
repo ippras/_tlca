@@ -7,7 +7,8 @@ pub(crate) const ID_SOURCE: &str = "Triacylglycerols";
 /// State
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct State {
-    pub reset_table_state: bool,
+    #[serde(skip)]
+    pub event: Event,
     pub settings: Settings,
     pub windows: Windows,
 }
@@ -15,7 +16,7 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         Self {
-            reset_table_state: false,
+            event: Event::new(),
             settings: Settings::new(),
             windows: Windows::new(),
         }
@@ -40,6 +41,20 @@ impl State {
         ctx.data_mut(|data| {
             data.insert_persisted(id, self);
         });
+    }
+}
+
+/// Event
+#[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
+pub struct Event {
+    pub reset_table_state: bool,
+}
+
+impl Event {
+    pub fn new() -> Self {
+        Self {
+            reset_table_state: false,
+        }
     }
 }
 

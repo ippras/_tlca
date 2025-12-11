@@ -118,7 +118,7 @@ impl Pane {
             .button(RichText::new(ARROWS_CLOCKWISE).heading())
             .clicked()
         {
-            state.reset_table_state = true;
+            state.event.reset_table_state = true;
         }
         // Resize
         ui.toggle_value(

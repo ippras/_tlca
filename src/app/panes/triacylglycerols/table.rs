@@ -51,10 +51,10 @@ impl TableView<'_> {
                 .get(TriacylglycerolsKey::new(self.source, &self.state.settings))
         });
         let id_salt = Id::new(ID_SOURCE).with("Table");
-        if self.state.reset_table_state {
+        if self.state.event.reset_table_state {
             let id = TableState::id(ui, Id::new(id_salt));
             TableState::reset(ui.ctx(), id);
-            self.state.reset_table_state = false;
+            self.state.event.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         let num_rows = self.target.height() as u64 + 1;

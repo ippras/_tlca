@@ -191,6 +191,7 @@ impl TableView<'_> {
                         .get(FormatKey::new(&self.target, &self.state.settings))
                 });
                 let response = ui.button(LIST).try_on_hover_ui(|ui| -> PolarsResult<()> {
+                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                     if let Some(length) = data_frame[SPECIES].list()?.lst_lengths().get(row) {
                         ui.label(length.to_string());
                     }

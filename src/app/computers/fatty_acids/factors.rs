@@ -18,7 +18,10 @@ pub(crate) struct Computer;
 
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
-        let lazy_frame = compute(key)?;
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        println!("Factors0: {}", lazy_frame.clone().collect()?);
+        lazy_frame = compute(lazy_frame, key)?;
+        println!("Factors1: {}", lazy_frame.clone().collect()?);
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -63,45 +66,38 @@ impl<'a> Key<'a> {
 /// Factors value
 type Value = DataFrame;
 
-fn compute(key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frame = key.frame.data_frame.clone().lazy();
-    let exprs = key
-        .frame
-        .schema()
-        .iter_names()
-        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
-        .map(|name| {
-            let expr = col(name.as_str());
-            let tag = expr
-                .clone()
-                .struct_()
-                .field_by_name(STEREOSPECIFIC_NUMBERS123)
-                .struct_()
-                .field_by_name(SAMPLE);
-            let mag2 = expr
-                .struct_()
-                .field_by_name(STEREOSPECIFIC_NUMBERS2)
-                .struct_()
-                .field_by_name(SAMPLE);
-            let mut factor = match key.factor {
-                Factor::Selectivity => {
-                    let is_unsaturated = col(FATTY_ACID).fatty_acid().is_unsaturated(None);
-                    let unsaturated_mag2 = sum_arr(mag2.clone().filter(is_unsaturated.clone()))?;
-                    let unsaturated_tag = sum_arr(tag.clone().filter(is_unsaturated))?;
-                    (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
-                    // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
-                }
-                Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
-            };
-            // .fill_null(concat_arr(vec![lit(0.0)])?);
-            if key.normalize_factor {
-                factor = factor / lit(3);
+fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let names = key.frame.schema().iter_names();
+    let mut exprs = Vec::with_capacity(names.len());
+    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD)) {
+        let expr = col(name.as_str());
+        let tag = expr
+            .clone()
+            .struct_()
+            .field_by_name(STEREOSPECIFIC_NUMBERS123)
+            .struct_()
+            .field_by_name(SAMPLE);
+        let mag2 = expr
+            .struct_()
+            .field_by_name(STEREOSPECIFIC_NUMBERS2)
+            .struct_()
+            .field_by_name(SAMPLE);
+        let mut factor = match key.factor {
+            Factor::Selectivity => {
+                let is_unsaturated = col(FATTY_ACID).fatty_acid().is_unsaturated(None);
+                let unsaturated_mag2 = sum_arr(mag2.clone().filter(is_unsaturated.clone()))?;
+                let unsaturated_tag = sum_arr(tag.clone().filter(is_unsaturated))?;
+                (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
+                // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
             }
-            println!(
-                "!!!!!!!!!!!: {}",
-                lazy_frame.clone().select([factor.clone()]).collect()?
-            );
-            Ok(as_struct(vec![
+            Factor::Enrichment => FattyAcidExpr::enrichment_factor(mag2, tag),
+        };
+        // .fill_null(concat_arr(vec![lit(0.0)])?);
+        if key.normalize_factor {
+            factor = factor / lit(3);
+        }
+        exprs.push(
+            as_struct(vec![
                 factor
                     .clone()
                     .arr()
@@ -126,10 +122,9 @@ fn compute(key: Key) -> PolarsResult<LazyFrame> {
                     )
                     .alias(SAMPLE),
             ])
-            .alias(name.clone()))
-        })
-        .collect::<PolarsResult<Vec<_>>>()?;
-    lazy_frame = lazy_frame.with_columns(exprs);
-    println!("FF1: {:?}", lazy_frame.clone().collect().unwrap());
-    Ok(lazy_frame)
+            .alias(name.clone()),
+        );
+    }
+    // println!("FF1: {:?}", lazy_frame.clone().collect().unwrap());
+    Ok(lazy_frame.with_columns(exprs))
 }

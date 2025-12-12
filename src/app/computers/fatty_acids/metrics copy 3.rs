@@ -3,7 +3,7 @@ use crate::{
         fatty_acids::settings::{Settings, StereospecificNumbers},
         settings::{Filter, Metric},
     },
-    r#const::{MEAN, THRESHOLD},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -29,6 +29,38 @@ impl Computer {
         lazy_frame = filter(lazy_frame, key)?;
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = compute(lazy_frame, key)?;
+        // lazy_frame = lazy_frame
+        //     .select([
+        //         nth(2)
+        //             .as_expr()
+        //             .struct_()
+        //             .field_by_name(MEAN)
+        //             .fill_null(0)
+        //             .alias(LEFT),
+        //         nth(3)
+        //             .as_expr()
+        //             .struct_()
+        //             .field_by_name(MEAN)
+        //             .fill_null(0)
+        //             .alias(RIGHT),
+        //     ])
+        //     .select([
+        //         // Similarity between two data points
+        //         euclidean_distance(col(LEFT), col(RIGHT)).alias("EuclideanDistance"),
+        //         chebyshev_distance(col(LEFT), col(RIGHT)).alias("ChebyshevDistance"),
+        //         manhattan_distance(col(LEFT), col(RIGHT)).alias("ManhattanDistance"),
+        //         // Similarity between two sets
+        //         cosine_distance(col(LEFT), col(RIGHT)).alias("CosineDistance"),
+        //         jaccard_distance(col(LEFT), col(RIGHT))?.alias("JaccardDistance"),
+        //         // Similarity between two probability distributions
+        //         bhattacharyya_distance(col(LEFT), col(RIGHT)).alias("BhattacharyyaDistance"),
+        //         hellinger_distance(col(LEFT), col(RIGHT)).alias("HellingerDistance"),
+        //         jensen_shannon_distance(col(LEFT), col(RIGHT)).alias("JensenShannonDistance"),
+        //         // Correlation between two
+        //         pearson_corr(col(LEFT), col(RIGHT)).alias("PearsonCorrelation"),
+        //         spearman_rank_corr(col(LEFT), col(RIGHT), false).alias("SpearmanRankCorrelation"),
+        //     ]);
+
         // println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame.collect()
     }
@@ -54,7 +86,7 @@ pub(crate) struct Key<'a> {
 }
 
 impl<'a> Key<'a> {
-    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
+    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
             ddof: 1,
@@ -94,22 +126,18 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Compute
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let names = key.frame.schema().iter_names();
-    let mut exprs = Vec::with_capacity(names.len());
-    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD)) {
+    lazy_frame = lazy_frame.select([all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr()]);
+    let schema = lazy_frame.collect_schema()?;
+    let mut exprs = Vec::with_capacity(schema.len());
+    for name in schema.iter_names() {
         // Метрики сравниваем по среднему, потому как сравнивать повторности
         // пришлось бы попарно все пары.
         let left = col(name.as_str())
             .struct_()
             .field_by_name(MEAN)
             .fill_null(0);
-        let right = all()
-            .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
-            .as_expr()
-            .struct_()
-            .field_by_name(MEAN)
-            .fill_null(0);
-        let metric = match key.metric {
+        let right = all().as_expr().struct_().field_by_name(MEAN).fill_null(0);
+        let expr = match key.metric {
             // Similarity between two discrete probability distributions
             Metric::HellingerDistance => hellinger_distance(left, right),
             Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
@@ -124,8 +152,53 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             Metric::OverlapDistance => overlap_distance(left, right),
         };
         exprs.push(
-            concat_arr(vec![metric.precision(key.precision, key.significant)])?.alias(name.clone()),
+            concat_arr(vec![expr.precision(key.precision, key.significant)])?.alias(name.clone()),
         );
+        // let mut input = Vec::with_capacity(schema.len());
+        // for name in schema.iter_names() {
+        //     let right = col(name.as_str())
+        //         .struct_()
+        //         .field_by_name(SAMPLE)
+        //         .arr()
+        //         .to_struct(None)
+        //         .struct_()
+        //         .field_by_name("*")
+        //         .fill_null(0);
+        //     let array = concat_arr(vec![match key.metric {
+        //         // Similarity between two discrete probability distributions
+        //         Metric::HellingerDistance => hellinger_distance(left.clone(), right),
+        //         Metric::JensenShannonDistance => jensen_shannon_distance(left.clone(), right),
+        //         Metric::BhattacharyyaDistance => bhattacharyya_distance(left.clone(), right),
+        //         // Distance between two points
+        //         Metric::ChebyshevDistance => chebyshev_distance(left.clone(), right),
+        //         Metric::EuclideanDistance => euclidean_distance(left.clone(), right),
+        //         Metric::ManhattanDistance => manhattan_distance(left.clone(), right),
+        //         // Distance between two series
+        //         Metric::CosineDistance => cosine_distance(left.clone(), right),
+        //         Metric::JaccardDistance => jaccard_distance(left.clone(), right),
+        //         Metric::OverlapDistance => overlap_distance(left.clone(), right),
+        //     }])?;
+        //     // Mean, standard deviation and sample
+        //     input.push(as_struct(vec![
+        //         array
+        //             .clone()
+        //             .arr()
+        //             .mean()
+        //             .precision(key.precision, key.significant)
+        //             .alias(MEAN),
+        //         array
+        //             .clone()
+        //             .arr()
+        //             .std(key.ddof)
+        //             .precision(key.precision + 1, key.significant)
+        //             .alias(STANDARD_DEVIATION),
+        //         array
+        //             .arr()
+        //             .eval(element().precision(key.precision, key.significant), false)
+        //             .alias(SAMPLE),
+        //     ]));
+        // }
+        // exprs.push(concat_arr(input)?.alias(name.clone()));
     }
     lazy_frame = lazy_frame.select(exprs).explode(all());
     Ok(lazy_frame)

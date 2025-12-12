@@ -1,6 +1,6 @@
 use crate::{
     app::ICON_SIZE,
-    utils::{HashedDataFrame, HashedMetaDataFrame, spawn},
+    utils::{HashedMetaDataFrame, spawn},
 };
 use anyhow::{Context as _, Error, Result};
 use egui::{
@@ -10,7 +10,6 @@ use egui::{
 use egui_ext::Doi as _;
 use egui_phosphor::regular::{CLOUD_ARROW_DOWN, DROP};
 use ehttp::{Request, fetch_async};
-use metadata::polars::MetaDataFrame;
 use std::borrow::Cow;
 use tracing::{instrument, trace};
 use url::Url;
@@ -27,36 +26,27 @@ impl Github {
             ui.heading("Acer");
             ui.menu_button((DROP, "Fatty acids"), |ui| {
                 ui.heading("Acer Ginnala");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ginnala.2025-07-08.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ginnala.2025-07-08.fa.utca.ron");
                 ui.heading("Acer Pensylvanicum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer pensylvanicum.2025-07-08.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer pensylvanicum.2025-07-08.fa.utca.ron");
                 ui.heading("Acer Rubrum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer rubrum.2025-07-09.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer rubrum.2025-07-09.fa.utca.ron");
                 ui.heading("Acer Spicatum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer spicatum.2025-07-09.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer spicatum.2025-07-09.fa.utca.ron");
                 ui.heading("Acer Ukurunduense");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ukurunduense.2025-07-08.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ukurunduense.2025-07-08.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 ui.heading("Acer Ginnala");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ginnala.2025-07-08.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ginnala.2025-07-08.tag.utca.ron");
                 ui.heading("Acer Pensylvanicum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer pensylvanicum.2025-07-08.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer pensylvanicum.2025-07-08.tag.utca.ron");
                 ui.heading("Acer Rubrum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer rubrum.2025-07-09.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer rubrum.2025-07-09.tag.utca.ron");
                 ui.heading("Acer Spicatum");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer spicatum.2025-07-09.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer spicatum.2025-07-09.tag.utca.ron");
                 ui.heading("Acer Ukurunduense");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ukurunduense.2025-07-08.tag.utca.ron");
-            });
-        });
-        ui.menu_button("Cedrus", |ui| {
-            ui.heading("Cedrus");
-            ui.menu_button((DROP, "Fatty acids"), |ui| {
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Cedrus/.fa.utca.ron");
-            });
-            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Cedrus/.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Acer/Acer ukurunduense.2025-07-08.tag.utca.ron");
             });
         });
         ui.menu_button("Helianthus annuus", |ui| {
@@ -86,31 +76,42 @@ impl Github {
             ui.heading("Microalgae");
             ui.menu_button((DROP, "Fatty acids"), |ui| {
                 ui.heading("Chromochloris zofingiensis");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-108[-N].2025-04-23.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-108{-N}.2025-04-23.fa.utca.ron");
                 ui.heading("Neochlorella semenenkoi");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1210[-N].2025-04-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1210{-N}.2025-04-24.fa.utca.ron");
                 ui.heading("Lobosphaera sp.");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1540[-N].2025-04-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1540{-N}.2025-04-24.fa.utca.ron");
                 ui.heading("Vischeria punctata");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242[Control].2023-10-24.fa.utca.ron");
+                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242{Control;SN-1,2(2,3)}.2023-10-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242{Control;SN-2}.2023-10-24.fa.utca.ron");
                 ui.heading("Coelastrella affinis");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-626[-N].2025-04-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-626{-N}.2025-04-24.fa.utca.ron");
                 ui.heading("Porphyridium purpureum");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/P-519[-N].2025-04-23.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/P-519{-N}.2025-04-23.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 ui.heading("Chromochloris zofingiensis");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-108[-N].2025-04-23.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-108{-N}.2025-04-23.tag.utca.ron");
                 ui.heading("Neochlorella semenenkoi");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1210[-N].2025-04-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1210{-N}.2025-04-24.tag.utca.ron");
                 ui.heading("Lobosphaera sp.");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1540[-N].2025-04-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/C-1540{-N}.2025-04-24.tag.utca.ron");
                 ui.heading("Vischeria punctata");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242[Control].2023-10-24.tag.utca.ron");
+                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242{Control;SN-1,2(2,3)}.2023-10-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-242{Control;SN-2}.2023-10-24.tag.utca.ron");
                 ui.heading("Coelastrella affinis");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-626[-N].2025-04-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/H-626{-N}.2025-04-24.tag.utca.ron");
                 ui.heading("Porphyridium purpureum");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/P-519[-N].2025-04-23.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Microalgae/P-519{-N}.2025-04-23.tag.utca.ron");
+            });
+        });
+        ui.menu_button("Pinus cedrus", |ui| {
+            ui.heading("Pinus cedrus");
+            ui.menu_button((DROP, "Fatty acids"), |ui| {
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/PinusCedrus/Pinus cedrus{SN-2}.2023-05-19.fa.utca.ron");
+            });
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/PinusCedrus/Pinus cedrus{SN-2}.2023-05-19.tag.utca.ron");
             });
         });
         ui.menu_button("Sidorov (2014)", |ui| {
@@ -166,23 +167,17 @@ impl Github {
             ui.doi("10.3390/plants14040612");
             ui.menu_button((DROP, "Fatty acids"), |ui| {
                 ui.heading("Lunaria Rediviva");
-                // ui.separator();
-                // ui.heading("TMSH");
-                // ui.separator();
-                // ui.heading("SN-1,2(2,3)");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/ron/Lunaria rediviva[TMSH;SN-1,2(2,3);1.1].2024-01-24.utca.ron");
-                ui.heading("SN-2");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/ron/Lunaria rediviva[TMSH;SN-2;1.1].2024-01-24.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}.2024-01-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[1.0].2024-01-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[2.0].2024-01-24.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[3.0].2024-01-24.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
                 ui.heading("Lunaria Rediviva");
-                // ui.separator();
-                // ui.heading("TMSH");
-                // ui.separator();
-                // ui.heading("SN-1,2(2,3)");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/ron/Lunaria rediviva[TMSH;SN-1,2(2,3);1.1].2024-01-24.utca.ron");
-                // ui.heading("SN-2");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/ron/Lunaria rediviva[TMSH;SN-2;1.1].2024-01-24.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}.2024-01-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[1.0].2024-01-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[2.0].2024-01-24.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Sidorov2025/Lunaria rediviva{TMSH;SN-2}[3.0].2024-01-24.tag.utca.ron");
             });
         });
         ui.separator();
@@ -227,19 +222,19 @@ impl Github {
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Walnut.2004-05-20.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
-                // ui.heading("Hazelnut");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Hazelnut.2004-05-20.tag.utca.ron");
-                // ui.heading("Olive");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Olive.2004-05-20.tag.utca.ron");
-                // ui.heading("Rice");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Rice.2004-05-20.tag.utca.ron");
-                // ui.heading("Soybean");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Soybean.2004-05-20.tag.utca.ron");
-                // ui.heading("Sunflower");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Sunflower CAS-3.2004-05-20.tag.utca.ron");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Sunflower RHA-274.2004-05-20.tag.utca.ron");
-                // ui.heading("Walnut");
-                // _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Walnut.2004-05-20.tag.utca.ron");
+                ui.heading("Hazelnut");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Hazelnut.2004-05-20.tag.utca.ron");
+                ui.heading("Olive");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Olive.2004-05-20.tag.utca.ron");
+                ui.heading("Rice");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Rice.2004-05-20.tag.utca.ron");
+                ui.heading("Soybean");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Soybean.2004-05-20.tag.utca.ron");
+                ui.heading("Sunflower");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Sunflower CAS-3.2004-05-20.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Sunflower RHA-274.2004-05-20.tag.utca.ron");
+                ui.heading("Walnut");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/ThirdParty/Martinez-Force2004/Walnut.2004-05-20.tag.utca.ron");
             });
         });
     }
@@ -299,9 +294,5 @@ async fn try_load(url: &Url) -> Result<HashedMetaDataFrame> {
     let response = fetch_async(request).await.map_err(Error::msg)?;
     let text = response.text().context("Try load get response text")?;
     trace!(?text);
-    let frame = ron::de::from_str::<MetaDataFrame>(text)?;
-    Ok(MetaDataFrame {
-        meta: frame.meta,
-        data: HashedDataFrame::new(frame.data)?,
-    })
+    Ok(ron::de::from_str::<HashedMetaDataFrame>(text)?)
 }

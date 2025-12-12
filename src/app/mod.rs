@@ -308,11 +308,7 @@ impl App {
     fn parse(&mut self, dropped_file: DroppedFile) -> Result<HashedMetaDataFrame> {
         let bytes = dropped_file.bytes()?;
         trace!(?bytes);
-        let frame = ron::de::from_bytes::<MetaDataFrame>(&bytes)?;
-        Ok(MetaDataFrame {
-            meta: frame.meta,
-            data: HashedDataFrame::new(frame.data)?,
-        })
+        Ok(ron::de::from_bytes::<HashedMetaDataFrame>(&bytes)?)
     }
 
     fn data(&mut self, ctx: &Context) {

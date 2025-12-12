@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        fatty_acids::settings::{Indices, Settings, StereospecificNumbers},
+        fatty_acids::settings::{Index, Indices, Settings, StereospecificNumbers},
         settings::Filter,
     },
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
@@ -92,51 +92,101 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 }
 
 /// Compute
+// fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+//     let mut lazy_frames = Vec::with_capacity(key.indices.len());
+//     for index in key.indices.iter().filter(|index| index.visible) {
+//         let mut exprs = vec![lit(Series::new(
+//             PlSmallStr::from_static(INDEX),
+//             [index.name.clone()],
+//         ))];
+//         for name in key
+//             .frame
+//             .schema()
+//             .iter_names()
+//             .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
+//         {
+//             let array = eval_arr(col(name.clone()).struct_().field_by_name(SAMPLE), |expr| {
+//                 compute_index(&index.name, expr)
+//             })?;
+//             exprs.push(
+//                 as_struct(vec![
+//                     array
+//                         .clone()
+//                         .arr()
+//                         .mean()
+//                         .precision(key.precision, key.significant)
+//                         .alias(MEAN),
+//                     array
+//                         .clone()
+//                         .arr()
+//                         .std(key.ddof)
+//                         .precision(key.precision + 1, key.significant)
+//                         .alias(STANDARD_DEVIATION),
+//                     array
+//                         .arr()
+//                         .eval(element().precision(key.precision, key.significant), false)
+//                         .alias(SAMPLE),
+//                 ])
+//                 .alias(name.clone()),
+//             );
+//         }
+//         lazy_frames.push(lazy_frame.clone().select(exprs))
+//     }
+//     concat(lazy_frames, Default::default())
+// }
 fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let mut lazy_frames = Vec::with_capacity(key.indices.len());
-    for index in key.indices.iter().filter(|index| index.visible) {
-        let mut exprs = vec![lit(Series::new(
-            PlSmallStr::from_static(INDEX),
-            [index.name.clone()],
-        ))];
-        for name in key
-            .frame
-            .schema()
-            .iter_names()
-            .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
-        {
-            let array = eval_arr(col(name.clone()).struct_().field_by_name(SAMPLE), |expr| {
-                compute_index(&index.name, expr)
-            })?;
-            exprs.push(
-                as_struct(vec![
-                    array
-                        .clone()
-                        .arr()
-                        .mean()
-                        .precision(key.precision, key.significant)
-                        .alias(MEAN),
-                    array
-                        .clone()
-                        .arr()
-                        .std(key.ddof)
-                        .precision(key.precision + 1, key.significant)
-                        .alias(STANDARD_DEVIATION),
-                    array
-                        .arr()
-                        .eval(element().precision(key.precision, key.significant), false)
-                        .alias(SAMPLE),
-                ])
-                .alias(name.clone()),
-            );
-        }
-        lazy_frames.push(lazy_frame.clone().select(exprs))
+    // Names
+    let mut exprs =
+        vec![lit(Series::from_iter(key.indices.iter().filter_map(
+            |index| index.visible.then_some(index.name.as_str()),
+        ))
+        .with_name(PlSmallStr::from_static(INDEX)))];
+    // Values
+    for name in key
+        .frame
+        .schema()
+        .iter_names()
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
+    {
+        let expr = concat_arr(
+            key.indices
+                .iter()
+                .filter(|index| index.visible)
+                .map(|index| {
+                    let array =
+                        eval_arr(col(name.clone()).struct_().field_by_name(SAMPLE), |expr| {
+                            compute_index(index, expr)
+                        })?;
+                    Ok(as_struct(vec![
+                        array
+                            .clone()
+                            .arr()
+                            .mean()
+                            .precision(key.precision, key.significant)
+                            .alias(MEAN),
+                        array
+                            .clone()
+                            .arr()
+                            .std(key.ddof)
+                            .precision(key.precision + 1, key.significant)
+                            .alias(STANDARD_DEVIATION),
+                        array
+                            .arr()
+                            .eval(element().precision(key.precision, key.significant), false)
+                            .alias(SAMPLE),
+                    ]))
+                })
+                .collect::<PolarsResult<_>>()?,
+        )?
+        .explode()
+        .alias(name.clone());
+        exprs.push(expr);
     }
-    concat(lazy_frames, Default::default())
+    Ok(lazy_frame.select(exprs))
 }
 
-fn compute_index(name: &str, expr: Expr) -> Expr {
-    match name {
+fn compute_index(index: &Index, expr: Expr) -> Expr {
+    match &*index.name {
         "Saturated" => col(FATTY_ACID).fatty_acid().saturated(expr),
         "Monounsaturated" => col(FATTY_ACID).fatty_acid().monounsaturated(expr),
         "Polyunsaturated" => col(FATTY_ACID).fatty_acid().polyunsaturated(expr),

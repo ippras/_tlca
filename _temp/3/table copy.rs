@@ -11,7 +11,7 @@ use egui_phosphor::regular::{MINUS, PLUS};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;
 use polars::prelude::*;
-use polars_ext::prelude::DataFrameExt as _;
+use polars_ext::prelude::*;
 use std::ops::Range;
 use tracing::instrument;
 

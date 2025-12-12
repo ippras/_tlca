@@ -9,7 +9,7 @@ use crate::{
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
-use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
+use polars_ext::prelude::*;
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;

@@ -7,7 +7,7 @@ use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars::prelude::*;
-use polars_ext::expr::{ExprExt as _, ExprIfExt as _};
+use polars_ext::prelude::*;
 
 /// Factors computed
 pub(crate) type Computed = FrameCache<Value, Computer>;

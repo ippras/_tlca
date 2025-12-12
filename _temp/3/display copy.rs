@@ -2,7 +2,7 @@ use crate::utils::Hashed;
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
-use polars_ext::expr::ExprIfExt as _;
+use polars_ext::prelude::*;
 use std::hash::{Hash, Hasher};
 
 /// Display computed

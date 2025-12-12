@@ -10,7 +10,7 @@ use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars::prelude::*;
-use polars_ext::expr::ExprExt as _;
+use polars_ext::prelude::*;
 use std::num::NonZeroI8;
 use tracing::instrument;
 

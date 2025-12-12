@@ -2,10 +2,11 @@ use crate::{
     app::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
+        widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
-    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    r#const::THRESHOLD,
 };
-use egui::{Context, Frame, Id, Margin, Response, TextStyle, TextWrapMode, Ui, WidgetText};
+use egui::{Context, Frame, Id, Margin, TextStyle, TextWrapMode, Ui};
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
@@ -117,63 +118,66 @@ impl TableView<'_> {
                 }
             }
             (row, column) => {
-                self.with_array(ui, column.start, row)?;
+                MeanAndStandardDeviation::new(&self.data_frame, column.start, row)
+                    .with_standard_deviation(self.state.settings.standard_deviation)
+                    .with_sample(true)
+                    .show(ui)?;
             }
         }
         Ok(())
     }
 
-    fn mean_and_standard_deviation(
-        &self,
-        ui: &mut Ui,
-        column: usize,
-        row: usize,
-    ) -> PolarsResult<Response> {
-        let mean_series = self.data_frame[column].struct_()?.field_by_name(MEAN)?;
-        let mean = mean_series.str()?.get(row);
-        let standard_deviation_series = self.data_frame[column]
-            .struct_()?
-            .field_by_name(STANDARD_DEVIATION)?;
-        let standard_deviation = standard_deviation_series.str()?.get(row);
-        let text = match mean {
-            Some(mean)
-                if self.state.settings.standard_deviation
-                    && let Some(standard_deviation) = standard_deviation =>
-            {
-                WidgetText::from(format!("{mean} {standard_deviation}"))
-            }
-            Some(mean) => WidgetText::from(mean.to_string()),
-            None => WidgetText::from(EM_DASH),
-        };
-        let mut response = ui.label(text);
-        if response.hovered() {
-            // Standard deviation
-            if let Some(text) = standard_deviation {
-                response = response.on_hover_ui(|ui| {
-                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                    ui.heading(ui.localize(STANDARD_DEVIATION));
-                    ui.label(text);
-                });
-            }
-        }
-        Ok(response)
-    }
+    // fn mean_and_standard_deviation(
+    //     &self,
+    //     ui: &mut Ui,
+    //     column: usize,
+    //     row: usize,
+    // ) -> PolarsResult<Response> {
+    //     let mean_series = self.data_frame[column].struct_()?.field_by_name(MEAN)?;
+    //     let mean = mean_series.str()?.get(row);
+    //     let standard_deviation_series = self.data_frame[column]
+    //         .struct_()?
+    //         .field_by_name(STANDARD_DEVIATION)?;
+    //     let standard_deviation = standard_deviation_series.str()?.get(row);
+    //     let text = match mean {
+    //         Some(mean)
+    //             if self.state.settings.standard_deviation
+    //                 && let Some(standard_deviation) = standard_deviation =>
+    //         {
+    //             WidgetText::from(format!("{mean} {standard_deviation}"))
+    //         }
+    //         Some(mean) => WidgetText::from(mean.to_string()),
+    //         None => WidgetText::from(EM_DASH),
+    //     };
+    //     let mut response = ui.label(text);
+    //     if response.hovered() {
+    //         // Standard deviation
+    //         if let Some(text) = standard_deviation {
+    //             response = response.on_hover_ui(|ui| {
+    //                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+    //                 ui.heading(ui.localize(STANDARD_DEVIATION));
+    //                 ui.label(text);
+    //             });
+    //         }
+    //     }
+    //     Ok(response)
+    // }
 
-    fn with_array(&self, ui: &mut Ui, column: usize, row: usize) -> PolarsResult<Response> {
-        let mut response = self.mean_and_standard_deviation(ui, column, row)?;
-        if response.hovered() {
-            // Array
-            let array_series = self.data_frame[column].struct_()?.field_by_name(SAMPLE)?;
-            if let Some(text) = array_series.str()?.get(row) {
-                response = response.on_hover_ui(|ui| {
-                    ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                    ui.heading(ui.localize(SAMPLE));
-                    ui.label(text);
-                });
-            }
-        }
-        Ok(response)
-    }
+    // fn with_array(&self, ui: &mut Ui, column: usize, row: usize) -> PolarsResult<Response> {
+    //     let mut response = self.mean_and_standard_deviation(ui, column, row)?;
+    //     if response.hovered() {
+    //         // Array
+    //         let array_series = self.data_frame[column].struct_()?.field_by_name(SAMPLE)?;
+    //         if let Some(text) = array_series.str()?.get(row) {
+    //             response = response.on_hover_ui(|ui| {
+    //                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+    //                 ui.heading(ui.localize(SAMPLE));
+    //                 ui.label(text);
+    //             });
+    //         }
+    //     }
+    //     Ok(response)
+    // }
 }
 
 impl TableDelegate for TableView<'_> {

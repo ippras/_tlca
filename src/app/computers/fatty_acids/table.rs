@@ -113,8 +113,8 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 format_standard_deviation(
                     col(name).struct_().field_by_name(STANDARD_DEVIATION),
                     key,
-                )?,
-                format_array(col(name).struct_().field_by_name(SAMPLE), key)?,
+                ),
+                format_sample(col(name).struct_().field_by_name(SAMPLE), key),
             ])
             .alias(name),
         );
@@ -127,8 +127,8 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 format_standard_deviation(
                     array.clone().arr().std(key.ddof).alias(STANDARD_DEVIATION),
                     key,
-                )?,
-                format_array(array.alias(SAMPLE), key)?,
+                ),
+                format_sample(array.alias(SAMPLE), key),
             ])
             .alias(name),
         );
@@ -141,43 +141,20 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    format_float(expr, key)
-}
-
-fn format_standard_deviation(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(ternary_expr(
-        expr.clone().is_not_null(),
-        format_str(
-            "±{}",
-            [format_float(
-                expr,
-                Key {
-                    precision: key.precision + 1,
-                    ..key
-                },
-            )],
-        )?,
-        lit(NULL),
-    ))
-}
-
-fn format_array(expr: Expr, key: Key) -> PolarsResult<Expr> {
-    Ok(ternary_expr(
-        expr.clone().arr().len().neq(1),
-        format_str(
-            "[{}]",
-            [expr
-                .arr()
-                .eval(format_float(element(), key), false)
-                .arr()
-                .join(lit(", "), false)],
-        )?,
-        lit(NULL),
-    ))
-}
-
-fn format_float(expr: Expr, key: Key) -> Expr {
     expr.percent_if(key.percent)
         .precision(key.precision, key.significant)
-        .cast(DataType::String)
+}
+
+fn format_standard_deviation(expr: Expr, key: Key) -> Expr {
+    expr.percent_if(key.percent)
+        .precision(key.precision + 1, key.significant)
+}
+
+fn format_sample(expr: Expr, key: Key) -> Expr {
+    expr.arr().eval(
+        element()
+            .percent_if(key.percent)
+            .precision(key.precision, key.significant),
+        false,
+    )
 }

@@ -114,6 +114,17 @@ impl Github {
                 _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/PinusCedrus/Pinus cedrus{SN-2}.2023-05-19.tag.utca.ron");
             });
         });
+        ui.menu_button("Polyscias", |ui| {
+            ui.heading("Polyscias");
+            ui.menu_button((DROP, "Fatty acids"), |ui| {
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Polyscias/Polyscias{SN-1,2(2,3)}.2024-11-12.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Polyscias/Polyscias{SN-2}.2024-11-12.fa.utca.ron");
+            });
+            ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Polyscias/Polyscias{SN-1,2(2,3)}.2024-11-12.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/Polyscias/Polyscias{SN-2}.2024-11-12.tag.utca.ron");
+            });
+        });
         ui.menu_button("Sidorov (2014)", |ui| {
             ui.doi("10.1007/s11746-014-2553-8");
             ui.menu_button((DROP, "Fatty acids"), |ui| {

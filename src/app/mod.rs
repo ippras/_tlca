@@ -326,15 +326,15 @@ impl App {
                 field!(FATTY_ACID),
                 Field::new(
                     PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS123),
-                    VALUE_DATA_TYPE.clone(),
+                    DataType::Array(Box::new(DataType::Float64), 0),
                 ),
                 Field::new(
                     PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS13),
-                    VALUE_DATA_TYPE.clone(),
+                    DataType::Array(Box::new(DataType::Float64), 0),
                 ),
                 Field::new(
                     PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS2),
-                    VALUE_DATA_TYPE.clone(),
+                    DataType::Array(Box::new(DataType::Float64), 0),
                 ),
             ]))
         });

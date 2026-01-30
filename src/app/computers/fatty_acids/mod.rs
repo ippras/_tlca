@@ -109,15 +109,15 @@ fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
                 let expr = col(name.as_str())
                     .struct_()
                     .field_by_name(stereospecific_numbers);
-                let mean = expr.clone().struct_().field_by_name(MEAN);
-                let standard_deviation = expr.clone().struct_().field_by_name(STANDARD_DEVIATION);
-                let sample = expr.struct_().field_by_name("Array");
+                let mean = expr.clone().arr().mean();
+                // TODO: DDOF
+                let standard_deviation = expr.clone().arr().std(1);
                 ternary_expr(
                     mean.clone().neq(0),
                     as_struct(vec![
                         mean.alias(MEAN),
                         standard_deviation.alias(STANDARD_DEVIATION),
-                        sample.alias(SAMPLE),
+                        expr.alias(SAMPLE),
                     ]),
                     lit(NULL),
                 )

@@ -73,6 +73,8 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "semicolon", f
 ] }
 polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "05f6f2d" }
 
+maplit = "*"
+
 # scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
 #     "stats",
 # ] }

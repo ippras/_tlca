@@ -1,7 +1,7 @@
 use crate::utils::HashedMetaDataFrame;
 use egui::{Frame, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
 use egui_dnd::dnd;
-use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, INTERSECT_THREE, TRASH};
+use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, INTERSECT_THREE, PLUS, TRASH};
 use metadata::egui::MetadataWidget;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, hash::Hash};
@@ -9,8 +9,8 @@ use std::{collections::HashSet, hash::Hash};
 /// Data
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Data {
-    pub fatty_acids: VecHashSet,
-    pub triacylglycerols: VecHashSet,
+    pub fatty_acids: VecAndHashSet,
+    pub triacylglycerols: VecAndHashSet,
 }
 
 impl Data {
@@ -57,13 +57,14 @@ impl Data {
     }
 }
 
+/// Vec and HashSet
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct VecHashSet {
+pub struct VecAndHashSet {
     pub frames: Vec<HashedMetaDataFrame>,
     pub selected: HashSet<HashedMetaDataFrame>,
 }
 
-impl VecHashSet {
+impl VecAndHashSet {
     pub fn add(&mut self, frame: HashedMetaDataFrame) {
         if !self.frames.contains(&frame) {
             self.frames.push(frame);
@@ -78,23 +79,31 @@ impl VecHashSet {
     }
 
     fn top(&mut self, ui: &mut Ui, id: impl Hash) {
-        let is_empty = self.selected.is_empty();
-        // Toggle
+        self.check(ui);
+        ui.separator();
+        self.delete(ui);
+        ui.separator();
+        self.join(ui, id);
+        ui.separator();
+    }
+
+    fn check(&mut self, ui: &mut Ui) {
         if ui
             .button(RichText::new(CHECK).heading())
             .on_hover_text("Toggle")
             .on_hover_text("Toggle.hover")
             .clicked()
         {
-            if is_empty {
+            if self.selected.is_empty() {
                 self.selected = self.frames.iter().cloned().collect();
             } else {
                 self.selected.clear();
             }
         }
-        ui.separator();
-        // Delete
-        ui.add_enabled_ui(!is_empty, |ui| {
+    }
+
+    fn delete(&mut self, ui: &mut Ui) {
+        ui.add_enabled_ui(!self.selected.is_empty(), |ui| {
             if ui
                 .button(RichText::new(TRASH).heading())
                 .on_hover_text("Delete")
@@ -104,9 +113,10 @@ impl VecHashSet {
                 self.frames.retain(|frame| !self.selected.remove(frame));
             }
         });
-        ui.separator();
-        // Calculation
-        ui.add_enabled_ui(!is_empty, |ui| {
+    }
+
+    fn join(&mut self, ui: &mut Ui, id: impl Hash) {
+        ui.add_enabled_ui(!self.selected.is_empty(), |ui| {
             if ui
                 .button(RichText::new(INTERSECT_THREE).heading())
                 .on_hover_text("Join")
@@ -115,7 +125,6 @@ impl VecHashSet {
                 ui.data_mut(|data| data.insert_temp(Id::new("Join").with(id), self.selected()));
             }
         });
-        ui.separator();
     }
 
     fn central(&mut self, ui: &mut Ui, id: impl Hash) {

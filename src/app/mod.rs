@@ -14,6 +14,7 @@ use crate::{
             },
         },
     },
+    r#const::VALUE,
     localization::ContextExt as _,
     utils::HashedMetaDataFrame,
 };
@@ -322,7 +323,7 @@ impl App {
                 field!(LABEL[DataType::String]),
                 field!(TRIACYLGLYCEROL[data_type!(FATTY_ACID)]),
                 Field::new(
-                    PlSmallStr::from_static("Value"),
+                    PlSmallStr::from_static(VALUE),
                     DataType::Array(Box::new(DataType::Float64), 0),
                 ),
             ]))
@@ -345,20 +346,6 @@ impl App {
                     DataType::Array(Box::new(DataType::Float64), 0),
                 ),
             ]))
-        });
-
-        const VALUE_DATA_TYPE: LazyLock<DataType> = LazyLock::new(|| {
-            DataType::Struct(vec![
-                Field::new(PlSmallStr::from_static("Mean"), DataType::Float64),
-                Field::new(
-                    PlSmallStr::from_static("StandardDeviation"),
-                    DataType::Float64,
-                ),
-                Field::new(
-                    PlSmallStr::from_static("Array"),
-                    DataType::Array(Box::new(DataType::Float64), 0),
-                ),
-            ])
         });
 
         if let Some(frames) =

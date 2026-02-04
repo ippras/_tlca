@@ -65,7 +65,7 @@ egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
 ehttp = { version = "0.6.0", features = ["native-async"] }
 lipid = { git = "https://github.com/ippras/lipid", branch = "fea5335" }
-metadata = { git = "https://github.com/ippras/metadata", branch = "fea5335", features = [
+metadata = { git = "https://github.com/ippras/metadata", branch = "semicolon", features = [
     "egui",
     "polars",
 ] }

@@ -102,21 +102,21 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     .clone()
                     .arr()
                     .mean()
-                    .percent_if(key.percent)
+                    .percent(key.percent)
                     .precision(key.precision, key.significant)
                     .alias(MEAN),
                 factor
                     .clone()
                     .arr()
                     .std(key.ddof)
-                    .percent_if(key.percent)
+                    .percent(key.percent)
                     .precision(key.precision + 1, key.significant)
                     .alias(STANDARD_DEVIATION),
                 factor
                     .arr()
                     .eval(
                         element()
-                            .percent_if(key.percent)
+                            .percent(key.percent)
                             .precision(key.precision, key.significant),
                         false,
                     )

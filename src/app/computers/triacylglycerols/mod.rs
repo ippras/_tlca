@@ -155,8 +155,8 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             concat_list([all()
                 .exclude_cols([LABEL, TRIACYLGLYCEROL])
                 .as_expr()
-                .struct_()
-                .field_by_name(MEAN)])?
+                .arr()
+                .mean()])?
             .alias("Values"),
         ])
         .alias(SPECIES),
@@ -164,9 +164,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     for frame in key.frames {
         let name = frame.meta.format(".").to_string();
         // TODO SAMPLE
-        let array = eval_arr(col(&name).struct_().field_by_name("Array"), |expr| {
-            expr.sum()
-        })?;
+        let array = eval_arr(col(&name), |expr| expr.sum())?;
         aggs.push(
             as_struct(vec![
                 array.clone().arr().mean().alias(MEAN),

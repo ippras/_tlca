@@ -316,7 +316,10 @@ impl App {
             Arc::new(Schema::from_iter([
                 field!(LABEL[DataType::String]),
                 field!(TRIACYLGLYCEROL[data_type!(FATTY_ACID)]),
-                Field::new(PlSmallStr::from_static("Value"), VALUE_DATA_TYPE.clone()),
+                Field::new(
+                    PlSmallStr::from_static("Value"),
+                    DataType::Array(Box::new(DataType::Float64), 0),
+                ),
             ]))
         });
 

@@ -141,19 +141,19 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
+    expr.percent(key.percent)
         .precision(key.precision, key.significant)
 }
 
 fn format_standard_deviation(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
+    expr.percent(key.percent)
         .precision(key.precision + 1, key.significant)
 }
 
 fn format_sample(expr: Expr, key: Key) -> Expr {
     expr.arr().eval(
         element()
-            .percent_if(key.percent)
+            .percent(key.percent)
             .precision(key.precision, key.significant),
         false,
     )

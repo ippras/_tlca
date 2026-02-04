@@ -137,19 +137,19 @@ fn label(key: Key) -> PolarsResult<Expr> {
 }
 
 fn format_mean(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
+    expr.percent(key.percent)
         .precision(key.precision, key.significant)
 }
 
 fn format_standard_deviation(expr: Expr, key: Key) -> Expr {
-    expr.percent_if(key.percent)
+    expr.percent(key.percent)
         .precision(key.precision + 1, key.significant)
 }
 
 fn format_sample(expr: Expr, key: Key) -> Expr {
     expr.arr().eval(
         element()
-            .percent_if(key.percent)
+            .percent(key.percent)
             .precision(key.precision, key.significant),
         false,
     )
@@ -206,7 +206,7 @@ fn species(key: Key) -> PolarsResult<Expr> {
                     .eval(ternary_expr(
                         element().is_not_null(),
                         element()
-                            .percent_if(key.percent)
+                            .percent(key.percent)
                             .precision(key.precision, key.significant),
                         lit(EM_DASH),
                     ))

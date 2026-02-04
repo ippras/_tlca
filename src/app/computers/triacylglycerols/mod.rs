@@ -62,7 +62,7 @@ impl<'a> Key<'a> {
         Self {
             frames,
             composition: settings.composition,
-            ddof: 1,
+            ddof: settings.ddof,
             filter: settings.filter,
             sort: settings.sort,
             threshold: &settings.threshold,

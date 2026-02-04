@@ -44,6 +44,7 @@ pub struct Settings {
     // Moment settings
     pub bias: bool,
     //
+    pub ddof: u8,
     pub composition: Composition,
     pub filter: Filter,
     pub metric: Metric,
@@ -69,6 +70,7 @@ impl Settings {
             // Moment settings
             bias: true,
             //
+            ddof: 1,
             composition: SPECIES_STEREO,
             filter: Filter::Union,
             metric: Metric::HellingerDistance,
@@ -95,9 +97,10 @@ impl Settings {
 
         ui.labeled_separator(ui.localize("Threshold"));
         self.threshold(ui);
-        // self.threshold_auto(ui);
-        // self.threshold_sort(ui);
-        // self.threshold_filter(ui);
+
+        // Statistics
+        ui.labeled_separator(ui.localize("Statistics"));
+        self.ddof(ui);
 
         // Metrics
         ui.collapsing(ui.localize("Metric?PluralCategory=other"), |ui| {
@@ -108,6 +111,19 @@ impl Settings {
         // Moments
         ui.collapsing(ui.localize("Moments"), |ui| {
             self.bias(ui);
+        });
+    }
+
+    // https://numpy.org/devdocs/reference/generated/numpy.std.html
+    /// DDOF
+    fn ddof(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("DeltaDegreesOfFreedom.abbreviation"))
+                .on_hover_localized("DeltaDegreesOfFreedom")
+                .on_hover_localized("DeltaDegreesOfFreedom.hover");
+            Slider::new(&mut self.ddof, 0..=2)
+                .update_while_editing(false)
+                .ui(ui);
         });
     }
 

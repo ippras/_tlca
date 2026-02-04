@@ -64,8 +64,7 @@ impl Pane {
         tile_id: TileId,
     ) -> UiResponse {
         let id = *self.id.get_or_insert_with(|| ui.next_auto_id());
-        let mut state = State::load(ui.ctx(), Id::new(id));
-        println!("state: {state:?}");
+        let mut state = State::load(ui.ctx(), id);
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
@@ -91,7 +90,7 @@ impl Pane {
             .frame(Frame::central_panel(ui.style()))
             .show_inside(ui, |ui| {
                 self.central(ui, &mut state);
-                self.windows(ui, &mut state);
+                self.windows(ui, &mut state); // Обязательно после central!
             });
         if behavior.close == Some(tile_id) {
             state.remove(ui.ctx(), id);
@@ -110,21 +109,6 @@ impl Pane {
             .heading((DROP, DROP, DROP).into_atoms().text().unwrap_or_default())
             .on_hover_text("Triacylglycerols");
         response |= ui.heading(self.title());
-        // response = response
-        //     .on_hover_text(format!("{:x}", self.hash()))
-        //     .on_hover_ui(|ui| {
-        //         Label::new(format_list!(
-        //             self.frames.iter().map(|frame| frame.meta.format("."))
-        //         ))
-        //         .wrap_mode(TextWrapMode::Extend)
-        //         .ui(ui);
-        //     })
-        //     .on_hover_ui(|ui| {
-        //         if let Some(frame) = self.frames.first() {
-        //             MetadataWidget::new(&frame.meta).show(ui);
-        //         }
-        //     })
-        //     .on_hover_cursor(CursorIcon::Grab);
         response = response
             .on_hover_text(self.id().to_string())
             .on_hover_ui(|ui| {
@@ -134,32 +118,15 @@ impl Pane {
             })
             .on_hover_cursor(CursorIcon::Grab);
         ui.separator();
-        // // Reset
-        // if ui
-        //     .button(RichText::new(ARROWS_CLOCKWISE).heading())
-        //     .clicked()
-        // {
-        //     state.event.reset_table_state = true;
-        // }
-        // // Resize
-        // ui.toggle_value(
-        //     &mut state.settings.resizable,
-        //     RichText::new(ARROWS_HORIZONTAL).heading(),
-        // )
-        // .on_hover_text("ResizeTableColumns");
-        // // Edit metadata
-        // ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
-        //     ui.toggle_value(&mut state.settings.editable, RichText::new(TAG).heading())
-        //         .on_hover_text("EditMetadata")
-        // });
         ResetButton::new(&mut state.event.reset_table_state).ui(ui);
         ResizeButton::new(&mut state.settings.resizable).ui(ui);
-        EditButton::new(&mut state.settings.edit).ui(ui);
-        ui.separator();
-        // Settings
-        SettingsButton::new(&mut state.windows.open_settings).ui(ui);
+        ui.add_enabled_ui(self.frames.len() == 1, |ui| {
+            EditButton::new(&mut state.settings.edit).ui(ui);
+        });
         ui.separator();
         MetadataButton::new(&mut state.windows.open_metadata).ui(ui);
+        ui.separator();
+        SettingsButton::new(&mut state.windows.open_settings).ui(ui);
         ui.separator();
         // Sigma
         ui.menu_button(RichText::new(SIGMA).heading(), |ui| {

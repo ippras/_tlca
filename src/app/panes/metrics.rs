@@ -1,5 +1,6 @@
 use egui::Color32;
 
+/// Sign
 #[derive(Clone, Copy, Debug)]
 pub(super) enum Sign<T> {
     Negative(T),

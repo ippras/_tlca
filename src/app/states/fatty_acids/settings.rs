@@ -1,9 +1,6 @@
-use crate::app::{
-    MAX_PRECISION,
-    states::{
-        fatty_acids::ID_SOURCE,
-        settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
-    },
+use crate::{
+    app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
+    r#const::markdown::*,
 };
 use egui::{
     ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,
@@ -13,14 +10,31 @@ use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
-use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL};
+use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
 use lipid::prelude::*;
+use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::{
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
+
+pub(crate) const METRICS: [Metric; 9] = [
+    Metric::HellingerDistance,
+    Metric::JensenShannonDistance,
+    Metric::BhattacharyyaDistance,
+    //
+    Metric::CosineDistance,
+    Metric::JaccardDistance,
+    Metric::OverlapDistance,
+    //
+    Metric::EuclideanDistance,
+    Metric::ChebyshevDistance,
+    Metric::ManhattanDistance,
+];
+
+pub(crate) const SEPARATORS: [usize; 2] = [3, 6];
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
@@ -608,5 +622,259 @@ impl Index {
             name: name.to_owned(),
             visible: true,
         }
+    }
+}
+
+/// Filter
+#[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) enum Filter {
+    #[default]
+    Intersection, // And
+    Union,      // Or
+    Difference, // Xor
+}
+
+impl Filter {
+    pub(crate) fn icon(&self) -> &'static str {
+        match self {
+            Self::Intersection => INTERSECT,
+            Self::Union => UNITE,
+            Self::Difference => EXCLUDE,
+        }
+    }
+
+    pub(crate) fn text(&self) -> &'static str {
+        match self {
+            Self::Intersection => "Filter_Intersection",
+            Self::Union => "Filter_Union",
+            Self::Difference => "Filter_Difference",
+        }
+    }
+
+    pub(crate) fn hover_text(&self) -> &'static str {
+        match self {
+            Self::Intersection => "Filter_Intersection.hover",
+            Self::Union => "Filter_Union.hover",
+            Self::Difference => "Filter_Difference.hover",
+        }
+    }
+}
+
+/// Sort
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) enum Sort {
+    Key,
+    Value,
+}
+
+impl Sort {
+    pub(crate) fn text(&self) -> &'static str {
+        match self {
+            Self::Key => "Sort_Key",
+            Self::Value => "Sort_Value",
+        }
+    }
+
+    pub(crate) fn hover_text(&self) -> &'static str {
+        match self {
+            Self::Key => "Sort_Key.hover",
+            Self::Value => "Sort_Value.hover",
+        }
+    }
+}
+
+/// Metric
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) enum Metric {
+    // Distance between two discrete probability distributions
+    HellingerDistance,
+    JensenShannonDistance,
+    BhattacharyyaDistance,
+    // Distance between two points
+    EuclideanDistance,
+    ChebyshevDistance,
+    ManhattanDistance,
+    // Distance between two series
+    CosineDistance,
+    JaccardDistance,
+    OverlapDistance,
+}
+
+impl Metric {
+    pub(crate) fn is_finite(&self) -> bool {
+        matches!(
+            self,
+            Metric::HellingerDistance
+                | Metric::JensenShannonDistance
+                | Metric::CosineDistance
+                | Metric::JaccardDistance
+                | Metric::OverlapDistance
+        )
+    }
+}
+
+impl Metric {
+    pub(crate) fn forward(&self) -> Self {
+        match self {
+            Self::HellingerDistance => Self::JensenShannonDistance,
+            Self::JensenShannonDistance => Self::BhattacharyyaDistance,
+            Self::BhattacharyyaDistance => Self::EuclideanDistance,
+            Self::EuclideanDistance => Self::ChebyshevDistance,
+            Self::ChebyshevDistance => Self::ManhattanDistance,
+            Self::ManhattanDistance => Self::CosineDistance,
+            Self::CosineDistance => Self::JaccardDistance,
+            Self::JaccardDistance => Self::OverlapDistance,
+            Self::OverlapDistance => Self::OverlapDistance,
+        }
+    }
+
+    pub(crate) fn backward(&self) -> Self {
+        match self {
+            Self::HellingerDistance => Self::HellingerDistance,
+            Self::JensenShannonDistance => Self::HellingerDistance,
+            Self::BhattacharyyaDistance => Self::JensenShannonDistance,
+            Self::EuclideanDistance => Self::BhattacharyyaDistance,
+            Self::ChebyshevDistance => Self::EuclideanDistance,
+            Self::ManhattanDistance => Self::ChebyshevDistance,
+            Self::CosineDistance => Self::ManhattanDistance,
+            Self::JaccardDistance => Self::CosineDistance,
+            Self::OverlapDistance => Self::JaccardDistance,
+        }
+    }
+}
+
+impl Metric {
+    pub(crate) fn text(&self) -> &'static str {
+        match self {
+            Self::HellingerDistance => "HellingerDistance",
+            Self::JensenShannonDistance => "JensenShannonDistance",
+            Self::BhattacharyyaDistance => "BhattacharyyaDistance",
+            Self::EuclideanDistance => "EuclideanDistance",
+            Self::ChebyshevDistance => "ChebyshevDistance",
+            Self::ManhattanDistance => "ManhattanDistance",
+            Self::CosineDistance => "CosineDistance",
+            Self::JaccardDistance => "JaccardDistance",
+            Self::OverlapDistance => "OverlapDistance",
+        }
+    }
+
+    pub(crate) fn hover_markdown(&self) -> &'static str {
+        match self {
+            Self::HellingerDistance => HELLINGER_COEFFICIENT,
+            Self::JensenShannonDistance => JENSEN_SHANNON_COEFFICIENT,
+            Self::BhattacharyyaDistance => BHATTACHARYYA_COEFFICIENT,
+            Self::EuclideanDistance => EUCLIDEAN_DISTANCE,
+            Self::ChebyshevDistance => CHEBYSHEV_DISTANCE,
+            Self::ManhattanDistance => MANHATTAN_DISTANCE,
+            Self::CosineDistance => COSINE_COEFFICIENT,
+            Self::JaccardDistance => JACCARD_COEFFICIENT,
+            Self::OverlapDistance => OVERLAP_COEFFICIENT,
+        }
+    }
+}
+
+/// Threshold
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+pub(crate) struct Threshold {
+    pub(crate) auto: OrderedFloat<f64>,
+    pub(crate) filter: bool,
+    pub(crate) is_auto: bool,
+    pub(crate) manual: Vec<bool>,
+    pub(crate) sort: bool,
+}
+
+impl Threshold {
+    pub(crate) fn new() -> Self {
+        Self {
+            auto: OrderedFloat(0.0),
+            filter: false,
+            is_auto: true,
+            manual: Vec::new(),
+            sort: false,
+        }
+    }
+
+    pub(crate) fn show(&mut self, ui: &mut Ui, percent: bool) {
+        self.is_auto(ui);
+        self.auto(ui, percent);
+        self.sort(ui);
+        self.filter(ui);
+    }
+
+    /// Is auto threshold
+    fn is_auto(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_IsAuto"))
+                .on_hover_localized("Threshold_IsAuto.hover");
+            ui.checkbox(&mut self.is_auto, ());
+        });
+    }
+
+    /// Auto threshold
+    fn auto(&mut self, ui: &mut Ui, percent: bool) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Threshold_Auto.hover"));
+            });
+            let number_formatter = ui.style().number_formatter.clone();
+            let mut threshold = self.auto.0;
+            let response = Slider::new(&mut threshold, 0.0..=1.0)
+                .custom_formatter(|mut value, decimals| {
+                    if percent {
+                        value *= 100.0;
+                    }
+                    number_formatter.format(value, decimals)
+                })
+                .custom_parser(|value| {
+                    let mut parsed = value.parse().ok()?;
+                    if percent {
+                        parsed /= 100.0;
+                    }
+                    Some(parsed)
+                })
+                .logarithmic(true)
+                .update_while_editing(false)
+                .ui(ui);
+            if (response.drag_stopped() || response.lost_focus())
+                && !ui.input(|input| input.key_pressed(Key::Escape))
+            {
+                self.auto.0 = threshold;
+                self.is_auto = true;
+            }
+            ui.menu_button(BOOKMARK, |ui| {
+                if ui
+                    .button((BOOKMARK, if percent { "0.5%" } else { "0.005" }))
+                    .clicked()
+                {
+                    self.auto.0 = 0.005;
+                    self.is_auto = true;
+                }
+                if ui
+                    .button((BOOKMARK, if percent { "1.0%" } else { "0.01" }))
+                    .clicked()
+                {
+                    self.auto.0 = 0.01;
+                    self.is_auto = true;
+                };
+            });
+        });
+    }
+
+    /// Threshold sort
+    fn sort(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Sort"))
+                .on_hover_localized("Threshold_Sort.hover");
+            ui.checkbox(&mut self.sort, ());
+        });
+    }
+
+    /// Threshold filter
+    fn filter(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Threshold_Filter"))
+                .on_hover_localized("Threshold_Filter.hover");
+            ui.checkbox(&mut self.filter, ());
+        });
     }
 }

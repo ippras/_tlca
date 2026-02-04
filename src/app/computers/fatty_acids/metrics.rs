@@ -1,8 +1,5 @@
 use crate::{
-    app::states::{
-        fatty_acids::settings::{Settings, StereospecificNumbers},
-        settings::{Filter, Metric},
-    },
+    app::states::fatty_acids::settings::{Filter, Metric, Settings, StereospecificNumbers},
     r#const::{MEAN, THRESHOLD},
     utils::HashedDataFrame,
 };
@@ -127,7 +124,13 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             concat_arr(vec![metric.precision(key.precision, key.significant)])?.alias(name.clone()),
         );
     }
-    lazy_frame = lazy_frame.select(exprs).explode(all());
+    lazy_frame = lazy_frame.select(exprs).explode(
+        all(),
+        ExplodeOptions {
+            empty_as_null: true,
+            keep_nulls: true,
+        },
+    );
     Ok(lazy_frame)
 }
 

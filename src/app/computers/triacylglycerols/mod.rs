@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        settings::{Filter, Sort, Threshold},
+        fatty_acids::settings::{Filter, Sort, Threshold},
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,

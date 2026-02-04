@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
+        fatty_acids::settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
         triacylglycerols::{
             ID_SOURCE,
             composition::{
@@ -37,7 +37,7 @@ pub struct Settings {
 
     // Table settings
     #[serde(skip)]
-    pub editable: bool,
+    pub edit: bool,
     pub sticky: usize,
     // Metrics settings
     pub chaddock: bool,
@@ -62,7 +62,7 @@ impl Settings {
             truncate: true,
 
             // Table settings
-            editable: false,
+            edit: false,
             sticky: 0,
             // Metrics settings
             chaddock: true,
@@ -94,21 +94,21 @@ impl Settings {
         self.sort(ui);
 
         ui.labeled_separator(ui.localize("Threshold"));
-
-        self.threshold_auto(ui);
-        self.threshold_sort(ui);
-        self.threshold_filter(ui);
+        self.threshold(ui);
+        // self.threshold_auto(ui);
+        // self.threshold_sort(ui);
+        // self.threshold_filter(ui);
 
         // Metrics
-        ui.separator();
-        ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
-        self.metric(ui);
-        self.chaddock(ui);
+        ui.collapsing(ui.localize("Metric?PluralCategory=other"), |ui| {
+            self.metric(ui);
+            self.chaddock(ui);
+        });
 
         // Moments
-        ui.separator();
-        ui.labeled_separator(ui.localize("Moments"));
-        self.bias(ui);
+        ui.collapsing(ui.localize("Moments"), |ui| {
+            self.bias(ui);
+        });
     }
 
     /// Precision
@@ -185,21 +185,23 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(ui.localize(self.composition.hover_text()));
-            if ui.button((BOOKMARK, "PSC")).clicked() {
-                self.composition = SPECIES_POSITIONAL;
-            };
-            if ui.button((BOOKMARK, "MSC")).clicked() {
-                self.composition = SPECIES_MONO;
-            };
-            if ui.button((BOOKMARK, "PTC")).clicked() {
-                self.composition = TYPE_POSITIONAL;
-            };
-            if ui.button((BOOKMARK, "MTC")).clicked() {
-                self.composition = TYPE_MONO;
-            };
-            if ui.button((BOOKMARK, "MUC")).clicked() {
-                self.composition = UNSATURATION_MONO;
-            };
+            ui.menu_button(BOOKMARK, |ui| {
+                if ui.button((BOOKMARK, "PSC")).clicked() {
+                    self.composition = SPECIES_POSITIONAL;
+                };
+                if ui.button((BOOKMARK, "MSC")).clicked() {
+                    self.composition = SPECIES_MONO;
+                };
+                if ui.button((BOOKMARK, "PTC")).clicked() {
+                    self.composition = TYPE_POSITIONAL;
+                };
+                if ui.button((BOOKMARK, "MTC")).clicked() {
+                    self.composition = TYPE_MONO;
+                };
+                if ui.button((BOOKMARK, "MUC")).clicked() {
+                    self.composition = UNSATURATION_MONO;
+                };
+            });
             // if ui.input_mut(|input| {
             //     input.consume_shortcut(&KeyboardShortcut::new(Modifiers::NONE, Key::ArrowDown))
             // }) {
@@ -252,64 +254,69 @@ impl Settings {
         });
     }
 
-    /// Auto threshold
-    fn threshold_auto(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Threshold_Auto.hover"));
-            });
-            let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.threshold.auto.0;
-            let response = Slider::new(&mut threshold, 0.0..=1.0)
-                .custom_formatter(|mut value, decimals| {
-                    if self.percent {
-                        value *= 100.0;
-                    }
-                    number_formatter.format(value, decimals)
-                })
-                .custom_parser(|value| {
-                    let mut value = value.parse().ok()?;
-                    if self.percent {
-                        value /= 100.0;
-                    }
-                    Some(value)
-                })
-                .logarithmic(true)
-                .update_while_editing(false)
-                .ui(ui);
-            if (response.drag_stopped() || response.lost_focus())
-                && !ui.input(|input| input.key_pressed(Key::Escape))
-            {
-                self.threshold.auto.0 = threshold;
-                self.threshold.is_auto = true;
-            }
-            if ui
-                .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
-                .clicked()
-            {
-                self.threshold.auto.0 = 0.01;
-                self.threshold.is_auto = true;
-            };
-        });
+    /// Threshold
+    fn threshold(&mut self, ui: &mut Ui) {
+        self.threshold.show(ui, self.percent);
     }
 
-    /// Threshold sort
-    fn threshold_sort(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Sort"))
-                .on_hover_localized("Threshold_Sort.hover");
-            ui.checkbox(&mut self.threshold.sort, ());
-        });
-    }
+    // /// Auto threshold
+    // fn threshold_auto(&mut self, ui: &mut Ui) {
+    //     ui.horizontal(|ui| {
+    //         ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
+    //             ui.label(ui.localize("Threshold_Auto.hover"));
+    //         });
+    //         let number_formatter = ui.style().number_formatter.clone();
+    //         let mut threshold = self.threshold.auto.0;
+    //         let response = Slider::new(&mut threshold, 0.0..=1.0)
+    //             .custom_formatter(|mut value, decimals| {
+    //                 if self.percent {
+    //                     value *= 100.0;
+    //                 }
+    //                 number_formatter.format(value, decimals)
+    //             })
+    //             .custom_parser(|value| {
+    //                 let mut value = value.parse().ok()?;
+    //                 if self.percent {
+    //                     value /= 100.0;
+    //                 }
+    //                 Some(value)
+    //             })
+    //             .logarithmic(true)
+    //             .update_while_editing(false)
+    //             .ui(ui);
+    //         if (response.drag_stopped() || response.lost_focus())
+    //             && !ui.input(|input| input.key_pressed(Key::Escape))
+    //         {
+    //             self.threshold.auto.0 = threshold;
+    //             self.threshold.is_auto = true;
+    //         }
+    //         if ui
+    //             .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
+    //             .clicked()
+    //         {
+    //             self.threshold.auto.0 = 0.01;
+    //             self.threshold.is_auto = true;
+    //         };
+    //     });
+    // }
 
-    /// Threshold filter
-    fn threshold_filter(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Filter"))
-                .on_hover_localized("Threshold_Filter.hover");
-            ui.checkbox(&mut self.threshold.filter, ());
-        });
-    }
+    // /// Threshold sort
+    // fn threshold_sort(&mut self, ui: &mut Ui) {
+    //     ui.horizontal(|ui| {
+    //         ui.label(ui.localize("Threshold_Sort"))
+    //             .on_hover_localized("Threshold_Sort.hover");
+    //         ui.checkbox(&mut self.threshold.sort, ());
+    //     });
+    // }
+
+    // /// Threshold filter
+    // fn threshold_filter(&mut self, ui: &mut Ui) {
+    //     ui.horizontal(|ui| {
+    //         ui.label(ui.localize("Threshold_Filter"))
+    //             .on_hover_localized("Threshold_Filter.hover");
+    //         ui.checkbox(&mut self.threshold.filter, ());
+    //     });
+    // }
 
     /// Sort
     fn sort(&mut self, ui: &mut Ui) {

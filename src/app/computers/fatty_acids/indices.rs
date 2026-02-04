@@ -1,8 +1,5 @@
 use crate::{
-    app::states::{
-        fatty_acids::settings::{Index, Indices, Settings, StereospecificNumbers},
-        settings::Filter,
-    },
+    app::states::fatty_acids::settings::{Filter, Index, Indices, Settings, StereospecificNumbers},
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
     utils::{HashedDataFrame, polars::eval_arr},
 };
@@ -178,7 +175,10 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 })
                 .collect::<PolarsResult<_>>()?,
         )?
-        .explode()
+        .explode(ExplodeOptions {
+            empty_as_null: true,
+            keep_nulls: true,
+        })
         .alias(name.clone());
         exprs.push(expr);
     }

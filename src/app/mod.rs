@@ -2,41 +2,45 @@ use self::{
     data::Data,
     panes::{Behavior, Pane},
     widgets::{Github, Presets},
-    windows::About,
 };
 use crate::{
-    app::widgets::reactive_button::ReactiveButton,
+    app::{
+        states::State,
+        widgets::{
+            about::About,
+            buttons::{
+                AboutButton, GridButton, HorizontalButton, LeftPanelButton, ReactiveButton,
+                ResetButton, TabsButton, VerticalButton,
+            },
+        },
+    },
     localization::ContextExt as _,
-    utils::{HashedDataFrame, HashedMetaDataFrame},
+    utils::HashedMetaDataFrame,
 };
 use anyhow::Result;
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, DroppedFile, FontDefinitions, Frame, Id,
     LayerId, Layout, MenuBar, Order, RichText, ScrollArea, SidePanel, Sides, TextStyle,
-    TopBottomPanel, Visuals, Widget as _, warn_if_debug_build,
+    TopBottomPanel, Ui, Visuals, Widget as _, Window, warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LightDarkButton};
 use egui_extras::install_image_loaders;
 use egui_phosphor::{
     Variant, add_to_fonts,
-    regular::{
-        ARROWS_CLOCKWISE, GRID_FOUR, INFO, SIDEBAR_SIMPLE, SQUARE_SPLIT_HORIZONTAL,
-        SQUARE_SPLIT_VERTICAL, TABS, TRASH,
-    },
+    regular::{INFO, SLIDERS_HORIZONTAL},
 };
-use egui_tiles::{ContainerKind, Tile, Tree};
+use egui_tiles::{Tile, Tree};
 use egui_tiles_ext::{TreeExt as _, VERTICAL};
 use lipid::prelude::*;
-use metadata::polars::MetaDataFrame;
 use polars::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{borrow::BorrowMut, fmt::Write, mem::take, str, sync::LazyLock};
+use std::{borrow::BorrowMut, fmt::Write, str, sync::LazyLock};
 use tracing::{error, info, instrument, trace};
 
+const ID_SOURCE: &str = "TLCA";
 /// IEEE 754-2008
 const MAX_PRECISION: usize = 16;
-
 pub(super) const ICON_SIZE: f32 = 32.0;
 
 fn custom_style(ctx: &Context) {
@@ -53,28 +57,19 @@ fn custom_visuals<T: BorrowMut<Visuals>>(mut visuals: T) -> T {
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct App {
-    // Panels
-    left_panel: bool,
-    reactive: bool,
     // Data
     // #[serde(skip)]
     data: Data,
     // Panes
     #[serde(skip)]
     tree: Tree<Pane>,
-    // Windows
-    #[serde(skip)]
-    about: About,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
-            left_panel: true,
-            reactive: false,
             data: Default::default(),
             tree: Tree::empty("CentralTree"),
-            about: Default::default(),
         }
     }
 }
@@ -105,10 +100,10 @@ impl App {
 
 // Panels
 impl App {
-    fn panels(&mut self, ctx: &Context) {
-        self.top_panel(ctx);
+    fn panels(&mut self, ctx: &Context, state: &mut State) {
+        self.top_panel(ctx, state);
         self.bottom_panel(ctx);
-        self.left_panel(ctx);
+        self.left_panel(ctx, state);
         self.central_panel(ctx);
     }
 
@@ -143,29 +138,27 @@ impl App {
     }
 
     // Left panel
-    fn left_panel(&mut self, ctx: &Context) {
-        SidePanel::left("LeftPanel")
-            .resizable(true)
-            .show_animated(ctx, self.left_panel, |ui| {
+    fn left_panel(&mut self, ctx: &Context, state: &mut State) {
+        SidePanel::left("LeftPanel").resizable(true).show_animated(
+            ctx,
+            state.settings.left_panel,
+            |ui| {
                 self.data.show(ui);
-            });
+            },
+        );
     }
 
     // Top panel
-    fn top_panel(&mut self, ctx: &Context) {
+    fn top_panel(&mut self, ctx: &Context, state: &mut State) {
         TopBottomPanel::top("TopPanel").show(ctx, |ui| {
             MenuBar::new().ui(ui, |ui| {
                 ScrollArea::horizontal().show(ui, |ui| {
                     // Left panel
-                    ui.toggle_value(
-                        &mut self.left_panel,
-                        RichText::new(SIDEBAR_SIMPLE).size(ICON_SIZE),
-                    )
-                    .on_hover_ui(|ui| {
-                        ui.label("LeftPanel");
-                    });
+                    LeftPanelButton::new(&mut state.settings.left_panel)
+                        .size(ICON_SIZE)
+                        .ui(ui);
                     ui.separator();
-                    ReactiveButton::new(&mut self.reactive)
+                    ReactiveButton::new(&mut state.settings.reactive)
                         .size(ICON_SIZE)
                         .ui(ui);
                     ui.separator();
@@ -173,69 +166,55 @@ impl App {
                     ui.light_dark_button(ICON_SIZE);
                     ui.separator();
                     // Reset
-                    if ui
-                        .button(RichText::new(TRASH).size(ICON_SIZE))
-                        .on_hover_text("ResetApplication")
-                        .clicked()
-                    {
-                        *self = Default::default();
-                    }
+                    ResetButton::new(&mut state.settings.reset_state)
+                        .size(ICON_SIZE)
+                        .ui(ui);
                     ui.separator();
-                    if ui
-                        .button(RichText::new(ARROWS_CLOCKWISE).size(ICON_SIZE))
-                        .on_hover_text("ResetGui")
-                        .clicked()
-                    {
-                        ui.memory_mut(|memory| {
-                            memory.caches = take(memory).caches;
-                        });
-                        ui.ctx().set_localizations();
-                    }
-                    ui.separator();
-                    if ui
-                        .button(RichText::new(SQUARE_SPLIT_VERTICAL).size(ICON_SIZE))
-                        .on_hover_text("Vertical")
-                        .clicked()
-                    {
-                        if let Some(id) = self.tree.root {
-                            if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                                container.set_kind(ContainerKind::Vertical);
-                            }
-                        }
-                    }
-                    if ui
-                        .button(RichText::new(SQUARE_SPLIT_HORIZONTAL).size(ICON_SIZE))
-                        .on_hover_text("Horizontal")
-                        .clicked()
-                    {
-                        if let Some(id) = self.tree.root {
-                            if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                                container.set_kind(ContainerKind::Horizontal);
-                            }
-                        }
-                    }
-                    if ui
-                        .button(RichText::new(GRID_FOUR).size(ICON_SIZE))
-                        .on_hover_text("Grid")
-                        .clicked()
-                    {
-                        if let Some(id) = self.tree.root {
-                            if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                                container.set_kind(ContainerKind::Grid);
-                            }
-                        }
-                    }
-                    if ui
-                        .button(RichText::new(TABS).size(ICON_SIZE))
-                        .on_hover_text("Tabs")
-                        .clicked()
-                    {
-                        if let Some(id) = self.tree.root {
-                            if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                                container.set_kind(ContainerKind::Tabs);
-                            }
-                        }
-                    }
+                    // if ui
+                    //     .button(RichText::new(SQUARE_SPLIT_VERTICAL).size(ICON_SIZE))
+                    //     .on_hover_text("Vertical")
+                    //     .clicked()
+                    // {
+                    //     if let Some(id) = self.tree.root {
+                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
+                    //             container.set_kind(ContainerKind::Vertical);
+                    //         }
+                    //     }
+                    // }
+                    // if ui
+                    //     .button(RichText::new(SQUARE_SPLIT_HORIZONTAL).size(ICON_SIZE))
+                    //     .on_hover_text("Horizontal")
+                    //     .clicked()
+                    // {
+                    //     if let Some(id) = self.tree.root {
+                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
+                    //             container.set_kind(ContainerKind::Horizontal);
+                    //         }
+                    //     }
+                    // }
+                    // if ui
+                    //     .button(RichText::new(GRID_FOUR).size(ICON_SIZE))
+                    //     .on_hover_text("Grid")
+                    //     .clicked()
+                    // {
+                    //     if let Some(id) = self.tree.root {
+                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
+                    //             container.set_kind(ContainerKind::Grid);
+                    //         }
+                    //     }
+                    // }
+                    // if ui
+                    //     .button(RichText::new(TABS).size(ICON_SIZE))
+                    //     .on_hover_text("Tabs")
+                    //     .clicked()
+                    // {
+                    //     if let Some(id) = self.tree.root {
+                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
+                    //             container.set_kind(ContainerKind::Tabs);
+                    //         }
+                    //     }
+                    // }
+                    self.layouts(ui, state);
                     ui.separator();
                     // Presets
                     ui.add(Presets);
@@ -243,24 +222,50 @@ impl App {
                     ui.add(Github);
                     ui.separator();
                     // About
-                    if ui
-                        .button(RichText::new(INFO).size(ICON_SIZE))
-                        .on_hover_text("About window")
-                        .clicked()
-                    {
-                        self.about.open ^= true;
-                    }
+                    AboutButton::new(&mut state.windows.open_about)
+                        .size(ICON_SIZE)
+                        .ui(ui);
                     ui.separator();
                 });
             });
         });
     }
+
+    fn layouts(&mut self, ui: &mut Ui, state: &mut State) {
+        VerticalButton::new(&mut state.settings.layout.container_kind)
+            .size(ICON_SIZE)
+            .ui(ui);
+        HorizontalButton::new(&mut state.settings.layout.container_kind)
+            .size(ICON_SIZE)
+            .ui(ui);
+        GridButton::new(&mut state.settings.layout.container_kind)
+            .size(ICON_SIZE)
+            .ui(ui);
+        TabsButton::new(&mut state.settings.layout.container_kind)
+            .size(ICON_SIZE)
+            .ui(ui);
+    }
 }
 
 // Windows
 impl App {
-    fn windows(&mut self, ctx: &Context) {
-        self.about.window(ctx);
+    fn windows(&mut self, ctx: &Context, state: &mut State) {
+        self.about_window(ctx, state);
+        self.settings_window(ctx, state);
+    }
+
+    fn about_window(&mut self, ctx: &Context, state: &mut State) {
+        Window::new(format!("{INFO} About"))
+            .open(&mut state.windows.open_about)
+            .show(ctx, |ui| About.ui(ui));
+    }
+
+    fn settings_window(&mut self, ctx: &Context, state: &mut State) {
+        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+            .open(&mut state.windows.open_settings)
+            .show(ctx, |ui| {
+                state.settings.show(ui);
+            });
     }
 }
 
@@ -311,7 +316,7 @@ impl App {
         Ok(ron::de::from_bytes::<HashedMetaDataFrame>(&bytes)?)
     }
 
-    fn data(&mut self, ctx: &Context) {
+    fn data(&mut self, ctx: &Context, state: &mut State) {
         const COMPOSITION: LazyLock<SchemaRef> = LazyLock::new(|| {
             Arc::new(Schema::from_iter([
                 field!(LABEL[DataType::String]),
@@ -374,7 +379,7 @@ impl App {
                     );
                 }
             }
-            self.left_panel = true;
+            state.settings.left_panel = true;
         }
     }
 
@@ -390,6 +395,28 @@ impl App {
                 .insert_pane::<VERTICAL>(Pane::triacylglycerols(frames));
         }
     }
+
+    fn state(&mut self, ctx: &Context, state: &mut State) {
+        if state.settings.reset_state {
+            *self = Default::default();
+            // Cache
+            let caches = ctx.memory_mut(|memory| memory.caches.clone());
+            ctx.memory_mut(|memory| {
+                memory.caches = caches;
+            });
+            ctx.set_localizations();
+            state.settings.reset_state = false;
+        }
+        if let Some(container_kind) = state.settings.layout.container_kind.take()
+            && let Some(id) = self.tree.root
+            && let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id)
+        {
+            container.set_kind(container_kind);
+        }
+        if state.settings.reactive {
+            ctx.request_repaint();
+        }
+    }
 }
 
 impl eframe::App for App {
@@ -401,16 +428,16 @@ impl eframe::App for App {
     /// Called each time the UI needs repainting, which may be many times per
     /// second.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        self.data(ctx);
+        let mut state = State::load(ctx, Id::new(ID_SOURCE));
+        self.data(ctx, &mut state);
         self.join(ctx);
         // Pre update
-        self.panels(ctx);
-        self.windows(ctx);
+        self.panels(ctx, &mut state);
+        self.windows(ctx, &mut state);
         // Post update
         self.drag_and_drop(ctx);
-        if self.reactive {
-            ctx.request_repaint();
-        }
+        self.state(ctx, &mut state);
+        state.store(ctx, Id::new(ID_SOURCE));
     }
 }
 
@@ -419,4 +446,3 @@ mod data;
 mod panes;
 mod states;
 mod widgets;
-mod windows;

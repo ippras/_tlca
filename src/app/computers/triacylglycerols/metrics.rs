@@ -1,5 +1,5 @@
 use crate::{
-    app::states::{settings::Metric, triacylglycerols::settings::Settings},
+    app::states::{fatty_acids::settings::Metric, triacylglycerols::settings::Settings},
     r#const::{COMPOSITION, MEAN, SPECIES, THRESHOLD},
     utils::HashedDataFrame,
 };
@@ -65,7 +65,13 @@ impl Computer {
                 .alias(left))
             })
             .collect::<PolarsResult<Vec<_>>>()?;
-        lazy_frame = lazy_frame.select(exprs).explode(all());
+        lazy_frame = lazy_frame.select(exprs).explode(
+            all(),
+            ExplodeOptions {
+                empty_as_null: true,
+                keep_nulls: true,
+            },
+        );
         // lazy_frame = lazy_frame
         //     .select([
         //         nth(2)

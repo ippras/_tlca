@@ -8,41 +8,51 @@ use crate::{
             moments::{Computed as MomentsComputed, Key as MomentsKey},
         },
         states::triacylglycerols::{ID_SOURCE, State, settings::Settings},
+        widgets::buttons::{EditButton, MetadataButton, ResetButton, ResizeButton, SettingsButton},
     },
+    export,
     utils::HashedMetaDataFrame,
 };
+use anyhow::Result;
 use egui::{
     Button, CentralPanel, CursorIcon, Frame, Id, IntoAtoms, Label, MenuBar, Response, RichText,
     ScrollArea, TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
 };
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{
-    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
+    ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
 use metadata::egui::MetadataWidget;
 use polars::prelude::*;
-use polars_utils::{format_list, format_list_truncated};
+use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display, from_fn};
 use tracing::instrument;
 
 /// Triacylglycerols pane
 #[derive(Default, Deserialize, Serialize)]
 pub struct Pane {
+    id: Option<Id>,
     frames: Vec<HashedMetaDataFrame>,
 }
 
 impl Pane {
     pub(super) fn new(frames: Vec<HashedMetaDataFrame>) -> Self {
-        Self { frames }
+        Self { id: None, frames }
     }
 
     pub(super) fn title(&self) -> String {
         format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
     }
 
-    fn hash(&self) -> u64 {
-        hash(&self.frames)
+    fn id(&self) -> impl Display {
+        from_fn(|f| {
+            if let Some(id) = self.id {
+                write!(f, "{id:?}-")?;
+            }
+            write!(f, "{}", hash(&self.frames))
+        })
     }
 }
 
@@ -53,7 +63,9 @@ impl Pane {
         behavior: &mut Behavior,
         tile_id: TileId,
     ) -> UiResponse {
-        let mut state = State::load(ui.ctx(), Id::new(tile_id));
+        let id = *self.id.get_or_insert_with(|| ui.next_auto_id());
+        let mut state = State::load(ui.ctx(), Id::new(id));
+        println!("state: {state:?}");
         let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
@@ -76,14 +88,15 @@ impl Pane {
             })
             .inner;
         CentralPanel::default()
-            .frame(Frame::central_panel(&ui.style()))
+            .frame(Frame::central_panel(ui.style()))
             .show_inside(ui, |ui| {
                 self.central(ui, &mut state);
+                self.windows(ui, &mut state);
             });
-        if let Some(id) = behavior.close {
-            state.remove(ui.ctx(), Id::new(id));
+        if behavior.close == Some(tile_id) {
+            state.remove(ui.ctx(), id);
         } else {
-            state.store(ui.ctx(), Id::new(tile_id));
+            state.store(ui.ctx(), id);
         }
         if response.dragged() {
             UiResponse::DragStarted
@@ -97,15 +110,23 @@ impl Pane {
             .heading((DROP, DROP, DROP).into_atoms().text().unwrap_or_default())
             .on_hover_text("Triacylglycerols");
         response |= ui.heading(self.title());
+        // response = response
+        //     .on_hover_text(format!("{:x}", self.hash()))
+        //     .on_hover_ui(|ui| {
+        //         Label::new(format_list!(
+        //             self.frames.iter().map(|frame| frame.meta.format("."))
+        //         ))
+        //         .wrap_mode(TextWrapMode::Extend)
+        //         .ui(ui);
+        //     })
+        //     .on_hover_ui(|ui| {
+        //         if let Some(frame) = self.frames.first() {
+        //             MetadataWidget::new(&frame.meta).show(ui);
+        //         }
+        //     })
+        //     .on_hover_cursor(CursorIcon::Grab);
         response = response
-            .on_hover_text(format!("{:x}", self.hash()))
-            .on_hover_ui(|ui| {
-                Label::new(format_list!(
-                    self.frames.iter().map(|frame| frame.meta.format("."))
-                ))
-                .wrap_mode(TextWrapMode::Extend)
-                .ui(ui);
-            })
+            .on_hover_text(self.id().to_string())
             .on_hover_ui(|ui| {
                 if let Some(frame) = self.frames.first() {
                     MetadataWidget::new(&frame.meta).show(ui);
@@ -113,31 +134,32 @@ impl Pane {
             })
             .on_hover_cursor(CursorIcon::Grab);
         ui.separator();
-        // Reset
-        if ui
-            .button(RichText::new(ARROWS_CLOCKWISE).heading())
-            .clicked()
-        {
-            state.event.reset_table_state = true;
-        }
-        // Resize
-        ui.toggle_value(
-            &mut state.settings.resizable,
-            RichText::new(ARROWS_HORIZONTAL).heading(),
-        )
-        .on_hover_text("ResizeTableColumns");
-        // Edit metadata
-        ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
-            ui.toggle_value(&mut state.settings.editable, RichText::new(TAG).heading())
-                .on_hover_text("EditMetadata")
-        });
+        // // Reset
+        // if ui
+        //     .button(RichText::new(ARROWS_CLOCKWISE).heading())
+        //     .clicked()
+        // {
+        //     state.event.reset_table_state = true;
+        // }
+        // // Resize
+        // ui.toggle_value(
+        //     &mut state.settings.resizable,
+        //     RichText::new(ARROWS_HORIZONTAL).heading(),
+        // )
+        // .on_hover_text("ResizeTableColumns");
+        // // Edit metadata
+        // ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
+        //     ui.toggle_value(&mut state.settings.editable, RichText::new(TAG).heading())
+        //         .on_hover_text("EditMetadata")
+        // });
+        ResetButton::new(&mut state.event.reset_table_state).ui(ui);
+        ResizeButton::new(&mut state.settings.resizable).ui(ui);
+        EditButton::new(&mut state.settings.edit).ui(ui);
         ui.separator();
         // Settings
-        ui.toggle_value(
-            &mut state.windows.open_settings,
-            RichText::new(GEAR).heading(),
-        )
-        .on_hover_text("ShowSettings");
+        SettingsButton::new(&mut state.windows.open_settings).ui(ui);
+        ui.separator();
+        MetadataButton::new(&mut state.windows.open_metadata).ui(ui);
         ui.separator();
         // Sigma
         ui.menu_button(RichText::new(SIGMA).heading(), |ui| {
@@ -166,74 +188,61 @@ impl Pane {
         });
         ui.separator();
         // Save
-        if ui
-            .add_enabled(
-                self.frames.len() == 1,
-                Button::new(RichText::new(FLOPPY_DISK).heading()),
-            )
-            .on_hover_ui(|ui| {
-                ui.label("Save");
-            })
-            .on_hover_text(format!(
-                "{}.tag.utca.parquet",
-                self.frames[0].meta.format(".")
-            ))
-            .clicked()
-        {
-            // _ = self.save();
-        }
+        self.save_button(ui, state);
         ui.separator();
         response
     }
 
-    // fn save(&mut self) -> Result<()> {
-    //     let frame = &mut self.frames[0];
-    //     let name = format!("{}.fa.parquet", frame.meta.format(".")).replace(" ", "_");
-    //     save(&name, frame)?;
-    //     Ok(())
-    // }
-
-    fn central(&mut self, ui: &mut Ui, state: &mut State) {
-        self.windows(ui, state);
-        if state.settings.editable {
-            self.meta(ui);
-            ui.separator();
-        }
-        self.data(ui, state);
-    }
-
-    fn meta(&mut self, ui: &mut Ui) {
-        ui.style_mut().visuals.collapsing_header_frame = true;
-        ui.collapsing(RichText::new(format!("{TAG} Metadata")).heading(), |ui| {
-            MetadataWidget::new(&mut self.frames[0].meta)
-                .with_writable(true)
-                .show(ui);
+    // Save button
+    fn save_button(&self, ui: &mut Ui, state: &State) {
+        ui.add_enabled_ui(self.frames.len() == 1, |ui| {
+            ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
+                let name = self.frames[0].meta.format(".");
+                if ui
+                    .button((FLOPPY_DISK, "RON"))
+                    .on_hover_localized("Save")
+                    .on_hover_ui(|ui| {
+                        ui.label(format!("{name}.tag.utca.ron"));
+                    })
+                    .clicked()
+                {
+                    _ = self.save_ron(&name, state);
+                }
+            });
         });
     }
 
-    fn data(&mut self, ui: &mut Ui, state: &mut State) {
+    #[instrument(skip(self, state), err)]
+    fn save_ron(&self, name: impl Debug + Display, state: &State) -> Result<()> {
+        export::ron::save(&self.frames[0], &format!("{name}.utca.ron"))
+    }
+
+    fn central(&mut self, ui: &mut Ui, state: &mut State) {
         _ = TableView::new(&mut self.frames, state).show(ui);
     }
 }
 
 impl Pane {
     fn windows(&mut self, ui: &mut Ui, state: &mut State) {
-        self.settings(ui, state);
-        self.metrics(ui, state);
-        self.moments(ui, state);
+        self.metadata_window(ui, state);
+        self.metrics_window(ui, state);
+        self.moments_window(ui, state);
+        self.settings_window(ui, state);
     }
 
-    fn settings(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
+    fn metadata_window(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{TAG} Configuration metadata"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Metadata"))
             .default_pos(ui.next_widget_position())
-            .open(&mut state.windows.open_settings)
+            .open(&mut state.windows.open_metadata)
             .show(ui.ctx(), |ui| {
-                state.settings.show(ui);
+                MetadataWidget::new(&mut self.frames[0].meta)
+                    .with_writable(state.settings.edit)
+                    .show(ui);
             });
     }
 
-    fn metrics(&mut self, ui: &mut Ui, state: &mut State) {
+    fn metrics_window(&mut self, ui: &mut Ui, state: &mut State) {
         if let Some(inner_response) = Window::new(format!("{SIGMA} Metrics"))
             .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
@@ -264,7 +273,7 @@ impl Pane {
         Ok(())
     }
 
-    fn moments(&mut self, ui: &mut Ui, state: &mut State) {
+    fn moments_window(&mut self, ui: &mut Ui, state: &mut State) {
         if let Some(inner_response) = Window::new(format!("{SIGMA} Moments"))
             .id(ui.auto_id_with(ID_SOURCE).with("Moments"))
             .default_pos(ui.next_widget_position())
@@ -293,6 +302,16 @@ impl Pane {
         });
         _ = Moments::new(&data_frame, settings).show(ui);
         Ok(())
+    }
+
+    fn settings_window(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
+            .default_pos(ui.next_widget_position())
+            .open(&mut state.windows.open_settings)
+            .show(ui.ctx(), |ui| {
+                state.settings.show(ui);
+            });
     }
 }
 

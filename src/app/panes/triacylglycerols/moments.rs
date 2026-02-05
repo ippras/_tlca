@@ -44,9 +44,9 @@ impl Moments<'_> {
             .resizable(true)
             .columns(Column::auto(), columns)
             .header(height + 2.0 * MARGIN.y, |mut row| {
-                for name in self.data_frame.get_column_names_str() {
+                for name in self.data_frame.get_column_names() {
                     row.col(|ui| {
-                        ui.heading(name);
+                        ui.heading(name.as_str());
                     });
                 }
             })

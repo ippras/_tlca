@@ -9,8 +9,10 @@ pub(crate) const EM_DASH: &str = "—";
 pub(crate) const NON_BREAKING_HYPHEN: &str = "‑";
 pub(crate) const NO_BREAK_SPACE: &str = " ";
 
+pub(crate) const AREA: &str = "Area";
 pub(crate) const COMPOSITION: &str = "Composition";
 pub(crate) const MEAN: &str = "Mean";
+pub(crate) const RETENTION_TIME: &str = "RetentionTime";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const SPECIES: &str = "Species";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";

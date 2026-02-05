@@ -50,12 +50,12 @@ impl<'a> Factors<'a> {
                 });
                 for name in self
                     .data_frame
-                    .get_column_names_str()
+                    .get_column_names()
                     .into_iter()
-                    .filter(|&name| !matches!(name, FATTY_ACID | THRESHOLD))
+                    .filter(|&name| !matches!(name.as_str(), FATTY_ACID | THRESHOLD))
                 {
                     row.col(|ui| {
-                        ui.heading(name);
+                        ui.heading(name.as_str());
                     });
                 }
             })

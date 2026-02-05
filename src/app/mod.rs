@@ -14,7 +14,7 @@ use crate::{
             },
         },
     },
-    r#const::VALUE,
+    r#const::{AREA, RETENTION_TIME, VALUE},
     localization::ContextExt as _,
     utils::HashedMetaDataFrame,
 };
@@ -348,10 +348,25 @@ impl App {
             ]))
         });
 
+        const TRIACYLGLYCEROLS: LazyLock<SchemaRef> = LazyLock::new(|| {
+            Arc::new(Schema::from_iter([
+                field!(LABEL[DataType::String]),
+                field!(TRIACYLGLYCEROL[data_type!(FATTY_ACID)]),
+                Field::new(
+                    PlSmallStr::from_static(RETENTION_TIME),
+                    DataType::Array(Box::new(DataType::Duration(TimeUnit::Milliseconds)), 0),
+                ),
+                Field::new(
+                    PlSmallStr::from_static(AREA),
+                    DataType::Array(Box::new(DataType::Float64), 0),
+                ),
+            ]))
+        });
+
         if let Some(frames) =
             ctx.data_mut(|data| data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Data")))
         {
-            for frame in frames {
+            for mut frame in frames {
                 let schema = frame.data.schema();
                 if COMPOSITION.matches_schema(schema).is_ok_and(|cast| !cast) {
                     info!("COMPOSITION");
@@ -359,6 +374,19 @@ impl App {
                 } else if CACLULATION.matches_schema(schema).is_ok_and(|cast| !cast) {
                     info!("CACLULATION");
                     self.data.fatty_acids.add(frame);
+                } else if TRIACYLGLYCEROLS
+                    .matches_schema(schema)
+                    .is_ok_and(|cast| !cast)
+                {
+                    info!("TRIACYLGLYCEROLS");
+                    frame.data.data_frame = frame
+                        .data
+                        .data_frame
+                        .lazy()
+                        .with_column(col(AREA).alias(VALUE))
+                        .collect()
+                        .unwrap();
+                    self.data.triacylglycerols.add(frame);
                 } else {
                     error!(
                         "{}",

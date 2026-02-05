@@ -100,10 +100,11 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     for name in key
         .frame
         .data_frame
-        .get_column_names_str()
+        .get_column_names()
         .into_iter()
-        .filter(|&name| !matches!(name, LABEL | FATTY_ACID | THRESHOLD))
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
     {
+        let name = name.as_str();
         exprs.push(
             as_struct(vec![
                 format_mean(col(name).struct_().field_by_name(MEAN), key),

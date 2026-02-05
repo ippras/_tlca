@@ -69,10 +69,11 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let mut sum = Vec::new();
     for name in key
         .frame
-        .get_column_names_str()
+        .get_column_names()
         .into_iter()
-        .filter(|&name| !matches!(name, COMPOSITION | SPECIES | THRESHOLD))
+        .filter(|&name| !matches!(name.as_str(), COMPOSITION | SPECIES | THRESHOLD))
     {
+        let name = name.as_str();
         exprs.push(
             as_struct(vec![
                 format_mean(col(name).struct_().field_by_name(MEAN), key),

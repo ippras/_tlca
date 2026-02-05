@@ -24,7 +24,9 @@ mod test {
     use anyhow::Result;
     use lipid::prelude::*;
     use maplit::btreemap;
-    use metadata::{AUTHORS, DATE, DESCRIPTION, Metadata, NAME, VERSION, polars::MetaDataFrame};
+    use metadata::{
+        AUTHORS, DATE, DESCRIPTION, Metadata, NAME, PARAMETERS, VERSION, polars::MetaDataFrame,
+    };
     use polars::prelude::*;
     use ron::{extensions::Extensions, ser::PrettyConfig};
 
@@ -39,26 +41,27 @@ mod test {
             DATE.to_owned() => "2026-01-16".to_owned(),
             DESCRIPTION.to_owned() => "К-2233, Прогресс, Россия\n#1041".to_owned(),
             NAME.to_owned() => "К-2233".to_owned(),
+            PARAMETERS.to_owned() => "Experimental".to_owned(),
             VERSION.to_owned() => "0.0.0".to_owned(),
         });
 
-// | Компонент | Время (мин) | Площадь (мВ*с) | Площадь (%) |
-// | --------- | ----------- | -------------- | ----------- |
-// | POP       | 8.708       | 16.778         | 0.491       |
-// | PPL       | 8.999       | 23.194         | 0.678       |
-// | POS       | 10.098      | 30.371         | 0.888       |
-// | POO       | 10.363      | 183.131        | 5.356       |
-// | PLS       | 10.476      | 39.874         | 1.166       |
-// | PLO       | 10.769      | 267.971        | 7.837       |
-// | PLL       | 11.195      | 165.303        | 4.835       |
-// | SOS       | 12.021      | 5.328          | 0.156       |
-// | SOO       | 12.337      | 170.878        | 4.998       |
-// | OOO       | 12.719      | 489.728        | 14.323      |
-// | SOL       | 12.869      | 193.800        | 5.668       |
-// | OOL       | 13.272      | 829.611        | 24.264      |
-// | SLL       | 13.463      | 86.986         | 2.544       |
-// | LLO       | 13.892      | 678.107        | 19.833      |
-// | LLL       | 14.475      | 238.033        | 6.962       |
+        // | Компонент | Время (мин) | Площадь (мВ*с) | Площадь (%) |
+        // | --------- | ----------- | -------------- | ----------- |
+        // | POP       | 8.708       | 16.778         | 0.491       |
+        // | PPL       | 8.999       | 23.194         | 0.678       |
+        // | POS       | 10.098      | 30.371         | 0.888       |
+        // | POO       | 10.363      | 183.131        | 5.356       |
+        // | PLS       | 10.476      | 39.874         | 1.166       |
+        // | PLO       | 10.769      | 267.971        | 7.837       |
+        // | PLL       | 11.195      | 165.303        | 4.835       |
+        // | SOS       | 12.021      | 5.328          | 0.156       |
+        // | SOO       | 12.337      | 170.878        | 4.998       |
+        // | OOO       | 12.719      | 489.728        | 14.323      |
+        // | SOL       | 12.869      | 193.800        | 5.668       |
+        // | OOL       | 13.272      | 829.611        | 24.264      |
+        // | SLL       | 13.463      | 86.986         | 2.544       |
+        // | LLO       | 13.892      | 678.107        | 19.833      |
+        // | LLL       | 14.475      | 238.033        | 6.962       |
         let data = df! {
             LABEL => df! {
                 STEREOSPECIFIC_NUMBERS1 => [
@@ -190,7 +193,7 @@ mod test {
         println!("data_frame: {data}");
         let path = Path::new("_output")
             .join(meta.format(".").to_string())
-            .with_added_extension("tag.ron");
+            .with_added_extension("tag.utca.ron");
         let mut file = File::create(&path)?;
         let frame = HashedMetaDataFrame::new(meta, HashedDataFrame::new(data)?);
         let serialized = ron::ser::to_string_pretty(

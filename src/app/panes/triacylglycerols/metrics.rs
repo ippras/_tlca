@@ -41,9 +41,9 @@ impl Metrics<'_> {
             .columns(Column::auto(), columns + 1)
             .header(height + 2.0 * MARGIN.y, |mut row| {
                 row.col(|_ui| {});
-                for name in self.data_frame.get_column_names_str() {
+                for name in self.data_frame.get_column_names() {
                     row.col(|ui| {
-                        ui.heading(name);
+                        ui.heading(name.as_str());
                     });
                 }
             })

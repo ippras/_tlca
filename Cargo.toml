@@ -5,7 +5,7 @@ authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 const_format = "0.2.35"
 eframe = { version = "0.33.3", features = [
     "accesskit",
@@ -18,8 +18,8 @@ egui = "0.33.3"
 egui-phosphor = "0.11.0"
 egui_dnd = "0.14.0"
 egui_extras = { version = "0.33.3", features = ["datepicker", "serde", "svg"] }
-egui_table = "0.6.0"
-egui_tiles = "0.14.0"
+egui_table = "0.7.0"
+egui_tiles = "0.14.1"
 ehttp = { version = "0.6.0", features = ["native-async"] }
 itertools = "0.14.0"
 log = "0.4.29"
@@ -54,13 +54,13 @@ polars = { git = "https://github.com/pola-rs/polars", rev = "099564e", default-f
     # "parquet",
     # "ipc",
 ] }
-polars-utils = { version = "0.52.0", features = ["nightly"] }
+polars-utils = { version = "0.53.0", features = ["nightly"] }
 ron = "0.12.0"
 semver = { version = "1.0.27", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive", "std"] }
-tracing = "0.1.43"
+tracing = "0.1.44"
 unic-langid = { version = "0.9.6", features = ["macros"] }
-url = { version = "2.5.7", features = ["serde"] }
+url = { version = "2.5.8", features = ["serde"] }
 urlencoding = "2.1.3"
 
 egui_ext = { git = "https://github.com/kgv/egui_ext" }
@@ -87,19 +87,19 @@ maplit = "*"
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 poll-promise = { version = "0.3.0", features = ["tokio"] }
-tokio = { version = "1.48.0", features = ["full"] }
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tokio = { version = "1.50.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-getrandom = { version = "0.3.4", default-features = false, features = [
+getrandom = { version = "0.4.2", default-features = false, features = [
     "wasm_js",
 ] }
 poll-promise = { version = "0.3.0", features = ["web"] }
 tracing-wasm = "0.2.1"
-wasm-bindgen-futures = "0.4.56"
-web-sys = "0.3.83"
+wasm-bindgen-futures = "0.4.64"
+web-sys = "0.3.91"
 
 [features]
 default = []

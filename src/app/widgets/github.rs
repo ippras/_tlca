@@ -52,24 +52,50 @@ impl Github {
         ui.menu_button("Helianthus annuus", |ui| {
             ui.heading("Helianthus annuus");
             ui.menu_button((DROP, "Fatty acids"), |ui| {
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3110.2025-11-10.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.fa.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3714.2025-10-31.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/Бузулук.2025-11-06.fa.utca.ron");
+
+                ui.hyperlink_to("VIR", "https://vir.nw.ru");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-2233.2025-10-29.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-2699.2025-10-30.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-2776.2025-11-01.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-3110.2025-11-10.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-3384.2025-10-31.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-3599.2025-10-30.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-3675.2025-10-31.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VIR-3714.2025-10-31.fa.utca.ron");
+
+                ui.hyperlink_to("VNIIMK", "https://vniimk.ru");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-1.2026-02-23.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-2.2026-02-23.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-3.2026-02-23.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-4.2026-02-25.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-5.2026-02-25.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-6.2026-02-26.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-7.2026-02-26.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-8.2026-02-26.fa.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/fa/ron/VNIIMK-9.2026-02-27.fa.utca.ron");
             });
             ui.menu_button((DROP, DROP, DROP, "Triacylglycerols"), |ui| {
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2233.2025-10-29.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2699.2025-10-30.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-2776.2025-11-01.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3110.2025-11-10.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3384.2025-10-31.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3599.2025-10-30.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3675.2025-10-31.tag.utca.ron");
-                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/К-3714.2025-10-31.tag.utca.ron");
+                ui.hyperlink_to("VIR", "https://vir.nw.ru");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-2233.2025-10-29.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-2699.2025-10-30.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-2776.2025-11-01.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-3110.2025-11-10.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-3384.2025-10-31.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-3599.2025-10-30.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-3675.2025-10-31.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VIR-3714.2025-10-31.tag.utca.ron");
+
+                ui.hyperlink_to("VNIIMK", "https://vniimk.ru");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-1.2026-02-23.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-2.2026-02-23.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-3.2026-02-23.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-4.2026-02-25.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-5.2026-02-25.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-6.2026-02-26.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-7.2026-02-26.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-8.2026-02-26.tag.utca.ron");
+                _ = preset(ui, "https://raw.githubusercontent.com/ippras/utca/presets/HelianthusAnnuus/tag/ron/VNIIMK-9.2026-02-27.tag.utca.ron");
             });
         });
         ui.menu_button("Microalgae", |ui| {

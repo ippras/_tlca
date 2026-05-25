@@ -412,19 +412,17 @@ impl eframe::App for App {
         set_value(storage, APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per
-    /// second.
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        let mut state = State::load(ctx, Id::new(ID_SOURCE));
-        self.data(ctx, &mut state);
-        self.join(ctx);
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        let mut state = State::load(ui, Id::new(ID_SOURCE));
+        self.data(ui, &mut state);
+        self.join(ui);
         // Pre update
-        self.panels(ctx, &mut state);
-        self.windows(ctx, &mut state);
+        self.panels(ui, &mut state);
+        self.windows(ui, &mut state);
         // Post update
-        self.drag_and_drop(ctx);
-        self.state(ctx, &mut state);
-        state.store(ctx, Id::new(ID_SOURCE));
+        self.drag_and_drop(ui);
+        self.state(ui, &mut state);
+        state.store(ui, Id::new(ID_SOURCE));
     }
 }
 

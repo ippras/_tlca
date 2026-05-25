@@ -95,7 +95,7 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Format
 fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let mut exprs = vec![col(LABEL), col(FATTY_ACID).fatty_acid().format()];
+    let mut exprs = vec![col(LABEL), col(FATTY_ACID).fatty_acid().display()];
     let mut sum = Vec::new();
     for name in key
         .frame

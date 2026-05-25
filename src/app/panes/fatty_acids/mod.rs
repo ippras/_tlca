@@ -117,6 +117,7 @@ impl Pane {
                 .caches
                 .cache::<FattyAcidsComputed>()
                 .get(FattyAcidsKey::new(&self.frames, &state.settings))
+                .clone()
         });
     }
 
@@ -274,6 +275,7 @@ impl Pane {
                 .caches
                 .cache::<TableComputed>()
                 .get(TableKey::new(&self.calculated, &state.settings))
+                .clone()
         });
         _ = TableView::new(&data_frame, state).show(ui);
     }
@@ -311,6 +313,7 @@ impl Pane {
                 .caches
                 .cache::<FactorsComputed>()
                 .get(FactorsKey::new(&self.calculated, settings))
+                .clone()
         });
         Factors::new(&data_frame, settings).show(ui)
     }
@@ -329,6 +332,7 @@ impl Pane {
                 .caches
                 .cache::<IndicesComputed>()
                 .get(IndicesKey::new(&self.calculated, settings))
+                .clone()
         });
         Indices::new(&data_frame, settings).show(ui)
     }
@@ -348,6 +352,7 @@ impl Pane {
                 .caches
                 .cache::<MetricsComputed>()
                 .get(MetricsKey::new(&self.calculated, settings))
+                .clone()
         });
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())

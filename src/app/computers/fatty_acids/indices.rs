@@ -187,23 +187,23 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 fn compute_index(index: &Index, expr: Expr) -> Expr {
     match &*index.name {
-        "Saturated" => col(FATTY_ACID).fatty_acid().saturated(expr),
-        "Monounsaturated" => col(FATTY_ACID).fatty_acid().monounsaturated(expr),
-        "Polyunsaturated" => col(FATTY_ACID).fatty_acid().polyunsaturated(expr),
-        "Unsaturated" => col(FATTY_ACID).fatty_acid().unsaturated(expr, None),
+        "Saturated" => col(FATTY_ACID).fatty_acid().sum_saturated(expr),
+        "Monounsaturated" => col(FATTY_ACID).fatty_acid().sum_monounsaturated(expr),
+        "Polyunsaturated" => col(FATTY_ACID).fatty_acid().sum_polyunsaturated(expr),
+        "Unsaturated" => col(FATTY_ACID).fatty_acid().sum_unsaturated(expr, None),
         "Unsaturated-9" => col(FATTY_ACID)
             .fatty_acid()
-            .unsaturated(expr, NonZeroI8::new(-9)),
+            .sum_unsaturated(expr, NonZeroI8::new(-9)),
         "Unsaturated-6" => col(FATTY_ACID)
             .fatty_acid()
-            .unsaturated(expr, NonZeroI8::new(-6)),
+            .sum_unsaturated(expr, NonZeroI8::new(-6)),
         "Unsaturated-3" => col(FATTY_ACID)
             .fatty_acid()
-            .unsaturated(expr, NonZeroI8::new(-3)),
+            .sum_unsaturated(expr, NonZeroI8::new(-3)),
         "Unsaturated9" => col(FATTY_ACID)
             .fatty_acid()
-            .unsaturated(expr, NonZeroI8::new(9)),
-        "Trans" => col(FATTY_ACID).fatty_acid().trans(expr),
+            .sum_unsaturated(expr, NonZeroI8::new(9)),
+        "Trans" => col(FATTY_ACID).fatty_acid().sum_trans(expr),
         "EicosapentaenoicAndDocosahexaenoic" => col(FATTY_ACID)
             .fatty_acid()
             .eicosapentaenoic_and_docosahexaenoic(expr),

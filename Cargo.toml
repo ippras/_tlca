@@ -1,31 +1,31 @@
 [package]
 name = "tlca"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Giorgi Vladimirovich Kazakov", "Roman Alexandrovich Sidorov"]
 edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
-const_format = "0.2.35"
-eframe = { version = "0.33.3", features = [
+const_format = "0.2.36"
+eframe = { version = "0.34.2", features = [
     "accesskit",
     "default_fonts",
     "glow",
     "persistence",
     "wayland",
 ] }
-egui = "0.33.3"
-egui-phosphor = "0.11.0"
-egui_dnd = "0.14.0"
-egui_extras = { version = "0.33.3", features = ["datepicker", "serde", "svg"] }
-egui_table = "0.7.0"
-egui_tiles = "0.14.1"
-ehttp = { version = "0.6.0", features = ["native-async"] }
+egui = "0.34.2"
+egui-phosphor = "0.12.0"
+egui_dnd = "0.15.0"
+egui_extras = { version = "0.34.2", features = ["datepicker", "serde", "svg"] }
+egui_table = "0.8.0"
+egui_tiles = "0.15.0"
+ehttp = { version = "0.7.1", features = ["native-async"] }
 itertools = "0.14.0"
-log = "0.4.29"
-ordered-float = { version = "5.1.0", features = ["serde"] }
+log = "0.4.30"
+ordered-float = { version = "5.3.0", features = ["serde"] }
 parking_lot = "0.12.5"
-polars = { git = "https://github.com/pola-rs/polars", rev = "099564e", default-features = false, features = [
+polars = { git = "https://github.com/pola-rs/polars", rev = "bf6a425", default-features = false, features = [
     "array_arithmetic",
     "bitwise",
     "concat_str",
@@ -55,30 +55,31 @@ polars = { git = "https://github.com/pola-rs/polars", rev = "099564e", default-f
     # "ipc",
 ] }
 polars-utils = { version = "0.53.0", features = ["nightly"] }
-ron = "0.12.0"
-semver = { version = "1.0.27", features = ["serde"] }
+ron = "0.12.1"
+semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive", "std"] }
 tracing = "0.1.44"
 unic-langid = { version = "0.9.6", features = ["macros"] }
 url = { version = "2.5.8", features = ["serde"] }
 urlencoding = "2.1.3"
 
-egui_ext = { git = "https://github.com/kgv/egui_ext" }
-egui_l20n = { git = "https://github.com/kgv/egui_l20n", features = ["macros"] }
-egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext" }
-lipid = { git = "https://github.com/ippras/lipid", branch = "099564e" }
-metadata = { git = "https://github.com/ippras/metadata", branch = "099564e", features = [
+egui_ext = { git = "https://github.com/kgv/egui_ext", branch = "0.6" }
+egui_l20n = { git = "https://github.com/kgv/egui_l20n", branch = "0.6", features = [
+    "macros",
+] }
+egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "0.4" }
+fatty_acid_names_l10n = { git = "https://github.com/ippras/fatty_acid_names_l10n" }
+lipid = { git = "https://github.com/ippras/lipid", branch = "bf6a425" }
+metadata = { git = "https://github.com/ippras/metadata", branch = "bf6a425", features = [
     "egui",
     "polars",
 ] }
-polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "099564e" }
+polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "0.6", features = [
+    "array",
+] }
 
 maplit = "*"
 
-# scirs2 = { version = "0.1.0-rc.1", default-features = false, features = [
-#     "stats",
-# ] }
-# scirs2 = "0.1.0-rc.1"
 # linfa = "0.7.1"
 # linfa-hierarchical = "0.7.1"
 # linfa-kernel = "0.7.1"
@@ -87,7 +88,7 @@ maplit = "*"
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 poll-promise = { version = "0.3.0", features = ["tokio"] }
-tokio = { version = "1.50.0", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # web
@@ -98,8 +99,8 @@ getrandom = { version = "0.4.2", default-features = false, features = [
 ] }
 poll-promise = { version = "0.3.0", features = ["web"] }
 tracing-wasm = "0.2.1"
-wasm-bindgen-futures = "0.4.64"
-web-sys = "0.3.91"
+wasm-bindgen-futures = "0.4.72"
+web-sys = "0.3.99"
 
 [features]
 default = []

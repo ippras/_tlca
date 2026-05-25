@@ -106,10 +106,10 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 fn label(key: Key) -> PolarsResult<Expr> {
     Ok(match key.composition {
-        ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", [col(COMPOSITION)])?,
+        ECN_MONO | MASS_MONO | UNSATURATION_MONO => format_str("({})", &[col(COMPOSITION)])?,
         SPECIES_MONO | TYPE_MONO => format_str(
             "[{}/3;{}/3;{}/3]",
-            [
+            &[
                 col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number2(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number3(),
@@ -118,7 +118,7 @@ fn label(key: Key) -> PolarsResult<Expr> {
         ECN_STEREO | MASS_STEREO | SPECIES_STEREO | TYPE_STEREO | UNSATURATION_STEREO => {
             format_str(
                 "[{};{};{}]",
-                [
+                &[
                     col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                     col(COMPOSITION).triacylglycerol().stereospecific_number2(),
                     col(COMPOSITION).triacylglycerol().stereospecific_number3(),
@@ -127,7 +127,7 @@ fn label(key: Key) -> PolarsResult<Expr> {
         }
         SPECIES_POSITIONAL | TYPE_POSITIONAL => format_str(
             "[{}/2;{};{}/2]",
-            [
+            &[
                 col(COMPOSITION).triacylglycerol().stereospecific_number1(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number2(),
                 col(COMPOSITION).triacylglycerol().stereospecific_number3(),
@@ -164,7 +164,7 @@ fn species(key: Key) -> PolarsResult<Expr> {
                 let label = element().struct_().field_by_name(LABEL);
                 format_str(
                     "[{};{};{}]",
-                    [
+                    &[
                         label.clone().triacylglycerol().stereospecific_number1(),
                         label.clone().triacylglycerol().stereospecific_number2(),
                         label.triacylglycerol().stereospecific_number3(),
@@ -179,28 +179,28 @@ fn species(key: Key) -> PolarsResult<Expr> {
                     .triacylglycerol();
                 format_str(
                     "[{};{};{}]",
-                    [
+                    &[
                         triacylglycerol
                             .clone()
                             .stereospecific_number1()
                             .fatty_acid()
-                            .format(),
+                            .display(),
                         triacylglycerol
                             .clone()
                             .stereospecific_number2()
                             .fatty_acid()
-                            .format(),
+                            .display(),
                         triacylglycerol
                             .stereospecific_number3()
                             .fatty_acid()
-                            .format(),
+                            .display(),
                     ],
                 )?
                 .alias(TRIACYLGLYCEROL)
             },
             format_str(
                 "[{}]",
-                [element()
+                &[element()
                     .struct_()
                     .field_by_name("Values")
                     .list()

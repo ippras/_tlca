@@ -49,6 +49,7 @@ impl TableView<'_> {
                 .caches
                 .cache::<TriacylglycerolsComputed>()
                 .get(TriacylglycerolsKey::new(self.source, &self.state.settings))
+                .clone()
         });
         let id_salt = Id::new(ID_SOURCE).with("Table");
         if self.state.event.reset_table_state {
@@ -161,6 +162,7 @@ impl TableView<'_> {
                         .caches
                         .cache::<FormatComputed>()
                         .get(FormatKey::new(&self.target, &self.state.settings))
+                        .clone()
                 });
                 if let Some(label) = data_frame[LABEL].str()?.get(row) {
                     let response = Label::new(label).sense(Sense::click()).ui(ui);
@@ -177,6 +179,7 @@ impl TableView<'_> {
                         .caches
                         .cache::<FormatComputed>()
                         .get(FormatKey::new(&self.target, &self.state.settings))
+                        .clone()
                 });
                 MeanAndStandardDeviation::new(&data_frame, column.start, row)
                     .with_standard_deviation(self.state.settings.standard_deviation)
@@ -189,6 +192,7 @@ impl TableView<'_> {
                         .caches
                         .cache::<FormatComputed>()
                         .get(FormatKey::new(&self.target, &self.state.settings))
+                        .clone()
                 });
                 let response = ui.button(LIST).try_on_hover_ui(|ui| -> PolarsResult<()> {
                     ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
@@ -214,6 +218,7 @@ impl TableView<'_> {
                     .caches
                     .cache::<FormatComputed>()
                     .get(FormatKey::new(&self.target, &self.state.settings))
+                    .clone()
             });
             MeanAndStandardDeviation::new(&data_frame, column.start, data_frame.height() - 1)
                 .with_standard_deviation(self.state.settings.standard_deviation)

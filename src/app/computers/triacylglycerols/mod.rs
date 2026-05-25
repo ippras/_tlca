@@ -126,17 +126,22 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         ECN_STEREO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
             .map(|expr| expr.fatty_acid().equivalent_carbon_number()),
-        SPECIES_MONO => col(LABEL).triacylglycerol().non_stereospecific(identity),
-        SPECIES_POSITIONAL => col(LABEL).triacylglycerol().positional(identity),
+        SPECIES_MONO => col(LABEL).triacylglycerol().permutate(identity, None),
+        SPECIES_POSITIONAL => col(LABEL)
+            .triacylglycerol()
+            .permutate(identity, Some(Stereospecificity::Positional)),
         SPECIES_STEREO => col(LABEL),
         TYPE_MONO => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .non_stereospecific(|expr| expr.fatty_acid().is_saturated().not())
+            .permutate(|expr| expr.fatty_acid().is_saturated().not(), None)
             .triacylglycerol()
             .map(|expr| expr.fatty_acid().r#type()),
         TYPE_POSITIONAL => col(TRIACYLGLYCEROL)
             .triacylglycerol()
-            .positional(|expr| expr.fatty_acid().is_saturated().not())
+            .permutate(
+                |expr| expr.fatty_acid().is_saturated().not(),
+                Some(Stereospecificity::Positional),
+            )
             .triacylglycerol()
             .map(|expr| expr.fatty_acid().r#type()),
         TYPE_STEREO => col(TRIACYLGLYCEROL)

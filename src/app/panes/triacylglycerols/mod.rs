@@ -43,7 +43,8 @@ impl Pane {
     }
 
     pub(super) fn title(&self) -> String {
-        format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
+        String::new()
+        // format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
     }
 
     fn id(&self) -> impl Display {
@@ -229,12 +230,14 @@ impl Pane {
                 .caches
                 .cache::<TriacylglycerolsComputed>()
                 .get(TriacylglycerolsKey::new(&self.frames, settings))
+                .clone()
         });
         let data_frame = ui.memory_mut(|memory| {
             memory
                 .caches
                 .cache::<MetricsComputed>()
                 .get(MetricsKey::new(&frame, &settings))
+                .clone()
         });
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())
@@ -260,12 +263,17 @@ impl Pane {
                 .caches
                 .cache::<TriacylglycerolsComputed>()
                 .get(TriacylglycerolsKey::new(&self.frames, settings))
+                .clone()
         });
         let data_frame = ui.memory_mut(|memory| {
-            memory.caches.cache::<MomentsComputed>().get(MomentsKey {
-                frame: &frame,
-                bias: settings.bias,
-            })
+            memory
+                .caches
+                .cache::<MomentsComputed>()
+                .get(MomentsKey {
+                    frame: &frame,
+                    bias: settings.bias,
+                })
+                .clone()
         });
         _ = Moments::new(&data_frame, settings).show(ui);
         Ok(())

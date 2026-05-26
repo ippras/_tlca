@@ -5,7 +5,7 @@ use crate::{
         computers::matches_schema,
         states::fatty_acids::settings::{Settings, Sort, StereospecificNumbers, Threshold},
     },
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -212,13 +212,13 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .field_by_name(MEAN)
         .fill_null(0)
         .gt_eq(key.threshold.auto.0)])?;
-    lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
+    lazy_frame = lazy_frame.with_column(predicate.alias(FILTER));
     if key.threshold.filter {
-        lazy_frame = lazy_frame.filter(col(THRESHOLD));
+        lazy_frame = lazy_frame.filter(col(FILTER));
     }
     if key.threshold.sort {
         lazy_frame = lazy_frame.sort(
-            [THRESHOLD],
+            [FILTER],
             SortMultipleOptions::new()
                 .with_maintain_order(true)
                 .with_order_descending(true),

@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Filter, Settings, StereospecificNumbers},
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, FILTER},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -65,7 +65,7 @@ type Value = DataFrame;
 /// Unnest
 fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([all()
-        .exclude_cols([LABEL, FATTY_ACID, THRESHOLD])
+        .exclude_cols([LABEL, FATTY_ACID, FILTER])
         .as_expr()
         .struct_()
         .field_by_name(key.stereospecific_numbers.id())
@@ -75,7 +75,7 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Filter
 fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let expr = all().exclude_cols([LABEL, FATTY_ACID, THRESHOLD]).as_expr();
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr();
     lazy_frame = lazy_frame.filter(match key.filter {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
@@ -102,7 +102,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .data_frame
         .get_column_names()
         .into_iter()
-        .filter(|&name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD))
+        .filter(|&name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
     {
         let name = name.as_str();
         exprs.push(
@@ -117,7 +117,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .alias(name),
         );
         let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |expr| {
-            expr.filter(THRESHOLD).sum()
+            expr.filter(FILTER).sum()
         })?;
         sum.push(
             as_struct(vec![
@@ -131,7 +131,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .alias(name),
         );
     }
-    exprs.push(col(THRESHOLD));
+    exprs.push(col(FILTER));
     concat_lf_diagonal(
         [lazy_frame.clone().select(exprs), lazy_frame.select(sum)],
         UnionArgs::default(),

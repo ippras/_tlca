@@ -3,13 +3,13 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
     },
-    r#const::THRESHOLD,
+    r#const::FILTER,
 };
 use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widget};
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
-use fatty_acid_names_l10n::egui::Name;
+use fatty_acid_names_l10n::egui::{Name, Names};
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
@@ -103,8 +103,8 @@ impl TableView<'_> {
         row: usize,
         column: Range<usize>,
     ) -> PolarsResult<()> {
-        if let Some(threshold) = self.data_frame[THRESHOLD].bool()?.get(row)
-            && !threshold
+        if let Some(filter) = self.data_frame[FILTER].bool()?.get(row)
+            && !filter
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
@@ -113,17 +113,14 @@ impl TableView<'_> {
                 ui.label(row.to_string());
             }
             (row, top::LABEL) => {
-                // if let Some(label) = self.data_frame[LABEL].str()?.get(row) {
-                //     let response = ui.label(label);
-                //     if response.hovered()
-                //         && let Some(fatty_acid) = self.data_frame[FATTY_ACID].str()?.get(row)
-                //     {
-                //         response.on_hover_ui(|ui| {
-                //             ui.set_max_width(ui.spacing().tooltip_width);
-                //             ui.label(fatty_acid);
-                //         });
-                //     }
-                // }
+                let text = self.data_frame[LABEL].str()?.get(row).display().to_string();
+                let mut label = Label::new(text);
+                if self.state.settings.truncate {
+                    label = label.truncate();
+                }
+                label.ui(ui);
+            }
+            (row, top::FATTY_ACID) => {
                 let id = self
                     .data_frame
                     .try_fatty_acid()?
@@ -131,22 +128,21 @@ impl TableView<'_> {
                     .get(row)
                     .display()
                     .to_string();
-                let text = self.data_frame[LABEL].str()?.get(row).display().to_string();
-                Name::builder()
-                    .id(&id)
-                    .readable()
-                    .text(&text)
-                    .build()
-                    .ui(ui);
-            }
-            (row, top::FATTY_ACID) => {
-                if let Some(fatty_acid) = self.data_frame.try_fatty_acid()?.delta()?.get(row) {
-                    let mut label = Label::new(fatty_acid);
-                    if self.state.settings.truncate {
-                        label = label.truncate();
-                    }
-                    label.ui(ui);
+                let text = self
+                    .data_frame
+                    .try_fatty_acid()?
+                    .delta()?
+                    .get(row)
+                    .display()
+                    .to_string();
+                let mut label = Label::new(text);
+                if self.state.settings.truncate {
+                    label = label.truncate();
                 }
+                let response = label.ui(ui);
+                response.on_hover_ui(|ui| {
+                    Names::builder().id(&id).build().ui(ui);
+                });
             }
             (row, column) => {
                 Float64Array::builder()

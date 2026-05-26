@@ -14,7 +14,7 @@ pub(crate) const MEAN: &str = "Mean";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const SPECIES: &str = "Species";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
-pub(crate) const THRESHOLD: &str = "Threshold";
+pub(crate) const FILTER: &str = "Threshold";
 pub(crate) const VALUE: &str = "Value";
 
 pub(crate) mod markdown {

@@ -1,0 +1,145 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2026-05-26T10:30:54+03:00\n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/SUMMARY.md:1
+msgid "Summary"
+msgstr ""
+
+#: src/SUMMARY.md:3 src/index.md:1
+msgid "Introduction"
+msgstr ""
+
+#: src/SUMMARY.md:5
+msgid "Correlations"
+msgstr ""
+
+#: src/SUMMARY.md:6 src/Moments/Pearson.md:1
+msgid "Pearson"
+msgstr ""
+
+#: src/SUMMARY.md:7 src/Moments/Spearman.md:1
+msgid "Spearman"
+msgstr ""
+
+#: src/SUMMARY.md:9 src/Metrics/index.md:1
+msgid "Metrics"
+msgstr ""
+
+#: src/SUMMARY.md:11 src/Moments/index.md:1
+msgid "Moments"
+msgstr ""
+
+#: src/SUMMARY.md:12 src/Moments/Kurtosis.md:1
+msgid "Kurtosis"
+msgstr ""
+
+#: src/SUMMARY.md:13 src/Moments/Skewness.md:1
+msgid "Skewness"
+msgstr ""
+
+#: src/Correlations/index.md:1
+msgid "Correlation"
+msgstr ""
+
+#: src/Correlations/index.md:3
+msgid "Links"
+msgstr ""
+
+#: src/Correlations/index.md:5
+msgid ""
+"[Что такое корреляция и как её "
+"интерпретировать](https://practicum.yandex.ru/blog/korrelyaciya-v-analize-dannyh/)"
+msgstr ""
+
+#: src/Correlations/index.md:7
+msgid "[Ложная корреляция](https://www.tylervigen.com/spurious-correlations)"
+msgstr ""
+
+#: src/Correlations/index.md:9
+msgid ""
+"Коэффициент Пирсона — он проверяет, на сколько две переменные растут по "
+"прямой линии."
+msgstr ""
+
+#: src/Correlations/index.md:11
+msgid ""
+"Коэффициент Крамера, который показывает, есть ли связь между двумя "
+"категориальными переменными. Категориальные данные — факторы, которые нельзя "
+"представить в виде числа: марка телефона, цвет машины, город, страна и т. д."
+msgstr ""
+
+#: src/Moments/Kurtosis.md:3
+msgid ""
+"$$\\tilde{\\mu}\\_4 = \\frac{\\mu_4}{\\mu_3^{4/2}} = "
+"\\frac{\\mu_4}{\\sigma^4} = \\frac{\\operatorname{E}\\[(X - "
+"\\mu)^4\\]}{(\\operatorname{E}\\[(X - \\mu)^2\\])^{4/2}}$$"
+msgstr ""
+
+#: src/Moments/Kurtosis.md:5
+msgid ""
+"**Description**: The fourth [standardized "
+"moment](https://en.wikipedia.org/wiki/Standardized_moment) refers to the "
+"kurtosis."
+msgstr ""
+
+#: src/Moments/Kurtosis.md:6 src/Moments/Skewness.md:6
+msgid "**Interpretation**:"
+msgstr ""
+
+#: src/Moments/Kurtosis.md:7
+msgid "`< 0`: ;"
+msgstr ""
+
+#: src/Moments/Kurtosis.md:8
+msgid "`= 0`: ;"
+msgstr ""
+
+#: src/Moments/Kurtosis.md:9
+msgid "`> 0`: ."
+msgstr ""
+
+#: src/Moments/Kurtosis.md:11
+msgid "[wikipedia.org](https://en.wikipedia.org/wiki/Kurtosis)"
+msgstr ""
+
+#: src/Moments/Skewness.md:3
+msgid ""
+"$$\\tilde{\\mu}\\_3 = \\frac{\\mu_3}{\\mu_2^{3/2}} = "
+"\\frac{\\mu_3}{\\sigma^3} = \\frac{\\operatorname{E}\\[(X - "
+"\\mu)^3\\]}{(\\operatorname{E}\\[(X - \\mu)^2\\])^{3/2}}$$"
+msgstr ""
+
+#: src/Moments/Skewness.md:5
+msgid ""
+"**Description**: The third [standardized "
+"moment](https://en.wikipedia.org/wiki/Standardized_moment) is a measure of "
+"skewness."
+msgstr ""
+
+#: src/Moments/Skewness.md:7
+msgid "`< 0` ;"
+msgstr ""
+
+#: src/Moments/Skewness.md:8
+msgid "`= 0` ;"
+msgstr ""
+
+#: src/Moments/Skewness.md:9
+msgid "`> 0` ."
+msgstr ""
+
+#: src/Moments/Skewness.md:11
+msgid "[wikipedia.org](https://en.wikipedia.org/wiki/Skewness)"
+msgstr ""
+

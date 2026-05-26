@@ -3,8 +3,8 @@
 [Introduction](README.md)
 
 - [Correlations](./Correlations/README.md)
-  - [Pearson](./Moments/Pearson.md)
-  - [Spearman](./Moments/Spearman.md)
+  - [Pearson](./Correlations/Pearson.md)
+  - [Spearman](./Correlations/Spearman.md)
 
 - [Metrics](./Metrics/README.md)
 

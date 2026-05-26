@@ -3,10 +3,10 @@ use super::{Behavior, MARGIN};
 use crate::{
     app::{
         computers::fatty_acids::{
-            Computed as FattyAcidsComputed, Key as FattyAcidsKey,
             factors::{Computed as FactorsComputed, Key as FactorsKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
+            process::{Computed as FattyAcidsComputed, Key as FattyAcidsKey},
             table::{Computed as TableComputed, Key as TableKey},
         },
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},

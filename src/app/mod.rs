@@ -5,6 +5,7 @@ use self::{
 };
 use crate::{
     app::{
+        computers::fatty_acids::process::INPUT_SCHEMA as FATTY_ACIDS_INPUT_SCHEMA,
         states::State,
         widgets::{
             about::About,
@@ -318,7 +319,26 @@ impl App {
     }
 
     fn data(&mut self, ctx: &Context, state: &mut State) {
-        const COMPOSITION: LazyLock<SchemaRef> = LazyLock::new(|| {
+        // const FATTY_ACIDS: LazyLock<SchemaRef> = LazyLock::new(|| {
+        //     Arc::new(Schema::from_iter([
+        //         Field::new(PlSmallStr::from_static(LABEL), DataType::String),
+        //         field!(FATTY_ACID),
+        //         Field::new(
+        //             PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS123),
+        //             DataType::Array(Box::new(DataType::Float64), 0),
+        //         ),
+        //         Field::new(
+        //             PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS13),
+        //             DataType::Array(Box::new(DataType::Float64), 0),
+        //         ),
+        //         Field::new(
+        //             PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS2),
+        //             DataType::Array(Box::new(DataType::Float64), 0),
+        //         ),
+        //     ]))
+        // });
+
+        const TRIACYLGLYCEROLS: LazyLock<SchemaRef> = LazyLock::new(|| {
             Arc::new(Schema::from_iter([
                 field!(LABEL[DataType::String]),
                 field!(TRIACYLGLYCEROL[data_type!(FATTY_ACID)]),
@@ -329,34 +349,21 @@ impl App {
             ]))
         });
 
-        const CACLULATION: LazyLock<SchemaRef> = LazyLock::new(|| {
-            Arc::new(Schema::from_iter([
-                Field::new(PlSmallStr::from_static(LABEL), DataType::String),
-                field!(FATTY_ACID),
-                Field::new(
-                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS123),
-                    DataType::Array(Box::new(DataType::Float64), 0),
-                ),
-                Field::new(
-                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS13),
-                    DataType::Array(Box::new(DataType::Float64), 0),
-                ),
-                Field::new(
-                    PlSmallStr::from_static(STEREOSPECIFIC_NUMBERS2),
-                    DataType::Array(Box::new(DataType::Float64), 0),
-                ),
-            ]))
-        });
-
         if let Some(frames) =
             ctx.data_mut(|data| data.remove_temp::<Vec<HashedMetaDataFrame>>(Id::new("Data")))
         {
             for frame in frames {
                 let schema = frame.data.schema();
-                if COMPOSITION.matches_schema(schema).is_ok_and(|cast| !cast) {
+                if TRIACYLGLYCEROLS
+                    .matches_schema(schema)
+                    .is_ok_and(|cast| !cast)
+                {
                     info!("COMPOSITION");
                     self.data.triacylglycerols.add(frame);
-                } else if CACLULATION.matches_schema(schema).is_ok_and(|cast| !cast) {
+                } else if FATTY_ACIDS_INPUT_SCHEMA
+                    .matches_schema(schema)
+                    .is_ok_and(|cast| !cast)
+                {
                     info!("CACLULATION");
                     self.data.fatty_acids.add(frame);
                 } else {

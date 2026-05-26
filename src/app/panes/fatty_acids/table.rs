@@ -15,9 +15,7 @@ use polars::prelude::*;
 use std::ops::Range;
 use tracing::instrument;
 
-const INDEX: Range<usize> = 0..1;
-const ID: Range<usize> = INDEX.end..INDEX.end + 1;
-const LEN: usize = ID.end;
+const NUM_COLUMNS: usize = top::ID.end;
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -43,7 +41,7 @@ impl TableView<'_> {
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         let num_rows = self.data_frame.height() as u64;
         let value = self.data_frame.width() - 3;
-        let num_columns = LEN + value;
+        let num_columns = NUM_COLUMNS + value;
         Table::new()
             .id_salt(id_salt)
             .num_rows(num_rows)
@@ -56,7 +54,7 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: vec![INDEX, ID, LEN..num_columns],
+                    groups: vec![top::INDEX, top::ID, NUM_COLUMNS..num_columns],
                 },
                 HeaderRow::new(height),
             ])
@@ -64,24 +62,24 @@ impl TableView<'_> {
         Ok(())
     }
 
-    fn header_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
+    fn header(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
         if self.state.settings.truncate {
             ui.style_mut().wrap_mode = Some(TextWrapMode::Truncate);
         }
         match (row, column) {
             // Top
-            (0, INDEX) => {
+            (0, top::INDEX) => {
                 ui.heading(HASH);
             }
-            (0, ID) => {
+            (0, top::ID) => {
                 ui.heading(ui.localize("Label"));
             }
             (0, _) => {
                 ui.heading(ui.localize("Value"));
             }
             // Bottom
-            (1, INDEX) => {}
-            (1, ID) => {}
+            (1, top::INDEX) => {}
+            (1, top::ID) => {}
             (1, column) => {
                 ui.heading(self.data_frame[column.start].name().to_string());
             }
@@ -100,11 +98,11 @@ impl TableView<'_> {
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
-        match (row, &column) {
-            (row, &INDEX) if row + 1 < self.data_frame.height() => {
+        match (row, column) {
+            (row, top::INDEX) if row + 1 < self.data_frame.height() => {
                 ui.label(row.to_string());
             }
-            (row, &ID) => {
+            (row, top::ID) => {
                 if let Some(label) = self.data_frame[LABEL].str()?.get(row) {
                     let response = ui.label(label);
                     if response.hovered()
@@ -126,58 +124,6 @@ impl TableView<'_> {
         }
         Ok(())
     }
-
-    // fn mean_and_standard_deviation(
-    //     &self,
-    //     ui: &mut Ui,
-    //     column: usize,
-    //     row: usize,
-    // ) -> PolarsResult<Response> {
-    //     let mean_series = self.data_frame[column].struct_()?.field_by_name(MEAN)?;
-    //     let mean = mean_series.str()?.get(row);
-    //     let standard_deviation_series = self.data_frame[column]
-    //         .struct_()?
-    //         .field_by_name(STANDARD_DEVIATION)?;
-    //     let standard_deviation = standard_deviation_series.str()?.get(row);
-    //     let text = match mean {
-    //         Some(mean)
-    //             if self.state.settings.standard_deviation
-    //                 && let Some(standard_deviation) = standard_deviation =>
-    //         {
-    //             WidgetText::from(format!("{mean} {standard_deviation}"))
-    //         }
-    //         Some(mean) => WidgetText::from(mean.to_string()),
-    //         None => WidgetText::from(EM_DASH),
-    //     };
-    //     let mut response = ui.label(text);
-    //     if response.hovered() {
-    //         // Standard deviation
-    //         if let Some(text) = standard_deviation {
-    //             response = response.on_hover_ui(|ui| {
-    //                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-    //                 ui.heading(ui.localize(STANDARD_DEVIATION));
-    //                 ui.label(text);
-    //             });
-    //         }
-    //     }
-    //     Ok(response)
-    // }
-
-    // fn with_array(&self, ui: &mut Ui, column: usize, row: usize) -> PolarsResult<Response> {
-    //     let mut response = self.mean_and_standard_deviation(ui, column, row)?;
-    //     if response.hovered() {
-    //         // Array
-    //         let array_series = self.data_frame[column].struct_()?.field_by_name(SAMPLE)?;
-    //         if let Some(text) = array_series.str()?.get(row) {
-    //             response = response.on_hover_ui(|ui| {
-    //                 ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-    //                 ui.heading(ui.localize(SAMPLE));
-    //                 ui.label(text);
-    //             });
-    //         }
-    //     }
-    //     Ok(response)
-    // }
 }
 
 impl TableDelegate for TableView<'_> {
@@ -185,7 +131,7 @@ impl TableDelegate for TableView<'_> {
         Frame::new()
             .inner_margin(Margin::from(MARGIN))
             .show(ui, |ui| {
-                self.header_cell_content_ui(ui, cell.row_nr, cell.col_range.clone())
+                self.header(ui, cell.row_nr, cell.col_range.clone())
             });
     }
 
@@ -202,6 +148,13 @@ impl TableDelegate for TableView<'_> {
     }
 
     fn row_top_offset(&self, ctx: &Context, _table_id: Id, row: u64) -> f32 {
-        row as f32 * (ctx.style().spacing.interact_size.y + 2.0 * MARGIN.y)
+        row as f32 * (ctx.global_style().spacing.interact_size.y + 2.0 * MARGIN.y)
     }
+}
+
+mod top {
+    use super::*;
+
+    pub(super) const INDEX: Range<usize> = 0..1;
+    pub(super) const ID: Range<usize> = INDEX.end..INDEX.end + 1;
 }

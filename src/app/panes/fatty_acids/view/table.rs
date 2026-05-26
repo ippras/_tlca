@@ -2,36 +2,38 @@ use crate::{
     app::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
-        widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
     r#const::THRESHOLD,
 };
-use egui::{Context, Frame, Id, Margin, TextStyle, TextWrapMode, Ui};
+use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widget};
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
+use fatty_acid_names_l10n::egui::Name;
 use lipid::prelude::*;
 use polars::prelude::*;
+use polars_ext::prelude::*;
 use std::ops::Range;
 use tracing::instrument;
+use widgets::polars::array::Float64Array;
 
-const NUM_COLUMNS: usize = top::ID.end;
+const NUM_COLUMNS: usize = top::FATTY_ACID.end;
 
 /// Table view
-pub(super) struct TableView<'a> {
+pub(crate) struct TableView<'a> {
     data_frame: &'a DataFrame,
     state: &'a mut State,
 }
 
 impl<'a> TableView<'a> {
-    pub(super) fn new(data_frame: &'a DataFrame, state: &'a mut State) -> Self {
+    pub(crate) fn new(data_frame: &'a DataFrame, state: &'a mut State) -> Self {
         Self { data_frame, state }
     }
 }
 
 impl TableView<'_> {
     #[instrument(skip(self, ui), err)]
-    pub(super) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
+    pub(crate) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
         let id_salt = Id::new(ID_SOURCE).with("Table");
         if self.state.reset_table_state {
             let id = TableState::id(ui, Id::new(id_salt));
@@ -39,6 +41,7 @@ impl TableView<'_> {
             self.state.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
+        println!("self.data_frame: {:?}", self.data_frame);
         let num_rows = self.data_frame.height() as u64;
         let value = self.data_frame.width() - 3;
         let num_columns = NUM_COLUMNS + value;
@@ -54,7 +57,12 @@ impl TableView<'_> {
             .headers([
                 HeaderRow {
                     height,
-                    groups: vec![top::INDEX, top::ID, NUM_COLUMNS..num_columns],
+                    groups: vec![
+                        top::INDEX,
+                        top::LABEL,
+                        top::FATTY_ACID,
+                        NUM_COLUMNS..num_columns,
+                    ],
                 },
                 HeaderRow::new(height),
             ])
@@ -71,17 +79,19 @@ impl TableView<'_> {
             (0, top::INDEX) => {
                 ui.heading(HASH);
             }
-            (0, top::ID) => {
-                ui.heading(ui.localize("Label"));
+            (0, top::LABEL) => {
+                ui.heading(ui.localize(LABEL));
+            }
+            (0, top::FATTY_ACID) => {
+                ui.heading(ui.localize(FATTY_ACID));
             }
             (0, _) => {
                 ui.heading(ui.localize("Value"));
             }
             // Bottom
-            (1, top::INDEX) => {}
-            (1, top::ID) => {}
+            (1, top::INDEX | top::LABEL | top::FATTY_ACID) => {}
             (1, column) => {
-                ui.heading(self.data_frame[column.start].name().to_string());
+                ui.heading(self.data_frame[column.start - 1].name().to_string());
             }
             _ => {}
         };
@@ -99,26 +109,52 @@ impl TableView<'_> {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
         match (row, column) {
-            (row, top::INDEX) if row + 1 < self.data_frame.height() => {
+            (row, top::INDEX) => {
                 ui.label(row.to_string());
             }
-            (row, top::ID) => {
-                if let Some(label) = self.data_frame[LABEL].str()?.get(row) {
-                    let response = ui.label(label);
-                    if response.hovered()
-                        && let Some(fatty_acid) = self.data_frame[FATTY_ACID].str()?.get(row)
-                    {
-                        response.on_hover_ui(|ui| {
-                            ui.set_max_width(ui.spacing().tooltip_width);
-                            ui.label(fatty_acid);
-                        });
+            (row, top::LABEL) => {
+                // if let Some(label) = self.data_frame[LABEL].str()?.get(row) {
+                //     let response = ui.label(label);
+                //     if response.hovered()
+                //         && let Some(fatty_acid) = self.data_frame[FATTY_ACID].str()?.get(row)
+                //     {
+                //         response.on_hover_ui(|ui| {
+                //             ui.set_max_width(ui.spacing().tooltip_width);
+                //             ui.label(fatty_acid);
+                //         });
+                //     }
+                // }
+                let id = self
+                    .data_frame
+                    .try_fatty_acid()?
+                    .id()?
+                    .get(row)
+                    .display()
+                    .to_string();
+                let text = self.data_frame[LABEL].str()?.get(row).display().to_string();
+                Name::builder()
+                    .id(&id)
+                    .readable()
+                    .text(&text)
+                    .build()
+                    .ui(ui);
+            }
+            (row, top::FATTY_ACID) => {
+                if let Some(fatty_acid) = self.data_frame.try_fatty_acid()?.delta()?.get(row) {
+                    let mut label = Label::new(fatty_acid);
+                    if self.state.settings.truncate {
+                        label = label.truncate();
                     }
+                    label.ui(ui);
                 }
             }
             (row, column) => {
-                MeanAndStandardDeviation::new(&self.data_frame, column.start, row)
-                    .with_standard_deviation(self.state.settings.standard_deviation)
-                    .with_sample(true)
+                Float64Array::builder()
+                    .series(&self.data_frame[column.start - 1].as_materialized_series())
+                    .row(row)
+                    .mean(self.state.settings.mean())
+                    .standard_deviation(self.state.settings.std())
+                    .build()
                     .show(ui)?;
             }
         }
@@ -156,5 +192,7 @@ mod top {
     use super::*;
 
     pub(super) const INDEX: Range<usize> = 0..1;
-    pub(super) const ID: Range<usize> = INDEX.end..INDEX.end + 1;
+    pub(super) const LABEL: Range<usize> = INDEX.end..INDEX.end + 1;
+    pub(super) const FATTY_ACID: Range<usize> = LABEL.end..LABEL.end + 1;
+    // pub(super) const ID: Range<usize> = INDEX.end..INDEX.end + 1;
 }

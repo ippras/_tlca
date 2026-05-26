@@ -20,7 +20,7 @@ impl Computer {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         lazy_frame = unnest(lazy_frame, key);
         lazy_frame = filter(lazy_frame, key)?;
-        lazy_frame = format(lazy_frame, key)?;
+        // lazy_frame = format(lazy_frame, key)?;
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }

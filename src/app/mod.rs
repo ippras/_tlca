@@ -5,7 +5,7 @@ use self::{
 };
 use crate::{
     app::{
-        computers::fatty_acids::process::INPUT_SCHEMA as FATTY_ACIDS_INPUT_SCHEMA,
+        computers::fatty_acids::compute::INPUT_SCHEMA as FATTY_ACIDS_INPUT_SCHEMA,
         states::State,
         widgets::{
             about::About,

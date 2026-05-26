@@ -11,6 +11,7 @@ use crate::{
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
+use polars_ext::prelude::*;
 use tracing::instrument;
 
 /// Fatty acids computed
@@ -51,7 +52,7 @@ impl Computer {
         }
         let mut lazy_frame = join(key)?;
         println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = values(lazy_frame)?;
+        lazy_frame = values(lazy_frame, key)?;
         lazy_frame = threshold(lazy_frame, key)?;
         lazy_frame = sort(lazy_frame, key);
         let data_frame = lazy_frame.collect()?;
@@ -69,6 +70,10 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
+    pub(crate) ddof: u8,
+    pub(crate) percent: bool,
+    pub(crate) precision: usize,
+    pub(crate) significant: bool,
     pub(crate) sort: Option<Sort>,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: &'a Threshold,
@@ -78,6 +83,10 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &'a Settings) -> Self {
         Self {
             frames,
+            ddof: 1,
+            percent: settings.percent,
+            precision: settings.precision,
+            significant: settings.significant,
             sort: settings.sort,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: &settings.threshold,
@@ -119,34 +128,70 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 }
 
 /// Values
-fn values(mut lazy_frame: LazyFrame) -> PolarsResult<LazyFrame> {
+fn values(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     let exprs = schema
         .iter_names()
         .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID))
         .map(|name| {
-            let field = |stereospecific_numbers: &str| {
-                let expr = col(name.as_str())
-                    .struct_()
-                    .field_by_name(stereospecific_numbers);
-                let mean = expr.clone().arr().mean();
-                // TODO: DDOF
-                let standard_deviation = expr.clone().arr().std(1);
-                ternary_expr(
-                    mean.clone().neq(0),
-                    as_struct(vec![
-                        mean.alias(MEAN),
-                        standard_deviation.alias(STANDARD_DEVIATION),
-                        expr.alias(SAMPLE),
-                    ]),
-                    lit(NULL),
-                )
-                .alias(stereospecific_numbers)
-            };
+            // let field = |stereospecific_numbers: &str| {
+            //     let expr = col(name.as_str())
+            //         .struct_()
+            //         .field_by_name(stereospecific_numbers);
+            //     let mean = expr.clone().arr().mean();
+            //     // TODO: DDOF
+            //     let standard_deviation = expr.clone().arr().std(1);
+            //     ternary_expr(
+            //         mean.clone().neq(0),
+            //         as_struct(vec![
+            //             mean.alias(MEAN),
+            //             standard_deviation.alias(STANDARD_DEVIATION),
+            //             expr.alias(SAMPLE),
+            //         ]),
+            //         lit(NULL),
+            //     )
+            //     .alias(stereospecific_numbers)
+            // };
+            // as_struct(vec![
+            //     field(STEREOSPECIFIC_NUMBERS123),
+            //     field(STEREOSPECIFIC_NUMBERS13),
+            //     field(STEREOSPECIFIC_NUMBERS2),
+            // ])
+            // .alias(name.clone())
             as_struct(vec![
-                field(STEREOSPECIFIC_NUMBERS123),
-                field(STEREOSPECIFIC_NUMBERS13),
-                field(STEREOSPECIFIC_NUMBERS2),
+                Array::builder()
+                    .expr(
+                        col(name.as_str())
+                            .struct_()
+                            .field_by_name(STEREOSPECIFIC_NUMBERS123),
+                    )
+                    .ddof(key.ddof)
+                    .percent(false)
+                    .precision(key.precision)
+                    .significant(key.significant)
+                    .build(),
+                Array::builder()
+                    .expr(
+                        col(name.as_str())
+                            .struct_()
+                            .field_by_name(STEREOSPECIFIC_NUMBERS13),
+                    )
+                    .ddof(key.ddof)
+                    .percent(false)
+                    .precision(key.precision)
+                    .significant(key.significant)
+                    .build(),
+                Array::builder()
+                    .expr(
+                        col(name.as_str())
+                            .struct_()
+                            .field_by_name(STEREOSPECIFIC_NUMBERS2),
+                    )
+                    .ddof(key.ddof)
+                    .percent(false)
+                    .precision(key.precision)
+                    .significant(key.significant)
+                    .build(),
             ])
             .alias(name.clone())
         })

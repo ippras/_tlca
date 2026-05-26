@@ -1,3 +1,4 @@
+use self::mean_and_standard_deviation::MeanAndStandardDeviation;
 use crate::{
     app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
     r#const::markdown::*,
@@ -47,6 +48,8 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
+    // Display
+    pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     #[serde(skip)]
@@ -76,6 +79,8 @@ pub(crate) struct Settings {
 impl Settings {
     pub(crate) fn new() -> Self {
         Self {
+            // Display
+            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
             percent: true,
             precision: 1,
             resizable: false,
@@ -100,10 +105,23 @@ impl Settings {
             sort: None,
         }
     }
+
+    pub(crate) fn mean(&self) -> bool {
+        self.mean_and_standard_deviation.mean
+    }
+
+    pub(crate) fn std(&self) -> bool {
+        self.mean_and_standard_deviation.standard_deviation
+    }
+
+    pub(crate) fn ddof(&self) -> u8 {
+        self.mean_and_standard_deviation.ddof
+    }
 }
 
 impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
+        self.mean_and_standard_deviation.show(ui);
         self.precision(ui);
         self.significant(ui);
         self.percent(ui);
@@ -878,3 +896,5 @@ impl Threshold {
         });
     }
 }
+
+pub(crate) mod mean_and_standard_deviation;

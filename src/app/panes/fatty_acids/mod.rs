@@ -1,13 +1,13 @@
-use self::{factors::Factors, indices::Indices, metrics::Metrics, table::TableView};
+use self::{factors::Factors, indices::Indices, metrics::Metrics, view::table::TableView};
 use super::{Behavior, MARGIN};
 use crate::{
     app::{
         computers::fatty_acids::{
+            compute::{Computed as FattyAcidsComputed, Key as FattyAcidsKey},
             factors::{Computed as FactorsComputed, Key as FactorsKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
-            process::{Computed as FattyAcidsComputed, Key as FattyAcidsKey},
-            table::{Computed as TableComputed, Key as TableKey},
+            view::table::{Computed as TableComputed, Key as TableKey},
         },
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},
     },
@@ -26,6 +26,7 @@ use egui_phosphor::regular::{
 use egui_tiles::{TileId, UiResponse};
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
+use polars_ext::list::format_list_truncated;
 use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, from_fn};
@@ -49,7 +50,8 @@ impl Pane {
     }
 
     pub(super) fn title(&self) -> String {
-        format_list_truncated!(self.frames.iter().map(|frame| frame.meta.format(".")), 2)
+        format_list_truncated::<2>(self.frames.iter().map(|frame| frame.meta.format(".")))
+            .to_string()
     }
 
     fn id(&self) -> impl Display {
@@ -362,4 +364,4 @@ impl Pane {
 mod factors;
 mod indices;
 mod metrics;
-mod table;
+mod view;

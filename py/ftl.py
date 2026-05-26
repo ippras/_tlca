@@ -105,7 +105,7 @@ def create_ftl_from_dir(directory_path, output_file, allowed_dirs):
             markdown_attr = "\n".join(markdown_attr_lines)
 
             # Записываем в FTL
-            out_ftl.write(f"FAE_{msg_id} = {first_line}\n")
+            out_ftl.write(f"Math_{msg_id} = {first_line}\n")
             out_ftl.write(f"    .markdown =\n{markdown_attr}\n\n")
             
     print(f"Готово! Файл сохранен как {output_file}")

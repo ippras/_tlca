@@ -84,7 +84,11 @@ Chaddock = Chaddock
 Moments = Moments
 Bias = Bias
     .hover = If False, then the calculations are corrected for statistical bias.
+
+Array = Array
+Mean = Mean
 StandardDeviation = Standard deviation
+
 FattyAcid = Fatty acid
 Display = Display
     .hover = Display selected value in table.

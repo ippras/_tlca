@@ -1,6 +1,6 @@
 use crate::{
     app::states::{fatty_acids::settings::Metric, triacylglycerols::settings::Settings},
-    r#const::{COMPOSITION, MEAN, SPECIES, THRESHOLD},
+    r#const::{COMPOSITION, MEAN, SPECIES, FILTER},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -21,7 +21,7 @@ impl Computer {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = lazy_frame.select([all()
-            .exclude_cols([COMPOSITION, SPECIES, THRESHOLD])
+            .exclude_cols([COMPOSITION, SPECIES, FILTER])
             .as_expr()]);
         let schema = lazy_frame.collect_schema()?;
         // Метрики сравниваем по среднему, потому как сравнивать повторности

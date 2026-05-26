@@ -1,5 +1,5 @@
 use crate::{
-    r#const::{COMPOSITION, MEAN, SPECIES, THRESHOLD},
+    r#const::{COMPOSITION, MEAN, SPECIES, FILTER},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -43,7 +43,7 @@ type Value = DataFrame;
 
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     lazy_frame = lazy_frame.select([all()
-        .exclude_cols([COMPOSITION, SPECIES, THRESHOLD])
+        .exclude_cols([COMPOSITION, SPECIES, FILTER])
         .as_expr()]);
     // to_ndarray
     // lazy_frame = lazy_frame.select([nth(1)

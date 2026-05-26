@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Factor, Settings, StereospecificNumbers},
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, THRESHOLD},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, FILTER},
     utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -69,7 +69,7 @@ type Value = DataFrame;
 fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let names = key.frame.schema().iter_names();
     let mut exprs = Vec::with_capacity(names.len());
-    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | THRESHOLD)) {
+    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER)) {
         let expr = col(name.as_str());
         let tag = expr
             .clone()

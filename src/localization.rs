@@ -10,11 +10,15 @@ impl ContextExt for Context {
     fn set_localizations(&self) {
         self.set_localization(
             locales::EN,
-            Localization::new(locales::EN).with_sources(sources::EN),
+            Localization::new(locales::EN)
+                .with_sources(sources::EN)
+                .with_sources(fatty_acid_names_l10n::sources("en")),
         );
         self.set_localization(
             locales::RU,
-            Localization::new(locales::RU).with_sources(sources::RU),
+            Localization::new(locales::RU)
+                .with_sources(sources::RU)
+                .with_sources(fatty_acid_names_l10n::sources("ru")),
         );
         self.set_language_identifier(locales::EN)
     }

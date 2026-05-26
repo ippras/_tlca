@@ -10,7 +10,7 @@ use crate::{
             settings::Settings,
         },
     },
-    r#const::{COMPOSITION, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, THRESHOLD, VALUE},
+    r#const::{COMPOSITION, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, FILTER, VALUE},
     utils::{HashedDataFrame, HashedMetaDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -221,13 +221,13 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .struct_()
         .field_by_name(MEAN)
         .gt(key.threshold.auto.0)])?;
-    lazy_frame = lazy_frame.with_column(predicate.alias(THRESHOLD));
+    lazy_frame = lazy_frame.with_column(predicate.alias(FILTER));
     if key.threshold.filter {
-        lazy_frame = lazy_frame.filter(col(THRESHOLD));
+        lazy_frame = lazy_frame.filter(col(FILTER));
     }
     if key.threshold.sort {
         lazy_frame = lazy_frame.sort(
-            [THRESHOLD],
+            [FILTER],
             SortMultipleOptions::new()
                 .with_maintain_order(true)
                 .with_order_descending(true),
@@ -276,7 +276,7 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
             Sort::Value => {
                 lazy_frame = lazy_frame.sort_by_exprs(
                     [all()
-                        .exclude_cols([COMPOSITION, SPECIES, THRESHOLD])
+                        .exclude_cols([COMPOSITION, SPECIES, FILTER])
                         .as_expr()],
                     // .over([col(THRESHOLD)])],
                     SortMultipleOptions::new()

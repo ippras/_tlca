@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        fatty_acids::settings::{Filter, Sort, Threshold},
+        fatty_acids::settings::{Join, Sort, Threshold},
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
@@ -52,7 +52,7 @@ pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) composition: Composition,
     pub(crate) ddof: u8,
-    pub(crate) filter: Filter,
+    pub(crate) filter: Join,
     pub(crate) sort: Option<Sort>,
     pub(crate) threshold: &'a Threshold,
 }
@@ -187,21 +187,21 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 /// Filter
 fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     match key.filter {
-        Filter::Intersection => {
+        Join::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
             lazy_frame = lazy_frame.filter(all_horizontal([all()
                 .exclude_cols([COMPOSITION, SPECIES])
                 .as_expr()
                 .is_not_null()])?);
         }
-        Filter::Union => {
+        Join::Union => {
             // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
             lazy_frame = lazy_frame.filter(any_horizontal([all()
                 .exclude_cols([COMPOSITION, SPECIES])
                 .as_expr()
                 .is_not_null()])?);
         }
-        Filter::Difference => {
+        Join::Difference => {
             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
             lazy_frame = lazy_frame.filter(any_horizontal([all()
                 .exclude_cols([COMPOSITION, SPECIES])

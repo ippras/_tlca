@@ -1,3 +1,4 @@
+use self::expressions::Expressions;
 use crate::{
     app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
     r#const::markdown::*,
@@ -11,7 +12,6 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
-use fatty_acid_expressions::r#const::{ratio::biodiesel::RATIOS as biodiesel, sum::SUMS};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
@@ -20,7 +20,7 @@ use std::{
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
-use widgets::settings::{Group, Mean};
+use widgets::settings::MeanAndStandardDeviation;
 
 pub(crate) const METRICS: [Metric; 9] = [
     Metric::HellingerDistance,
@@ -50,13 +50,12 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
-    pub(crate) mean: Mean,
+    pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     #[serde(skip)]
     pub(crate) resizable: bool,
     pub(crate) significant: bool,
-    pub(crate) standard_deviation: bool,
     pub(crate) truncate: bool,
     // Table settings
     #[serde(skip)]
@@ -70,9 +69,9 @@ pub(crate) struct Settings {
     pub(crate) metric: Metric,
     // Expressions settings
     pub(crate) indices: Indices,
-    pub(crate) expressions: Group,
+    pub(crate) expressions: Expressions,
     //
-    pub(crate) filter: Filter,
+    pub(crate) join: Join,
     pub(crate) sort: Option<Sort>,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: Threshold,
@@ -82,12 +81,11 @@ impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             // Display
-            mean: Mean::new(),
+            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
             percent: true,
             precision: 1,
             resizable: false,
             significant: false,
-            standard_deviation: false,
             truncate: true,
             // Table settings
             editable: false,
@@ -100,25 +98,13 @@ impl Settings {
             metric: Metric::HellingerDistance,
             // Expressions settings
             indices: Indices::new(),
-            expressions: Group::from(SUMS),
+            expressions: Expressions::new(),
 
             stereospecific_numbers: StereospecificNumbers::Sn123,
-            filter: Filter::Union,
+            join: Join::Union,
             threshold: Threshold::new(),
             sort: None,
         }
-    }
-
-    pub(crate) fn mean(&self) -> bool {
-        self.mean.mean
-    }
-
-    pub(crate) fn std(&self) -> bool {
-        self.mean.standard_deviation
-    }
-
-    pub(crate) fn ddof(&self) -> u8 {
-        self.mean.ddof
     }
 }
 
@@ -126,13 +112,14 @@ impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.mean.show(ui);
+            self.mean_and_standard_deviation.show(ui);
         });
-        self.precision(ui);
-        self.significant(ui);
-        self.percent(ui);
-        self.standard_deviation(ui);
-        self.truncate(ui);
+        ui.group(|ui| {
+            self.precision(ui);
+            self.significant(ui);
+            self.percent(ui);
+            self.truncate(ui);
+        });
 
         ui.separator();
         ui.labeled_separator(ui.localize("Parameters"));
@@ -153,13 +140,21 @@ impl Settings {
 
         self.factors(ui);
 
-        ui.separator();
-        ui.labeled_separator(ui.localize("Metric?PluralCategory=other"));
+        // Metrics
+        ui.collapsing(
+            RichText::new(ui.localize("Metric?PluralCategory=other")).heading(),
+            |ui| {
+                self.metrics(ui);
+            },
+        );
 
-        self.metrics(ui);
-
-        ui.separator();
-        ui.labeled_separator(ui.localize("Indices"));
+        // Expressions
+        ui.collapsing(
+            RichText::new(ui.localize("Fatty acid expressions")).heading(),
+            |ui| {
+                self.expressions.show(ui);
+            },
+        );
 
         self.expressions(ui);
     }
@@ -191,17 +186,6 @@ impl Settings {
             ui.label(ui.localize("Percent"))
                 .on_hover_localized("Percent.hover");
             ui.checkbox(&mut self.percent, ());
-        });
-    }
-
-    /// Standard deviation
-    fn standard_deviation(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            let mut response = ui.label(ui.localize("StandardDeviation"));
-            response |= ui.checkbox(&mut self.standard_deviation, "");
-            response.on_hover_ui(|ui| {
-                ui.label(ui.localize("StandardDeviation.hover"));
-            });
         });
     }
 
@@ -251,35 +235,35 @@ impl Settings {
                 ui.label(ui.localize("Filter.hover"));
             });
             ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(ui.localize(self.filter.text()))
+                .selected_text(ui.localize(self.join.text()))
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
-                        &mut self.filter,
-                        Filter::Intersection,
+                        &mut self.join,
+                        Join::Intersection,
                         (
-                            Filter::Intersection.icon(),
-                            ui.localize(Filter::Intersection.text()),
+                            Join::Intersection.icon(),
+                            ui.localize(Join::Intersection.text()),
                         ),
                     )
-                    .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
+                    .on_hover_text(ui.localize(Join::Intersection.hover_text()));
                     ui.selectable_value(
-                        &mut self.filter,
-                        Filter::Union,
-                        (Filter::Union.icon(), ui.localize(Filter::Union.text())),
+                        &mut self.join,
+                        Join::Union,
+                        (Join::Union.icon(), ui.localize(Join::Union.text())),
                     )
-                    .on_hover_text(ui.localize(Filter::Union.hover_text()));
+                    .on_hover_text(ui.localize(Join::Union.hover_text()));
                     ui.selectable_value(
-                        &mut self.filter,
-                        Filter::Difference,
+                        &mut self.join,
+                        Join::Difference,
                         (
-                            Filter::Difference.icon(),
-                            ui.localize(Filter::Difference.text()),
+                            Join::Difference.icon(),
+                            ui.localize(Join::Difference.text()),
                         ),
                     )
-                    .on_hover_text(ui.localize(Filter::Difference.hover_text()));
+                    .on_hover_text(ui.localize(Join::Difference.hover_text()));
                 })
                 .response
-                .on_hover_text(RichText::new(self.filter.icon()).heading());
+                .on_hover_text(RichText::new(self.join.icon()).heading());
         });
     }
 
@@ -464,13 +448,6 @@ impl Settings {
 
     /// Expressions
     fn expressions(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Expressions")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Expressions.hover"));
-            });
-            self.expressions.show(ui);
-        });
-
         ui.horizontal(|ui| {
             ui.label(ui.localize("Indices")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Indices.hover"));
@@ -658,14 +635,14 @@ impl Index {
 
 /// Filter
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum Filter {
+pub(crate) enum Join {
     #[default]
     Intersection, // And
     Union,      // Or
     Difference, // Xor
 }
 
-impl Filter {
+impl Join {
     pub(crate) fn icon(&self) -> &'static str {
         match self {
             Self::Intersection => INTERSECT,
@@ -910,4 +887,4 @@ impl Threshold {
     }
 }
 
-pub(crate) mod mean_and_standard_deviation;
+pub(crate) mod expressions;

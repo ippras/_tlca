@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
-    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
+    r#const::{EM_DASH, MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION},
 };
 use egui::{Id, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_extras::{Column, TableBuilder};
@@ -91,7 +91,7 @@ impl<'a> Factors<'a> {
                 let standard_deviation = standard_deviation_series.f64()?.get(row);
                 let text = match mean {
                     Some(mean)
-                        if self.settings.standard_deviation
+                        if self.settings.mean_and_standard_deviation.standard_deviation
                             && let Some(standard_deviation) = standard_deviation =>
                     {
                         WidgetText::from(format!("{mean} ±{standard_deviation}"))

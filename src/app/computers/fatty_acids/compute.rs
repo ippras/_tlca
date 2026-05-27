@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use crate::{
     app::{
         computers::matches_schema,
-        states::fatty_acids::settings::{Settings, Sort, StereospecificNumbers, Threshold},
+        states::fatty_acids::settings::{Join, Settings, Sort, StereospecificNumbers, Threshold},
     },
     r#const::{MAJOR, VALUE, VALUE_},
     utils::{HashedDataFrame, HashedMetaDataFrame},
@@ -71,12 +71,9 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
-    pub(crate) ddof: u8,
-    pub(crate) percent: bool,
-    pub(crate) precision: usize,
-    pub(crate) significant: bool,
-    pub(crate) sort: Option<Sort>,
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) join: Join,
+    // pub(crate) sort: Option<Sort>,
+    // pub(crate) stereospecific_numbers: StereospecificNumbers,
     pub(crate) threshold: &'a Threshold,
 }
 
@@ -84,12 +81,9 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frames: &'a [HashedMetaDataFrame], settings: &'a Settings) -> Self {
         Self {
             frames,
-            ddof: 1,
-            percent: settings.percent,
-            precision: settings.precision,
-            significant: settings.significant,
-            sort: settings.sort,
-            stereospecific_numbers: settings.stereospecific_numbers,
+            join: settings.join,
+            // sort: settings.sort,
+            // stereospecific_numbers: settings.stereospecific_numbers,
             threshold: &settings.threshold,
         }
     }
@@ -125,6 +119,21 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
             },
         );
     }
+    // Join
+    lazy_frame = lazy_frame.filter(match key.join {
+        Join::Intersection => {
+            // Значения отличные от нуля присутствуют во всех столбцах (Intersection)
+            all_horizontal([col(VALUE_).is_not_null()])?
+        }
+        Join::Union => {
+            // Значения отличные от нуля присутствуют в одном или более столбцах (Union)
+            any_horizontal([col(VALUE_).is_not_null()])?
+        }
+        Join::Difference => {
+            // Значения отличные от нуля отсутствуют в одном или более столбцах (Difference)
+            any_horizontal([col(VALUE_).is_null()])?
+        }
+    });
     Ok(lazy_frame)
 }
 
@@ -246,34 +255,34 @@ fn keep(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     Ok(lazy_frame)
 }
 
-/// Sort
-fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    if let Some(sort) = key.sort {
-        match sort {
-            Sort::Key => {
-                lazy_frame = lazy_frame.sort_by_exprs(
-                    [
-                        col(FATTY_ACID).fatty_acid().carbon(),
-                        col(FATTY_ACID).fatty_acid().double_bounds_unsaturation(),
-                        col(FATTY_ACID).fatty_acid().indices(),
-                        col(LABEL),
-                    ],
-                    SortMultipleOptions::new().with_maintain_order(true),
-                );
-            }
-            Sort::Value => {
-                lazy_frame = lazy_frame.sort_by_exprs(
-                    [all().exclude_cols([LABEL, FATTY_ACID]).as_expr()],
-                    SortMultipleOptions::new()
-                        .with_maintain_order(true)
-                        .with_order_descending(true)
-                        .with_nulls_last(true),
-                );
-            }
-        }
-    }
-    lazy_frame
-}
+// /// Sort
+// fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+//     if let Some(sort) = key.sort {
+//         match sort {
+//             Sort::Key => {
+//                 lazy_frame = lazy_frame.sort_by_exprs(
+//                     [
+//                         col(FATTY_ACID).fatty_acid().carbon(),
+//                         col(FATTY_ACID).fatty_acid().double_bounds_unsaturation(),
+//                         col(FATTY_ACID).fatty_acid().indices(),
+//                         col(LABEL),
+//                     ],
+//                     SortMultipleOptions::new().with_maintain_order(true),
+//                 );
+//             }
+//             Sort::Value => {
+//                 lazy_frame = lazy_frame.sort_by_exprs(
+//                     [all().exclude_cols([LABEL, FATTY_ACID]).as_expr()],
+//                     SortMultipleOptions::new()
+//                         .with_maintain_order(true)
+//                         .with_order_descending(true)
+//                         .with_nulls_last(true),
+//                 );
+//             }
+//         }
+//     }
+//     lazy_frame
+// }
 
 // /// Filter
 // fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {

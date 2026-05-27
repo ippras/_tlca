@@ -1,5 +1,5 @@
 use crate::{
-    app::states::fatty_acids::settings::{Filter, Settings, StereospecificNumbers, Threshold},
+    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers, Threshold},
     r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE, VALUE_},
     utils::{HashedDataFrame, polars::eval_arr},
 };
@@ -49,7 +49,6 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
-    pub(crate) filter: Filter,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
@@ -61,8 +60,7 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: settings.ddof(),
-            filter: settings.filter,
+            ddof: settings.mean_and_standard_deviation.ddof,
             percent: settings.percent,
             precision: settings.precision,
             significant: settings.significant,
@@ -98,29 +96,13 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     if key.threshold.filter {
         lazy_frame = lazy_frame.filter(col(MAJOR));
     }
-    // Filter
-    lazy_frame = lazy_frame.filter(match key.filter {
-        Filter::Intersection => {
-            // Значения отличные от нуля присутствуют во всех столбцах (AND)
-            all_horizontal([col(VALUE_).is_not_null()])?
-        }
-        Filter::Union => {
-            // Значения отличные от нуля присутствуют в одном или более столбцах (OR)
-            any_horizontal([col(VALUE_).is_not_null()])?
-        }
-        Filter::Difference => {
-            // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
-            any_horizontal([col(VALUE_).is_null()])?
-        }
-    });
     Ok(lazy_frame)
 }
 
 /// Format
 fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    lazy_frame = lazy_frame.with_column(col(FATTY_ACID).fatty_acid().display());
     let schema = lazy_frame.collect_schema()?;
-    lazy_frame = lazy_frame.with_columns(
+    Ok(lazy_frame.with_columns(
         schema
             .iter_names()
             .filter(|name| name.starts_with(formatcp!("{VALUE}_")))
@@ -132,13 +114,7 @@ fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                     .precision(key.precision)
                     .significant(key.significant)
                     .build()
-                // .name().map(|name| name"^VALUE_", value, literal)
-                // .name()
-                // .map(PlanCallback::new(|name: PlSmallStr| {
-                //     Ok(name.trim_prefix(formatcp!("{VALUE}_")).into())
-                // }))
             })
             .collect::<Vec<_>>(),
-    );
-    Ok(lazy_frame)
+    ))
 }

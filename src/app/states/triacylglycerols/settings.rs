@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        fatty_acids::settings::{Filter, METRICS, Metric, SEPARATORS, Sort, Threshold},
+        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS, Sort, Threshold},
         triacylglycerols::{
             ID_SOURCE,
             composition::{
@@ -46,7 +46,7 @@ pub struct Settings {
     //
     pub ddof: u8,
     pub composition: Composition,
-    pub filter: Filter,
+    pub filter: Join,
     pub metric: Metric,
     pub sort: Option<Sort>,
     pub threshold: Threshold,
@@ -72,7 +72,7 @@ impl Settings {
             //
             ddof: 1,
             composition: SPECIES_STEREO,
-            filter: Filter::Union,
+            filter: Join::Union,
             metric: Metric::HellingerDistance,
             sort: None,
             threshold: Threshold::new(),
@@ -242,28 +242,28 @@ impl Settings {
                 .show_ui(ui, |ui| {
                     ui.selectable_value(
                         &mut self.filter,
-                        Filter::Intersection,
+                        Join::Intersection,
                         (
-                            Filter::Intersection.icon(),
-                            ui.localize(Filter::Intersection.text()),
+                            Join::Intersection.icon(),
+                            ui.localize(Join::Intersection.text()),
                         ),
                     )
-                    .on_hover_text(ui.localize(Filter::Intersection.hover_text()));
+                    .on_hover_text(ui.localize(Join::Intersection.hover_text()));
                     ui.selectable_value(
                         &mut self.filter,
-                        Filter::Union,
-                        (Filter::Union.icon(), ui.localize(Filter::Union.text())),
+                        Join::Union,
+                        (Join::Union.icon(), ui.localize(Join::Union.text())),
                     )
-                    .on_hover_text(ui.localize(Filter::Union.hover_text()));
+                    .on_hover_text(ui.localize(Join::Union.hover_text()));
                     ui.selectable_value(
                         &mut self.filter,
-                        Filter::Difference,
+                        Join::Difference,
                         (
-                            Filter::Difference.icon(),
-                            ui.localize(Filter::Difference.text()),
+                            Join::Difference.icon(),
+                            ui.localize(Join::Difference.text()),
                         ),
                     )
-                    .on_hover_text(ui.localize(Filter::Difference.hover_text()));
+                    .on_hover_text(ui.localize(Join::Difference.hover_text()));
                 })
                 .response
                 .on_hover_text(RichText::new(self.filter.icon()).heading());

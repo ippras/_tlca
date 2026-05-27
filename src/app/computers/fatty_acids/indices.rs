@@ -1,5 +1,5 @@
 use crate::{
-    app::states::fatty_acids::settings::{Filter, Index, Indices, Settings, StereospecificNumbers},
+    app::states::fatty_acids::settings::{Join, Index, Indices, Settings, StereospecificNumbers},
     r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
     utils::{HashedDataFrame, polars::eval_arr},
 };
@@ -41,7 +41,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
-    pub(crate) filter: Filter,
+    pub(crate) filter: Join,
     pub(crate) indices: &'a Indices,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
@@ -54,7 +54,7 @@ impl<'a> Key<'a> {
         Self {
             frame,
             ddof: 1,
-            filter: settings.filter,
+            filter: settings.join,
             indices: &settings.indices,
             precision: settings.precision,
             significant: settings.significant,
@@ -82,9 +82,9 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
     Ok(lazy_frame.filter(match key.filter {
-        Filter::Intersection => all_horizontal([expr.is_not_null()])?,
-        Filter::Union => any_horizontal([expr.is_not_null()])?,
-        Filter::Difference => any_horizontal([expr.is_null()])?,
+        Join::Intersection => all_horizontal([expr.is_not_null()])?,
+        Join::Union => any_horizontal([expr.is_not_null()])?,
+        Join::Difference => any_horizontal([expr.is_null()])?,
     }))
 }
 

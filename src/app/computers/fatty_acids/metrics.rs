@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Filter, Metric, Settings, StereospecificNumbers},
-    r#const::{MEAN, FILTER},
+    r#const::{MEAN, MAJOR},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -71,7 +71,7 @@ type Value = DataFrame;
 /// Unnest
 fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([all()
-        .exclude_cols([LABEL, FATTY_ACID, FILTER])
+        .exclude_cols([LABEL, FATTY_ACID, MAJOR])
         .as_expr()
         .struct_()
         .field_by_name(key.stereospecific_numbers.id())
@@ -81,7 +81,7 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Filter
 fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let expr = all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr();
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
     Ok(lazy_frame.filter(match key.filter {
         Filter::Intersection => all_horizontal([expr.is_not_null()])?,
         Filter::Union => any_horizontal([expr.is_not_null()])?,
@@ -93,7 +93,7 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let names = key.frame.schema().iter_names();
     let mut exprs = Vec::with_capacity(names.len());
-    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER)) {
+    for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | MAJOR)) {
         // Метрики сравниваем по среднему, потому как сравнивать повторности
         // пришлось бы попарно все пары.
         let left = col(name.as_str())
@@ -101,7 +101,7 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .field_by_name(MEAN)
             .fill_null(0);
         let right = all()
-            .exclude_cols([LABEL, FATTY_ACID, FILTER])
+            .exclude_cols([LABEL, FATTY_ACID, MAJOR])
             .as_expr()
             .struct_()
             .field_by_name(MEAN)

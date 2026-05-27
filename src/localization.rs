@@ -12,13 +12,17 @@ impl ContextExt for Context {
             locales::EN,
             Localization::new(locales::EN)
                 .with_sources(sources::EN)
-                .with_sources(fatty_acid_names_l10n::sources("en")),
+                .with_sources(fatty_acid_expressions::sources(fatty_acid_expressions::EN))
+                .with_sources(fatty_acid_names_l10n::sources("en"))
+                .with_sources(widgets::l10n::EN),
         );
         self.set_localization(
             locales::RU,
             Localization::new(locales::RU)
                 .with_sources(sources::RU)
-                .with_sources(fatty_acid_names_l10n::sources("ru")),
+                .with_sources(fatty_acid_expressions::sources(fatty_acid_expressions::EN))
+                .with_sources(fatty_acid_names_l10n::sources("ru"))
+                .with_sources(widgets::l10n::RU),
         );
         self.set_language_identifier(locales::EN)
     }

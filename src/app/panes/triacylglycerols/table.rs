@@ -8,7 +8,7 @@ use crate::{
         states::triacylglycerols::{ID_SOURCE, State},
         widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
-    r#const::{SPECIES, FILTER},
+    r#const::{SPECIES, MAJOR},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
@@ -147,7 +147,7 @@ impl TableView<'_> {
         row: usize,
         column: Range<usize>,
     ) -> PolarsResult<()> {
-        if let Some(threshold) = self.target[FILTER].bool()?.get(row)
+        if let Some(threshold) = self.target[MAJOR].bool()?.get(row)
             && !threshold
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());

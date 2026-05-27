@@ -7,7 +7,7 @@ use crate::{
         },
         settings::Settings,
     },
-    r#const::{COMPOSITION, EM_DASH, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, FILTER},
+    r#const::{COMPOSITION, EM_DASH, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, MAJOR},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -71,7 +71,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .frame
         .get_column_names()
         .into_iter()
-        .filter(|&name| !matches!(name.as_str(), COMPOSITION | SPECIES | FILTER))
+        .filter(|&name| !matches!(name.as_str(), COMPOSITION | SPECIES | MAJOR))
     {
         let name = name.as_str();
         exprs.push(
@@ -86,7 +86,7 @@ fn format(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             .alias(name),
         );
         let array = eval_arr(col(name).struct_().field_by_name(SAMPLE), |expr| {
-            expr.filter(FILTER).sum()
+            expr.filter(MAJOR).sum()
         })?;
         sum.push(
             as_struct(vec![

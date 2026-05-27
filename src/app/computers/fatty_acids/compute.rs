@@ -5,7 +5,7 @@ use crate::{
         computers::matches_schema,
         states::fatty_acids::settings::{Settings, Sort, StereospecificNumbers, Threshold},
     },
-    r#const::{FILTER, VALUE, VALUE_},
+    r#const::{MAJOR, VALUE, VALUE_},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -54,7 +54,7 @@ impl Computer {
         println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
         // lazy_frame = value(lazy_frame);
         // println!("values: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = filter(lazy_frame, key)?;
+        lazy_frame = keep(lazy_frame, key)?;
         println!("filter: {}", lazy_frame.clone().collect().unwrap());
         let data_frame = lazy_frame.collect()?;
         HashedDataFrame::new(data_frame)
@@ -210,8 +210,8 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 //     lazy_frame
 // }
 
-/// Filter (column)
-fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+/// Keep
+fn keep(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     // Берем среднее значение массива, так как иначе пришлось бы сравнивать все повторности попарно
     // Значение в любом из столбцов больше threshold
     let field = |name| {
@@ -229,9 +229,8 @@ fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             field(STEREOSPECIFIC_NUMBERS13)?,
             field(STEREOSPECIFIC_NUMBERS2)?,
         ])
-        .alias(FILTER),
+        .alias(MAJOR),
     );
-    // lazy_frame = lazy_frame.with_column(predicate.alias(FILTER));
 
     // if key.threshold.filter {
     //     lazy_frame = lazy_frame.filter(col(FILTER));

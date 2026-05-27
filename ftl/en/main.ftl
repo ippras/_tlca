@@ -88,6 +88,7 @@ Bias = Bias
 Array = Array
 Mean = Mean
 StandardDeviation = Standard deviation
+Relative = Relative
 
 FattyAcid = Fatty acid
 Display = Display

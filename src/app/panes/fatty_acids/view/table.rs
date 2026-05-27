@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, State},
     },
-    r#const::FILTER,
+    r#const::MAJOR,
 };
 use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widget};
 use egui_l20n::prelude::*;
@@ -98,12 +98,11 @@ impl TableView<'_> {
     }
 
     fn body(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) -> PolarsResult<()> {
-        if let Some(filter) = self.data_frame[FILTER].bool()?.get(row)
+        if let Some(filter) = self.data_frame[MAJOR].bool()?.get(row)
             && !filter
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
-        println!("row, column: {row:?}, {column:?}");
         match (row, column) {
             (row, top::INDEX) => {
                 ui.label(row.to_string());

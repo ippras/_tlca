@@ -16,7 +16,7 @@ pub(crate) const MEAN: &str = "Mean";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const SPECIES: &str = "Species";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
-pub(crate) const FILTER: &str = "Filter";
+pub(crate) const MAJOR: &str = "Major";
 pub(crate) const VALUE: &str = "Value";
 
 pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");

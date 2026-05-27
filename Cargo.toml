@@ -68,6 +68,7 @@ egui_l20n = { git = "https://github.com/kgv/egui_l20n", branch = "0.6", features
     "macros",
 ] }
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "0.4" }
+fatty_acid_expressions = { git = "https://github.com/ippras/fatty_acid_expressions" }
 fatty_acid_names_l10n = { git = "https://github.com/ippras/fatty_acid_names_l10n" }
 lipid = { git = "https://github.com/ippras/lipid", branch = "bf6a425" }
 metadata = { git = "https://github.com/ippras/metadata", branch = "bf6a425", features = [

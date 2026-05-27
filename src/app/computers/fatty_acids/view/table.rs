@@ -1,6 +1,6 @@
 use crate::{
-    app::states::fatty_acids::settings::{Filter, Settings, StereospecificNumbers},
-    r#const::{FILTER, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE, VALUE_},
+    app::states::fatty_acids::settings::{Filter, Settings, StereospecificNumbers, Threshold},
+    r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE, VALUE_},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use const_format::formatcp;
@@ -20,9 +20,9 @@ impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = unnest(lazy_frame, key);
+        lazy_frame = value(lazy_frame, key);
         println!("unnest: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = filter_by_none(lazy_frame, key)?;
+        lazy_frame = filter(lazy_frame, key)?;
         println!("filter_by_none: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = format(lazy_frame, key)?;
         println!(
@@ -54,10 +54,11 @@ pub(crate) struct Key<'a> {
     pub(crate) precision: usize,
     pub(crate) significant: bool,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: &'a Threshold,
 }
 
 impl<'a> Key<'a> {
-    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
+    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
             ddof: settings.ddof(),
@@ -66,6 +67,7 @@ impl<'a> Key<'a> {
             precision: settings.precision,
             significant: settings.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: &settings.threshold,
         }
     }
 }
@@ -73,8 +75,8 @@ impl<'a> Key<'a> {
 /// Table value
 type Value = DataFrame;
 
-/// Unnest
-fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+/// Value
+fn value(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([col(VALUE_)
         .struct_()
         .field_by_name(key.stereospecific_numbers.id())
@@ -83,8 +85,21 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 }
 
 /// Filter
-fn filter_by_none(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let filter_by_null = match key.filter {
+fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    // Majors for stereospecific numbers
+    lazy_frame = lazy_frame.with_column(
+        col(MAJOR)
+            .struct_()
+            .field_by_name(key.stereospecific_numbers.id())
+            .name()
+            .keep(),
+    );
+    // Filter minors
+    if key.threshold.filter {
+        lazy_frame = lazy_frame.filter(col(MAJOR));
+    }
+    // Filter
+    lazy_frame = lazy_frame.filter(match key.filter {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
             all_horizontal([col(VALUE_).is_not_null()])?
@@ -97,11 +112,8 @@ fn filter_by_none(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
             any_horizontal([col(VALUE_).is_null()])?
         }
-    };
-    let filter_by_value = col(FILTER)
-        .struct_()
-        .field_by_name(key.stereospecific_numbers.id());
-    Ok(lazy_frame.filter(filter_by_null.and(filter_by_value)))
+    });
+    Ok(lazy_frame)
 }
 
 /// Format

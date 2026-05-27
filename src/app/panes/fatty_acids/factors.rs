@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
-    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, FILTER},
+    r#const::{EM_DASH, MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
 };
 use egui::{Id, TextStyle, TextWrapMode, Ui, WidgetText};
 use egui_extras::{Column, TableBuilder};
@@ -52,7 +52,7 @@ impl<'a> Factors<'a> {
                     .data_frame
                     .get_column_names()
                     .into_iter()
-                    .filter(|&name| !matches!(name.as_str(), FATTY_ACID | FILTER))
+                    .filter(|&name| !matches!(name.as_str(), FATTY_ACID | MAJOR))
                 {
                     row.col(|ui| {
                         ui.heading(name.as_str());

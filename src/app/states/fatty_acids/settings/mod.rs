@@ -1,4 +1,3 @@
-use self::mean_and_standard_deviation::MeanAndStandardDeviation;
 use crate::{
     app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
     r#const::markdown::*,
@@ -12,6 +11,7 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
+use fatty_acid_expressions::r#const::{ratio::biodiesel::RATIOS as biodiesel, sum::SUMS};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
@@ -20,6 +20,7 @@ use std::{
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
+use widgets::settings::{Group, Mean};
 
 pub(crate) const METRICS: [Metric; 9] = [
     Metric::HellingerDistance,
@@ -49,7 +50,7 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
-    pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
+    pub(crate) mean: Mean,
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     #[serde(skip)]
@@ -67,8 +68,9 @@ pub(crate) struct Settings {
     // Metrics settings
     pub(crate) chaddock: bool,
     pub(crate) metric: Metric,
-    // Indices settings
+    // Expressions settings
     pub(crate) indices: Indices,
+    pub(crate) expressions: Group,
     //
     pub(crate) filter: Filter,
     pub(crate) sort: Option<Sort>,
@@ -80,7 +82,7 @@ impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             // Display
-            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
+            mean: Mean::new(),
             percent: true,
             precision: 1,
             resizable: false,
@@ -96,8 +98,9 @@ impl Settings {
             // Metrics settings
             chaddock: true,
             metric: Metric::HellingerDistance,
-            // Indices settings
+            // Expressions settings
             indices: Indices::new(),
+            expressions: Group::from(SUMS),
 
             stereospecific_numbers: StereospecificNumbers::Sn123,
             filter: Filter::Union,
@@ -107,21 +110,24 @@ impl Settings {
     }
 
     pub(crate) fn mean(&self) -> bool {
-        self.mean_and_standard_deviation.mean
+        self.mean.mean
     }
 
     pub(crate) fn std(&self) -> bool {
-        self.mean_and_standard_deviation.standard_deviation
+        self.mean.standard_deviation
     }
 
     pub(crate) fn ddof(&self) -> u8 {
-        self.mean_and_standard_deviation.ddof
+        self.mean.ddof
     }
 }
 
 impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
-        self.mean_and_standard_deviation.show(ui);
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.mean.show(ui);
+        });
         self.precision(ui);
         self.significant(ui);
         self.percent(ui);
@@ -155,7 +161,7 @@ impl Settings {
         ui.separator();
         ui.labeled_separator(ui.localize("Indices"));
 
-        self.indices(ui);
+        self.expressions(ui);
     }
 
     /// Precision
@@ -456,8 +462,15 @@ impl Settings {
         });
     }
 
-    /// Indices
-    fn indices(&mut self, ui: &mut Ui) {
+    /// Expressions
+    fn expressions(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.label(ui.localize("Expressions")).on_hover_ui(|ui| {
+                ui.label(ui.localize("Expressions.hover"));
+            });
+            self.expressions.show(ui);
+        });
+
         ui.horizontal(|ui| {
             ui.label(ui.localize("Indices")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Indices.hover"));

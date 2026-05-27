@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Filter, Index, Indices, Settings, StereospecificNumbers},
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, FILTER},
+    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -70,7 +70,7 @@ type Value = DataFrame;
 /// Unnest
 fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     lazy_frame.with_columns([all()
-        .exclude_cols([LABEL, FATTY_ACID, FILTER])
+        .exclude_cols([LABEL, FATTY_ACID, MAJOR])
         .as_expr()
         .struct_()
         .field_by_name(key.stereospecific_numbers.id())
@@ -80,7 +80,7 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Filter
 fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let expr = all().exclude_cols([LABEL, FATTY_ACID, FILTER]).as_expr();
+    let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
     Ok(lazy_frame.filter(match key.filter {
         Filter::Intersection => all_horizontal([expr.is_not_null()])?,
         Filter::Union => any_horizontal([expr.is_not_null()])?,
@@ -143,7 +143,7 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .frame
         .schema()
         .iter_names()
-        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | FILTER))
+        .filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | MAJOR))
     {
         let expr = concat_arr(
             key.indices

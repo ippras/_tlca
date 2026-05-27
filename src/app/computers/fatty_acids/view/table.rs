@@ -84,6 +84,9 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Filter
 fn filter_by_none(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let filter = col(VALUE_)
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id());
     Ok(lazy_frame.filter(match key.filter {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)

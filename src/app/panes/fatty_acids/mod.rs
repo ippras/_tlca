@@ -16,8 +16,8 @@ use crate::{
 };
 use anyhow::Result;
 use egui::{
-    CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Response, RichText, ScrollArea, TextStyle,
-    TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
+    CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Panel, Response, RichText, ScrollArea,
+    TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
 };
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{
@@ -74,7 +74,7 @@ impl Pane {
         let id = *self.id.get_or_insert_with(|| ui.next_auto_id());
         let mut state = State::load(ui.ctx(), id);
         _ = self.init(ui, &mut state);
-        let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
+        let response = Panel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
                     .ui(ui, |ui| {

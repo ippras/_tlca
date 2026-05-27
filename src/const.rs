@@ -1,3 +1,5 @@
+use const_format::formatcp;
+
 pub(crate) const ABOUT: &str = "About";
 pub(crate) const AFFILIATION: &str = "Affiliation";
 pub(crate) const AUTHORS: &str = "Authors";
@@ -14,8 +16,10 @@ pub(crate) const MEAN: &str = "Mean";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const SPECIES: &str = "Species";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
-pub(crate) const FILTER: &str = "Threshold";
+pub(crate) const FILTER: &str = "Filter";
 pub(crate) const VALUE: &str = "Value";
+
+pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");
 
 pub(crate) mod markdown {
     pub const KURTOSIS: &str = include_str!("../doc/ru/Moments/Kurtosis.md");

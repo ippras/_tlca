@@ -23,8 +23,8 @@ use anyhow::Result;
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
 use egui::{
     Align, Align2, CentralPanel, Color32, Context, DroppedFile, FontDefinitions, Frame, Id,
-    LayerId, Layout, MenuBar, Order, RichText, ScrollArea, SidePanel, Sides, TextStyle,
-    TopBottomPanel, Ui, Visuals, Widget as _, Window, warn_if_debug_build,
+    LayerId, Layout, MenuBar, Order, Panel, RichText, ScrollArea, Sides, TextStyle, Ui, Visuals,
+    Widget as _, Window, warn_if_debug_build,
 };
 use egui_ext::{DroppedFileExt, HoveredFileExt, LightDarkButton};
 use egui_extras::install_image_loaders;
@@ -46,9 +46,9 @@ const MAX_PRECISION: usize = 16;
 pub(super) const ICON_SIZE: f32 = 32.0;
 
 fn custom_style(ctx: &Context) {
-    let mut style = (*ctx.style()).clone();
+    let mut style = (*ctx.global_style()).clone();
     style.visuals = custom_visuals(style.visuals);
-    ctx.set_style(style);
+    ctx.set_global_style(style);
 }
 
 fn custom_visuals<T: BorrowMut<Visuals>>(mut visuals: T) -> T {
@@ -111,7 +111,7 @@ impl App {
 
     // Bottom panel
     fn bottom_panel(&mut self, ctx: &Context) {
-        TopBottomPanel::bottom("BottomPanel").show(ctx, |ui| {
+        Panel::bottom("BottomPanel").show(ctx, |ui| {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 Sides::new().show(
                     ui,
@@ -129,7 +129,7 @@ impl App {
     // Central panel
     fn central_panel(&mut self, ctx: &Context) {
         CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.style()).inner_margin(0))
+            .frame(Frame::central_panel(&ctx.global_style()).inner_margin(0))
             .show(ctx, |ui| {
                 let mut behavior = Behavior { close: None };
                 self.tree.ui(&mut behavior, ui);
@@ -141,7 +141,7 @@ impl App {
 
     // Left panel
     fn left_panel(&mut self, ctx: &Context, state: &mut State) {
-        SidePanel::left("LeftPanel").resizable(true).show_animated(
+        Panel::left("LeftPanel").resizable(true).show_animated(
             ctx,
             state.settings.left_panel,
             |ui| {
@@ -152,7 +152,7 @@ impl App {
 
     // Top panel
     fn top_panel(&mut self, ctx: &Context, state: &mut State) {
-        TopBottomPanel::top("TopPanel").show(ctx, |ui| {
+        Panel::top("TopPanel").show(ctx, |ui| {
             MenuBar::new().ui(ui, |ui| {
                 ScrollArea::horizontal().show(ui, |ui| {
                     // Left panel
@@ -354,6 +354,7 @@ impl App {
         {
             for frame in frames {
                 let schema = frame.data.schema();
+                println!("schema: {schema:#?}");
                 if TRIACYLGLYCEROLS
                     .matches_schema(schema)
                     .is_ok_and(|cast| !cast)
@@ -364,7 +365,6 @@ impl App {
                     .matches_schema(schema)
                     .is_ok_and(|cast| !cast)
                 {
-                    info!("CACLULATION");
                     self.data.fatty_acids.add(frame);
                 } else {
                     error!(

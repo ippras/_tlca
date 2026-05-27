@@ -9,7 +9,7 @@ use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widge
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
-use fatty_acid_names_l10n::egui::{Name, Names};
+use fatty_acid_names_l10n::egui::Names;
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
@@ -41,7 +41,7 @@ impl TableView<'_> {
             self.state.reset_table_state = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
-        println!("self.data_frame: {:?}", self.data_frame);
+        // println!("self.data_frame: {:?}", self.data_frame);
         let num_rows = self.data_frame.height() as u64;
         let value = self.data_frame.width() - 3;
         let num_columns = NUM_COLUMNS + value;
@@ -97,17 +97,13 @@ impl TableView<'_> {
         };
     }
 
-    fn cell_content_ui(
-        &mut self,
-        ui: &mut Ui,
-        row: usize,
-        column: Range<usize>,
-    ) -> PolarsResult<()> {
+    fn body(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) -> PolarsResult<()> {
         if let Some(filter) = self.data_frame[FILTER].bool()?.get(row)
             && !filter
         {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
+        println!("row, column: {row:?}, {column:?}");
         match (row, column) {
             (row, top::INDEX) => {
                 ui.label(row.to_string());
@@ -175,7 +171,7 @@ impl TableDelegate for TableView<'_> {
         Frame::new()
             .inner_margin(Margin::from(MARGIN))
             .show(ui, |ui| {
-                _ = self.cell_content_ui(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1);
+                _ = self.body(ui, cell.row_nr as _, cell.col_nr..cell.col_nr + 1);
             });
     }
 

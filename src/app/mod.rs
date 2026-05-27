@@ -369,7 +369,7 @@ impl App {
                 } else {
                     error!(
                         "{}",
-                        polars_err!(SchemaMismatch: r#"Invalid dropped file schema: expected [`CACLULATION`, `COMPOSITION`], got = `{schema:?}`"#)
+                        polars_err!(SchemaMismatch: r#"Invalid dropped file schema: expected [`FATTY_ACIDS`, `TRIACYLGLYCEROLS`], got = `{schema:?}`"#)
                     );
                 }
             }

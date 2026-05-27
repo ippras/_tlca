@@ -84,10 +84,7 @@ fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Filter
 fn filter_by_none(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let filter = col(VALUE_)
-        .struct_()
-        .field_by_name(key.stereospecific_numbers.id());
-    Ok(lazy_frame.filter(match key.filter {
+    let filter_by_null = match key.filter {
         Filter::Intersection => {
             // Значения отличные от нуля присутствуют во всех столбцах (AND)
             all_horizontal([col(VALUE_).is_not_null()])?
@@ -100,7 +97,11 @@ fn filter_by_none(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
             // Значения отличные от нуля отсутствуют в одном или более столбцах (XOR)
             any_horizontal([col(VALUE_).is_null()])?
         }
-    }))
+    };
+    let filter_by_value = col(FILTER)
+        .struct_()
+        .field_by_name(key.stereospecific_numbers.id());
+    Ok(lazy_frame.filter(filter_by_null.and(filter_by_value)))
 }
 
 /// Format

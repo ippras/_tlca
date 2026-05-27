@@ -1,9 +1,10 @@
-on: [workflow_dispatch]
-
 name: Link checker
 
+on:
+  workflow_dispatch:
+
 jobs:
-  link-checker:
+  run:
     name: Check links
     runs-on: ubuntu-latest
     steps:

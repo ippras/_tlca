@@ -1,12 +1,13 @@
 name: Github Pages
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  run:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository

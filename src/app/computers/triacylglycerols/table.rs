@@ -7,7 +7,7 @@ use crate::{
         },
         settings::Settings,
     },
-    r#const::{COMPOSITION, EM_DASH, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, MAJOR},
+    r#const::{COMPOSITION, EM_DASH, MAJOR, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -54,9 +54,9 @@ impl<'a> Key<'a> {
             frame,
             composition: settings.composition,
             ddof: 1,
-            percent: settings.percent,
-            precision: settings.precision,
-            significant: settings.significant,
+            percent: settings.precision.percent,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
         }
     }
 }

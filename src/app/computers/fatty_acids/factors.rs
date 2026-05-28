@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Factor, Settings, StereospecificNumbers},
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
+    r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::{HashedDataFrame, polars::sum_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -54,9 +54,9 @@ impl<'a> Key<'a> {
             ddof: 1,
             factor: settings.factor,
             normalize_factor: settings.normalize_factor,
-            percent: settings.percent,
-            precision: settings.precision,
-            significant: settings.significant,
+            percent: settings.precision.percent,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold.auto,
         }

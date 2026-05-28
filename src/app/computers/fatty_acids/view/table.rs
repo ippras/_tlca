@@ -1,5 +1,5 @@
 use crate::{
-    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers, Threshold},
+    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers},
     r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE, VALUE_},
     utils::{HashedDataFrame, polars::eval_arr},
 };
@@ -8,6 +8,7 @@ use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
+use widgets::settings::Threshold;
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -60,10 +61,10 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: settings.mean_and_standard_deviation.ddof,
-            percent: settings.percent,
-            precision: settings.precision,
-            significant: settings.significant,
+            ddof: settings.mean.ddof,
+            percent: settings.precision.percent,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: &settings.threshold,
         }

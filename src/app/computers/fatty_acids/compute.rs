@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use crate::{
     app::{
         computers::matches_schema,
-        states::fatty_acids::settings::{Join, Settings, Sort, StereospecificNumbers, Threshold},
+        states::fatty_acids::settings::{Join, Settings, Sort, StereospecificNumbers},
     },
     r#const::{MAJOR, VALUE, VALUE_},
     utils::{HashedDataFrame, HashedMetaDataFrame},
@@ -13,6 +13,7 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
 use tracing::instrument;
+use widgets::settings::Threshold;
 
 /// Fatty acids computed
 pub(crate) type Computed = FrameCache<Value, Computer>;

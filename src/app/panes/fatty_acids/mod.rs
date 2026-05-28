@@ -7,6 +7,7 @@ use crate::{
             factors::{Computed as FactorsComputed, Key as FactorsKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
+            sum::sum::{Computed as SumComputed, Key as SumKey},
             view::table::{Computed as TableComputed, Key as TableKey},
         },
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},
@@ -17,13 +18,14 @@ use crate::{
 use anyhow::Result;
 use egui::{
     CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Panel, Response, RichText, ScrollArea,
-    TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
+    TextStyle, TextWrapMode, Ui, Widget, Window, util::hash,
 };
 use egui_l20n::prelude::*;
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
+use fatty_acid_expressions::r#const::SUM;
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
 use polars_ext::list::format_list_truncated;
@@ -189,6 +191,19 @@ impl Pane {
             .on_hover_ui(|ui| {
                 ui.label(ui.localize("Factors"));
             });
+
+            // Fatti acid expressions
+            ui.toggle_value(
+                &mut state.windows.open_expressions_sum,
+                (
+                    RichText::new(SIGMA).heading(),
+                    RichText::new(ui.localize(SUM)).heading(),
+                ),
+            )
+            .on_hover_ui(|ui| {
+                ui.label(ui.localize(SUM));
+            });
+
             // Indices
             ui.toggle_value(
                 &mut state.windows.open_indices,
@@ -289,6 +304,7 @@ impl Pane {
         self.factors(ui, state);
         self.indices(ui, state);
         self.metrics(ui, state);
+        self.window_expressions_sum(ui, state);
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
@@ -318,6 +334,28 @@ impl Pane {
                 .clone()
         });
         Factors::new(&data_frame, settings).show(ui)
+    }
+
+    fn window_expressions_sum(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} Indices"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
+            .open(&mut state.windows.open_expressions_sum)
+            .show(ui.ctx(), |ui| {
+                self.expressions_sum_content(ui, &state.settings)
+            });
+    }
+
+    #[instrument(skip_all, err)]
+    fn expressions_sum_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
+        let data_frame = ui.memory_mut(|memory| {
+            memory
+                .caches
+                .cache::<SumComputed>()
+                .get(SumKey::new(&self.calculated, settings))
+                .clone()
+        });
+        println!("data_frame: {data_frame}");
+        Indices::new(&data_frame, settings).show(ui)
     }
 
     fn indices(&mut self, ui: &mut Ui, state: &mut State) {
@@ -364,4 +402,5 @@ impl Pane {
 mod factors;
 mod indices;
 mod metrics;
+mod sum;
 mod view;

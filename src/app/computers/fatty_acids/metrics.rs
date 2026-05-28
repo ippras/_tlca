@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Join, Metric, Settings, StereospecificNumbers},
-    r#const::{MEAN, MAJOR},
+    r#const::{MAJOR, MEAN},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -57,8 +57,8 @@ impl<'a> Key<'a> {
             ddof: 1,
             filter: settings.join,
             metric: settings.metric,
-            precision: settings.precision,
-            significant: settings.significant,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold.auto,
         }

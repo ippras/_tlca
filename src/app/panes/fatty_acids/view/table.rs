@@ -53,7 +53,7 @@ impl TableView<'_> {
                     .resizable(self.state.settings.resizable);
                 num_columns
             ])
-            .num_sticky_cols(self.state.settings.sticky)
+            .num_sticky_cols(self.state.settings.sticky_columns)
             .headers([
                 HeaderRow {
                     height,
@@ -143,16 +143,9 @@ impl TableView<'_> {
                 Float64Array::builder()
                     .series(&self.data_frame[column.start - 1].as_materialized_series())
                     .row(row)
-                    .mean(self.state.settings.mean_and_standard_deviation.mean)
-                    .standard_deviation(
-                        self.state
-                            .settings
-                            .mean_and_standard_deviation
-                            .standard_deviation,
-                    )
-                    .relative_standard_deviation(
-                        self.state.settings.mean_and_standard_deviation.relative,
-                    )
+                    .mean(self.state.settings.mean.mean)
+                    .standard_deviation(self.state.settings.mean.standard_deviation)
+                    .relative(self.state.settings.mean.kind.is_relative())
                     .build()
                     .show(ui)?;
             }

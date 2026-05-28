@@ -1,4 +1,3 @@
-use self::expressions::Expressions;
 use crate::{
     app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
     r#const::markdown::*,
@@ -20,7 +19,10 @@ use std::{
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
-use widgets::settings::MeanAndStandardDeviation;
+use widgets::{
+    fatty_acids::settings::Expressions,
+    settings::{Mean, Precision, Threshold},
+};
 
 pub(crate) const METRICS: [Metric; 9] = [
     Metric::HellingerDistance,
@@ -50,46 +52,45 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
-    pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
-    pub(crate) percent: bool,
-    pub(crate) precision: usize,
+    pub(crate) mean: Mean,
+    pub(crate) precision: Precision,
+    pub(crate) threshold: Threshold,
+
     #[serde(skip)]
     pub(crate) resizable: bool,
-    pub(crate) significant: bool,
     pub(crate) truncate: bool,
+    pub(crate) sticky_columns: usize,
     // Table settings
     #[serde(skip)]
     pub(crate) editable: bool,
-    pub(crate) sticky: usize,
     // Factors settings
     pub(crate) factor: Factor,
     pub(crate) normalize_factor: bool,
     // Metrics settings
     pub(crate) chaddock: bool,
     pub(crate) metric: Metric,
-    // Expressions settings
-    pub(crate) indices: Indices,
-    pub(crate) expressions: Expressions,
     //
     pub(crate) join: Join,
     pub(crate) sort: Option<Sort>,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) threshold: Threshold,
+
+    // Expressions settings
+    pub(crate) indices: Indices,
+    pub(crate) expressions: Expressions,
 }
 
 impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             // Display
-            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
-            percent: true,
-            precision: 1,
+            precision: Precision::new(),
+            mean: Mean::new(),
+
             resizable: false,
-            significant: false,
             truncate: true,
             // Table settings
             editable: false,
-            sticky: 0,
+            sticky_columns: 0,
             // Factors settings
             factor: Factor::Enrichment,
             normalize_factor: false,
@@ -102,7 +103,7 @@ impl Settings {
 
             stereospecific_numbers: StereospecificNumbers::Sn123,
             join: Join::Union,
-            threshold: Threshold::new(),
+            threshold: Threshold::builder().bookmark(0.01).build(),
             sort: None,
         }
     }
@@ -112,14 +113,15 @@ impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.mean_and_standard_deviation.show(ui);
+            self.precision.show(ui);
         });
+
         ui.group(|ui| {
-            self.precision(ui);
-            self.significant(ui);
-            self.percent(ui);
-            self.truncate(ui);
+            ui.set_width(ui.available_width());
+            self.mean.show(ui);
         });
+
+        self.truncate(ui);
 
         ui.separator();
         ui.labeled_separator(ui.localize("Parameters"));
@@ -131,9 +133,10 @@ impl Settings {
 
         ui.labeled_separator(ui.localize("Threshold"));
 
-        self.threshold_auto(ui);
-        self.threshold_sort(ui);
-        self.threshold_filter(ui);
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.threshold.show(ui, &[], self.precision.percent);
+        });
 
         ui.separator();
         ui.labeled_separator(ui.localize("Factor?PluralCategory=other"));
@@ -149,44 +152,11 @@ impl Settings {
         );
 
         // Expressions
-        ui.collapsing(
-            RichText::new(ui.localize("Fatty acid expressions")).heading(),
-            |ui| {
-                self.expressions.show(ui);
-            },
-        );
+        ui.collapsing(RichText::new(ui.localize("Expressions")).heading(), |ui| {
+            self.expressions.show(ui);
+        });
 
         self.expressions(ui);
-    }
-
-    /// Precision
-    fn precision(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Precision"))
-                .on_hover_localized("Precision.hover");
-            Slider::new(&mut self.precision, 1..=MAX_PRECISION).ui(ui);
-            if ui.button((BOOKMARK, "3")).clicked() {
-                self.precision = 3;
-            };
-        });
-    }
-
-    // Significant
-    fn significant(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Significant"))
-                .on_hover_localized("Significant.hover");
-            ui.checkbox(&mut self.significant, ());
-        });
-    }
-
-    /// Percent
-    fn percent(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Percent"))
-                .on_hover_localized("Percent.hover");
-            ui.checkbox(&mut self.percent, ());
-        });
     }
 
     /// Truncate
@@ -264,65 +234,6 @@ impl Settings {
                 })
                 .response
                 .on_hover_text(RichText::new(self.join.icon()).heading());
-        });
-    }
-
-    /// Auto threshold
-    fn threshold_auto(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Threshold_Auto.hover"));
-            });
-            let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.threshold.auto.0;
-            let response = Slider::new(&mut threshold, 0.0..=1.0)
-                .custom_formatter(|mut value, decimals| {
-                    if self.percent {
-                        value *= 100.0;
-                    }
-                    number_formatter.format(value, decimals)
-                })
-                .custom_parser(|value| {
-                    let mut value = value.parse().ok()?;
-                    if self.percent {
-                        value /= 100.0;
-                    }
-                    Some(value)
-                })
-                .logarithmic(true)
-                .update_while_editing(false)
-                .ui(ui);
-            if (response.drag_stopped() || response.lost_focus())
-                && !ui.input(|input| input.key_pressed(Key::Escape))
-            {
-                self.threshold.auto.0 = threshold;
-                self.threshold.is_auto = true;
-            }
-            if ui
-                .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
-                .clicked()
-            {
-                self.threshold.auto.0 = 0.01;
-                self.threshold.is_auto = true;
-            };
-        });
-    }
-
-    /// Threshold sort
-    fn threshold_sort(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Sort"))
-                .on_hover_localized("Threshold_Sort.hover");
-            ui.checkbox(&mut self.threshold.sort, ());
-        });
-    }
-
-    /// Threshold filter
-    fn threshold_filter(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Filter"))
-                .on_hover_localized("Threshold_Filter.hover");
-            ui.checkbox(&mut self.threshold.filter, ());
         });
     }
 
@@ -780,111 +691,3 @@ impl Metric {
         }
     }
 }
-
-/// Threshold
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) struct Threshold {
-    pub(crate) auto: OrderedFloat<f64>,
-    pub(crate) filter: bool,
-    pub(crate) is_auto: bool,
-    pub(crate) manual: Vec<bool>,
-    pub(crate) sort: bool,
-}
-
-impl Threshold {
-    pub(crate) fn new() -> Self {
-        Self {
-            auto: OrderedFloat(0.0),
-            filter: false,
-            is_auto: true,
-            manual: Vec::new(),
-            sort: false,
-        }
-    }
-
-    pub(crate) fn show(&mut self, ui: &mut Ui, percent: bool) {
-        self.is_auto(ui);
-        self.auto(ui, percent);
-        self.sort(ui);
-        self.filter(ui);
-    }
-
-    /// Is auto threshold
-    fn is_auto(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_IsAuto"))
-                .on_hover_localized("Threshold_IsAuto.hover");
-            ui.checkbox(&mut self.is_auto, ());
-        });
-    }
-
-    /// Auto threshold
-    fn auto(&mut self, ui: &mut Ui, percent: bool) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Threshold_Auto.hover"));
-            });
-            let number_formatter = ui.style().number_formatter.clone();
-            let mut threshold = self.auto.0;
-            let response = Slider::new(&mut threshold, 0.0..=1.0)
-                .custom_formatter(|mut value, decimals| {
-                    if percent {
-                        value *= 100.0;
-                    }
-                    number_formatter.format(value, decimals)
-                })
-                .custom_parser(|value| {
-                    let mut parsed = value.parse().ok()?;
-                    if percent {
-                        parsed /= 100.0;
-                    }
-                    Some(parsed)
-                })
-                .logarithmic(true)
-                .update_while_editing(false)
-                .ui(ui);
-            if (response.drag_stopped() || response.lost_focus())
-                && !ui.input(|input| input.key_pressed(Key::Escape))
-            {
-                self.auto.0 = threshold;
-                self.is_auto = true;
-            }
-            ui.menu_button(BOOKMARK, |ui| {
-                if ui
-                    .button((BOOKMARK, if percent { "0.5%" } else { "0.005" }))
-                    .clicked()
-                {
-                    self.auto.0 = 0.005;
-                    self.is_auto = true;
-                }
-                if ui
-                    .button((BOOKMARK, if percent { "1.0%" } else { "0.01" }))
-                    .clicked()
-                {
-                    self.auto.0 = 0.01;
-                    self.is_auto = true;
-                };
-            });
-        });
-    }
-
-    /// Threshold sort
-    fn sort(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Sort"))
-                .on_hover_localized("Threshold_Sort.hover");
-            ui.checkbox(&mut self.sort, ());
-        });
-    }
-
-    /// Threshold filter
-    fn filter(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Threshold_Filter"))
-                .on_hover_localized("Threshold_Filter.hover");
-            ui.checkbox(&mut self.filter, ());
-        });
-    }
-}
-
-pub(crate) mod expressions;

@@ -81,7 +81,7 @@ impl Moments<'_> {
             }
             column => {
                 if let Some(value) = self.data_frame[column].f64()?.get(row) {
-                    let text = format!("{value:.0$}", self.settings.precision);
+                    let text = format!("{value:.0$}", self.settings.precision.precision);
                     ui.label(text).on_hover_text(value.to_string());
                 }
             }

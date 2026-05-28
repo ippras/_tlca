@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS, Sort, Threshold},
+        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS, Sort},
         triacylglycerols::{
             ID_SOURCE,
             composition::{
@@ -21,18 +21,18 @@ use egui_l20n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
+use widgets::settings::{Mean, Precision, Threshold};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct Settings {
-    pub percent: bool,
-    pub precision: usize,
+    pub precision: Precision,
+    pub mean: Mean,
+
     #[serde(skip)]
     pub resizable: bool,
-    pub significant: bool,
-    pub standard_deviation: bool,
     pub truncate: bool,
 
     // Table settings
@@ -44,7 +44,6 @@ pub struct Settings {
     // Moment settings
     pub bias: bool,
     //
-    pub ddof: u8,
     pub composition: Composition,
     pub filter: Join,
     pub metric: Metric,
@@ -55,11 +54,10 @@ pub struct Settings {
 impl Settings {
     pub fn new() -> Self {
         Self {
-            percent: true,
-            precision: 1,
+            precision: Precision::new(),
+            mean: Mean::new(),
+
             resizable: false,
-            significant: false,
-            standard_deviation: false,
             truncate: true,
 
             // Table settings
@@ -70,7 +68,6 @@ impl Settings {
             // Moment settings
             bias: true,
             //
-            ddof: 1,
             composition: SPECIES_STEREO,
             filter: Join::Union,
             metric: Metric::HellingerDistance,
@@ -82,10 +79,16 @@ impl Settings {
 
 impl Settings {
     pub fn show(&mut self, ui: &mut Ui) {
-        self.precision(ui);
-        self.significant(ui);
-        self.percent(ui);
-        self.standard_deviation(ui);
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.precision.show(ui);
+        });
+
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.mean.show(ui);
+        });
+
         self.truncate(ui);
 
         // Table
@@ -95,12 +98,10 @@ impl Settings {
         self.filter(ui);
         self.sort(ui);
 
-        ui.labeled_separator(ui.localize("Threshold"));
-        self.threshold(ui);
-
-        // Statistics
-        ui.labeled_separator(ui.localize("Statistics"));
-        self.ddof(ui);
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.threshold.show(ui, &[], self.precision.percent);
+        });
 
         // Metrics
         ui.collapsing(ui.localize("Metric?PluralCategory=other"), |ui| {
@@ -111,60 +112,6 @@ impl Settings {
         // Moments
         ui.collapsing(ui.localize("Moments"), |ui| {
             self.bias(ui);
-        });
-    }
-
-    // https://numpy.org/devdocs/reference/generated/numpy.std.html
-    /// DDOF
-    fn ddof(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("DeltaDegreesOfFreedom.abbreviation"))
-                .on_hover_localized("DeltaDegreesOfFreedom")
-                .on_hover_localized("DeltaDegreesOfFreedom.hover");
-            Slider::new(&mut self.ddof, 0..=2)
-                .update_while_editing(false)
-                .ui(ui);
-        });
-    }
-
-    /// Precision
-    fn precision(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Precision"))
-                .on_hover_localized("Precision.hover");
-            Slider::new(&mut self.precision, 1..=MAX_PRECISION).ui(ui);
-            if ui.button((BOOKMARK, "3")).clicked() {
-                self.precision = 3;
-            };
-        });
-    }
-
-    // Significant
-    fn significant(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Significant"))
-                .on_hover_localized("Significant.hover");
-            ui.checkbox(&mut self.significant, ());
-        });
-    }
-
-    /// Percent
-    fn percent(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Percent"))
-                .on_hover_localized("Percent.hover");
-            ui.checkbox(&mut self.percent, ());
-        });
-    }
-
-    /// Standard deviation
-    fn standard_deviation(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            let mut response = ui.label(ui.localize("StandardDeviation"));
-            response |= ui.checkbox(&mut self.standard_deviation, "");
-            response.on_hover_ui(|ui| {
-                ui.label(ui.localize("StandardDeviation.hover"));
-            });
         });
     }
 
@@ -268,11 +215,6 @@ impl Settings {
                 .response
                 .on_hover_text(RichText::new(self.filter.icon()).heading());
         });
-    }
-
-    /// Threshold
-    fn threshold(&mut self, ui: &mut Ui) {
-        self.threshold.show(ui, self.percent);
     }
 
     // /// Auto threshold

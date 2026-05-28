@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        fatty_acids::settings::{Join, Sort, Threshold},
+        fatty_acids::settings::{Join, Sort},
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
@@ -10,7 +10,7 @@ use crate::{
             settings::Settings,
         },
     },
-    r#const::{COMPOSITION, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, MAJOR, VALUE},
+    r#const::{COMPOSITION, MAJOR, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, VALUE},
     utils::{HashedDataFrame, HashedMetaDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -18,6 +18,7 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use std::convert::identity;
 use tracing::instrument;
+use widgets::settings::Threshold;
 
 const ROUND_MASS: u32 = 1;
 
@@ -62,7 +63,7 @@ impl<'a> Key<'a> {
         Self {
             frames,
             composition: settings.composition,
-            ddof: settings.ddof,
+            ddof: settings.mean.ddof,
             filter: settings.filter,
             sort: settings.sort,
             threshold: &settings.threshold,
@@ -275,9 +276,7 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
             }
             Sort::Value => {
                 lazy_frame = lazy_frame.sort_by_exprs(
-                    [all()
-                        .exclude_cols([COMPOSITION, SPECIES, MAJOR])
-                        .as_expr()],
+                    [all().exclude_cols([COMPOSITION, SPECIES, MAJOR]).as_expr()],
                     // .over([col(THRESHOLD)])],
                     SortMultipleOptions::new()
                         .with_maintain_order(true)

@@ -78,7 +78,7 @@ impl<'a> Indices<'a> {
                 let standard_deviation = standard_deviation_series.f64()?.get(row);
                 let text = match mean {
                     Some(mean)
-                        if self.settings.mean_and_standard_deviation.standard_deviation
+                        if self.settings.mean.standard_deviation
                             && let Some(standard_deviation) = standard_deviation =>
                     {
                         WidgetText::from(format!("{mean} ±{standard_deviation}"))

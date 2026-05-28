@@ -8,7 +8,7 @@ use crate::{
         states::triacylglycerols::{ID_SOURCE, State},
         widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
-    r#const::{SPECIES, MAJOR},
+    r#const::{MAJOR, SPECIES},
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::{
@@ -182,7 +182,7 @@ impl TableView<'_> {
                         .clone()
                 });
                 MeanAndStandardDeviation::new(&data_frame, column.start, row)
-                    .with_standard_deviation(self.state.settings.standard_deviation)
+                    .with_standard_deviation(self.state.settings.mean.standard_deviation)
                     .with_sample(true)
                     .show(ui)?;
             }
@@ -221,7 +221,7 @@ impl TableView<'_> {
                     .clone()
             });
             MeanAndStandardDeviation::new(&data_frame, column.start, data_frame.height() - 1)
-                .with_standard_deviation(self.state.settings.standard_deviation)
+                .with_standard_deviation(self.state.settings.mean.standard_deviation)
                 .with_sample(true)
                 .show(ui)?;
         }

@@ -78,7 +78,10 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "bf6a425", fea
 polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "0.6", features = [
     "array",
 ] }
-widgets = { git = "https://github.com/ippras/widgets", branch = "0.6" }
+widgets = { git = "https://github.com/ippras/widgets", branch = "0.6", features = [
+    "fatty_acids",
+    "polars",
+] }
 
 maplit = "*"
 

@@ -67,7 +67,7 @@ impl Metrics<'_> {
     #[instrument(skip(self, ui), err)]
     fn body_cell_content_ui(&mut self, ui: &mut Ui, row: usize, column: usize) -> PolarsResult<()> {
         if let Some(value) = self.data_frame[column].f64()?.get(row) {
-            let text = format!("{value:.0$}", self.settings.precision);
+            let text = format!("{value:.0$}", self.settings.precision.precision);
             let sign = Sign::from(value);
             let mut color = ui.style().visuals.text_color();
             if self.settings.metric.is_finite() {

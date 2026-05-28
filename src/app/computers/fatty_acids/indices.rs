@@ -1,6 +1,6 @@
 use crate::{
-    app::states::fatty_acids::settings::{Join, Index, Indices, Settings, StereospecificNumbers},
-    r#const::{MEAN, SAMPLE, STANDARD_DEVIATION, MAJOR},
+    app::states::fatty_acids::settings::{Index, Indices, Join, Settings, StereospecificNumbers},
+    r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -56,8 +56,8 @@ impl<'a> Key<'a> {
             ddof: 1,
             filter: settings.join,
             indices: &settings.indices,
-            precision: settings.precision,
-            significant: settings.significant,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
             threshold: settings.threshold.auto,
         }

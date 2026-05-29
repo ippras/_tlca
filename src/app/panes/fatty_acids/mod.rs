@@ -34,6 +34,7 @@ use polars_utils::{format_list, format_list_truncated};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, from_fn};
 use tracing::instrument;
+use widgets::buttons::{ResetButton, ResizableButton};
 
 /// Fatty acids pane
 #[derive(Default, Deserialize, Serialize)]
@@ -402,24 +403,59 @@ fn top(ui: &mut Ui, settings: &mut Settings) {
             .ui(ui, |ui| {
                 ScrollArea::horizontal()
                     .show(ui, |ui| {
-                        ui.set_height(ui.text_style_height(&TextStyle::Heading) + 4.0 * MARGIN.y);
                         ui.visuals_mut().button_frame = false;
-                        widgets::buttons::ResetButton::builder()
+
+                        ui.heading(ui.localize(settings.stereospecific_numbers.text()));
+                        ui.separator();
+                        ResetButton::builder()
                             .selected(&mut settings.reset)
                             .build()
                             .ui(ui);
-                        ui.separator();
-                        widgets::buttons::ResizableButton::builder()
+                        ResizableButton::builder()
                             .selected(&mut settings.resizable)
                             .build()
                             .ui(ui);
                         ui.separator();
+                        ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
+                            let title = self.title();
+                            if ui
+                                .button("RON")
+                                .on_hover_ui(|ui| {
+                                    ui.label(ui.localize("Save"));
+                                })
+                                .on_hover_ui(|ui| {
+                                    ui.label(&format!("{title}.fa.utca.ron"));
+                                })
+                                .clicked()
+                            {
+                                _ = self.save_ron(&title);
+                            }
+                        });
                     })
                     .inner
             })
             .inner;
     });
 }
+
+// /// Save button
+// fn save_button(&self, ui: &mut Ui) {
+//     ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
+//         let title = self.title();
+//         if ui
+//             .button("RON")
+//             .on_hover_ui(|ui| {
+//                 ui.label(ui.localize("Save"));
+//             })
+//             .on_hover_ui(|ui| {
+//                 ui.label(&format!("{title}.fa.utca.ron"));
+//             })
+//             .clicked()
+//         {
+//             _ = self.save_ron(&title);
+//         }
+//     })
+// }
 
 mod factors;
 mod indices;

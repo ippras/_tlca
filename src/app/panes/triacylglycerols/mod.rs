@@ -8,15 +8,14 @@ use crate::{
             moments::{Computed as MomentsComputed, Key as MomentsKey},
         },
         states::triacylglycerols::{ID_SOURCE, State, settings::Settings},
-        widgets::buttons::{EditButton, MetadataButton, ResetButton, ResizeButton, SettingsButton},
     },
     export,
     utils::HashedMetaDataFrame,
 };
 use anyhow::Result;
 use egui::{
-    Button, CentralPanel, CursorIcon, Frame, Id, IntoAtoms, Label, MenuBar, Response, RichText,
-    ScrollArea, TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
+    Button, CentralPanel, CursorIcon, Frame, Id, IntoAtoms, Label, MenuBar, Panel, Response,
+    RichText, ScrollArea, TextStyle, TextWrapMode, TopBottomPanel, Ui, Widget, Window, util::hash,
 };
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::{
@@ -29,6 +28,7 @@ use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, from_fn};
 use tracing::instrument;
+use widgets::buttons::{EditButton, MetadataButton, ResetButton, ResizableButton, SettingsButton};
 
 /// Triacylglycerols pane
 #[derive(Default, Deserialize, Serialize)]
@@ -66,7 +66,7 @@ impl Pane {
     ) -> UiResponse {
         let id = *self.id.get_or_insert_with(|| ui.next_auto_id());
         let mut state = State::load(ui.ctx(), id);
-        let response = TopBottomPanel::top(ui.auto_id_with("Pane"))
+        let response = Panel::top(ui.auto_id_with("Pane"))
             .show_inside(ui, |ui| {
                 MenuBar::new()
                     .ui(ui, |ui| {
@@ -119,15 +119,30 @@ impl Pane {
             })
             .on_hover_cursor(CursorIcon::Grab);
         ui.separator();
-        ResetButton::new(&mut state.event.reset_table_state).ui(ui);
-        ResizeButton::new(&mut state.settings.resizable).ui(ui);
+        ResetButton::builder()
+            .selected(&mut state.event.reset_table_state)
+            .build()
+            .ui(ui);
+        ResizableButton::builder()
+            .selected(&mut state.settings.resizable)
+            .build()
+            .ui(ui);
         ui.add_enabled_ui(self.frames.len() == 1, |ui| {
-            EditButton::new(&mut state.settings.edit).ui(ui);
+            EditButton::builder()
+                .selected(&mut state.settings.edit)
+                .build()
+                .ui(ui);
         });
         ui.separator();
-        MetadataButton::new(&mut state.windows.open_metadata).ui(ui);
+        MetadataButton::builder()
+            .selected(&mut state.windows.open_metadata)
+            .build()
+            .ui(ui);
         ui.separator();
-        SettingsButton::new(&mut state.windows.open_settings).ui(ui);
+        SettingsButton::builder()
+            .selected(&mut state.windows.open_settings)
+            .build()
+            .ui(ui);
         ui.separator();
         // Sigma
         ui.menu_button(RichText::new(SIGMA).heading(), |ui| {

@@ -5,19 +5,16 @@ use self::{
 };
 use crate::{
     app::{
-        computers::fatty_acids::compute::INPUT_SCHEMA as FATTY_ACIDS_INPUT_SCHEMA,
-        states::State,
-        widgets::{
-            about::About,
-            buttons::{
-                AboutButton, GridButton, HorizontalButton, LeftPanelButton, ReactiveButton,
-                ResetButton, TabsButton, VerticalButton,
-            },
-        },
+        computers::fatty_acids::join::INPUT_SCHEMA as FATTY_ACIDS_INPUT_SCHEMA, states::State,
+        widgets::about::About,
     },
     r#const::VALUE,
     localization::ContextExt as _,
     utils::HashedMetaDataFrame,
+};
+use ::widgets::buttons::{
+    AboutButton, GridButton, HorizontalButton, LeftPanelButton, ReactiveButton, ResetButton,
+    TabsButton, VerticalButton,
 };
 use anyhow::Result;
 use eframe::{APP_KEY, CreationContext, Storage, get_value, set_value};
@@ -156,20 +153,26 @@ impl App {
             MenuBar::new().ui(ui, |ui| {
                 ScrollArea::horizontal().show(ui, |ui| {
                     // Left panel
-                    LeftPanelButton::new(&mut state.settings.left_panel)
+                    LeftPanelButton::builder()
+                        .selected(&mut state.settings.left_panel)
                         .size(ICON_SIZE)
+                        .build()
                         .ui(ui);
                     ui.separator();
-                    ReactiveButton::new(&mut state.settings.reactive)
+                    ReactiveButton::builder()
+                        .selected(&mut state.settings.reactive)
                         .size(ICON_SIZE)
+                        .build()
                         .ui(ui);
                     ui.separator();
                     // Light/Dark
                     ui.light_dark_button(ICON_SIZE);
                     ui.separator();
                     // Reset
-                    ResetButton::new(&mut state.settings.reset_state)
+                    ResetButton::builder()
+                        .selected(&mut state.settings.reset_state)
                         .size(ICON_SIZE)
+                        .build()
                         .ui(ui);
                     ui.separator();
                     // if ui
@@ -224,8 +227,10 @@ impl App {
                     ui.add(Github);
                     ui.separator();
                     // About
-                    AboutButton::new(&mut state.windows.open_about)
+                    AboutButton::builder()
+                        .selected(&mut state.windows.open_about)
                         .size(ICON_SIZE)
+                        .build()
                         .ui(ui);
                     ui.separator();
                 });
@@ -234,17 +239,25 @@ impl App {
     }
 
     fn layouts(&mut self, ui: &mut Ui, state: &mut State) {
-        VerticalButton::new(&mut state.settings.layout.container_kind)
+        VerticalButton::builder()
+            .current_value(&mut state.settings.layout.container_kind)
             .size(ICON_SIZE)
+            .build()
             .ui(ui);
-        HorizontalButton::new(&mut state.settings.layout.container_kind)
+        HorizontalButton::builder()
+            .current_value(&mut state.settings.layout.container_kind)
             .size(ICON_SIZE)
+            .build()
             .ui(ui);
-        GridButton::new(&mut state.settings.layout.container_kind)
+        GridButton::builder()
+            .current_value(&mut state.settings.layout.container_kind)
             .size(ICON_SIZE)
+            .build()
             .ui(ui);
-        TabsButton::new(&mut state.settings.layout.container_kind)
+        TabsButton::builder()
+            .current_value(&mut state.settings.layout.container_kind)
             .size(ICON_SIZE)
+            .build()
             .ui(ui);
     }
 }

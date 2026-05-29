@@ -21,7 +21,7 @@ use egui_l10n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
-use widgets::settings::{Mean, Precision, Threshold};
+use widgets::settings::{Major, Mean, Precision};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
@@ -30,6 +30,7 @@ const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings
 pub struct Settings {
     pub precision: Precision,
     pub mean: Mean,
+    pub major: Major,
 
     #[serde(skip)]
     pub resizable: bool,
@@ -48,7 +49,6 @@ pub struct Settings {
     pub filter: Join,
     pub metric: Metric,
     pub sort: Option<Sort>,
-    pub threshold: Threshold,
 }
 
 impl Settings {
@@ -56,6 +56,7 @@ impl Settings {
         Self {
             precision: Precision::new(),
             mean: Mean::new(),
+            major: Major::new(),
 
             resizable: false,
             truncate: true,
@@ -72,7 +73,6 @@ impl Settings {
             filter: Join::Union,
             metric: Metric::HellingerDistance,
             sort: None,
-            threshold: Threshold::new(),
         }
     }
 }
@@ -100,7 +100,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.threshold.show(ui, &[], self.precision.percent);
+            self.major.show(ui, &[], self.precision.percent);
         });
 
         // Metrics

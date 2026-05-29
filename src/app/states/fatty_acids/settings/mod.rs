@@ -12,7 +12,6 @@ use egui_ext::Markdown;
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -21,7 +20,7 @@ use std::{
 };
 use widgets::{
     fatty_acids::settings::Expressions,
-    settings::{Mean, Precision, Threshold},
+    settings::{Major, Mean, Precision},
 };
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -54,7 +53,7 @@ pub(crate) struct Settings {
     // Display
     pub(crate) mean: Mean,
     pub(crate) precision: Precision,
-    pub(crate) threshold: Threshold,
+    pub(crate) major: Major,
 
     pub(crate) reset: bool,
     #[serde(skip)]
@@ -86,7 +85,7 @@ impl Settings {
             // Display
             precision: Precision::new(),
             mean: Mean::new(),
-            threshold: Threshold::builder().bookmark(0.01).build(),
+            major: Major::builder().bookmark(0.01).build(),
 
             resizable: false,
             truncate: true,
@@ -126,7 +125,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.threshold.show(ui, &[], self.precision.percent);
+            self.major.show(ui, &[], self.precision.percent);
         });
 
         self.truncate(ui);

@@ -1,14 +1,13 @@
 use crate::{
-    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers},
-    r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE, VALUE_},
-    utils::{HashedDataFrame, polars::eval_arr},
+    app::states::fatty_acids::settings::{Settings, Sort},
+    r#const::{MAJOR, VALUE, VALUE_},
+    utils::HashedDataFrame,
 };
 use const_format::formatcp;
 use egui::util::cache::{ComputerMut, FrameCache};
-use lipid::prelude::*;
+use lipid::r#const::LABEL;
 use polars::prelude::*;
 use polars_ext::prelude::*;
-use widgets::settings::Threshold;
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -20,20 +19,8 @@ pub(crate) struct Computer;
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        // println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = value(lazy_frame, key);
-        // println!("unnest: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = filter(lazy_frame, key)?;
-        // println!("filter_by_none: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame = sort(lazy_frame, key);
         lazy_frame = format(lazy_frame, key)?;
-        // println!(
-        //     "format: {}",
-        //     lazy_frame
-        //         .clone()
-        //         .unnest(cols(["Value_VIR-2233.2025-10-29"]), None)
-        //         .collect()
-        //         .unwrap()
-        // );
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -53,8 +40,7 @@ pub(crate) struct Key<'a> {
     pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) threshold: &'a Threshold,
+    pub(crate) sort: (Option<Sort>, bool),
 }
 
 impl<'a> Key<'a> {
@@ -65,8 +51,7 @@ impl<'a> Key<'a> {
             percent: settings.precision.percent,
             precision: settings.precision.precision,
             significant: settings.precision.significant,
-            stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: &settings.threshold,
+            sort: (settings.sort, settings.major.sort),
         }
     }
 }
@@ -74,30 +59,24 @@ impl<'a> Key<'a> {
 /// Table value
 type Value = DataFrame;
 
-/// Value
-fn value(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    lazy_frame.with_columns([col(VALUE_)
-        .struct_()
-        .field_by_name(key.stereospecific_numbers.id())
-        .name()
-        .keep()])
-}
-
-/// Filter
-fn filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    // Majors for stereospecific numbers
-    lazy_frame = lazy_frame.with_column(
-        col(MAJOR)
-            .struct_()
-            .field_by_name(key.stereospecific_numbers.id())
-            .name()
-            .keep(),
-    );
-    // Filter minors
-    if key.threshold.filter {
-        lazy_frame = lazy_frame.filter(col(MAJOR));
+/// Sort
+fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    if let Some(sort) = key.sort.0 {
+        let sort_options = SortMultipleOptions::default().with_maintain_order(true);
+        lazy_frame = match (sort, key.sort.1) {
+            (Sort::Key, false) => lazy_frame.sort_by_exprs([col(LABEL)], sort_options),
+            (Sort::Key, true) => lazy_frame.sort_by_exprs(
+                [col(MAJOR), col(LABEL)],
+                sort_options.with_order_descending_multi([true, false]),
+            ),
+            (Sort::Value, false) => lazy_frame.sort_by_exprs([col(VALUE_)], sort_options),
+            (Sort::Value, true) => lazy_frame.sort_by_exprs(
+                [col(MAJOR), col(VALUE_)],
+                sort_options.with_order_descending_multi([true, false]),
+            ),
+        };
     }
-    Ok(lazy_frame)
+    lazy_frame
 }
 
 /// Format

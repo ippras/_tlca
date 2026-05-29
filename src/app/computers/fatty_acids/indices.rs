@@ -59,7 +59,7 @@ impl<'a> Key<'a> {
             precision: settings.precision.precision,
             significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.threshold.auto,
+            threshold: settings.major.auto,
         }
     }
 }

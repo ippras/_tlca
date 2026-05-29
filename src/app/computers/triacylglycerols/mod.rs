@@ -18,7 +18,7 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use std::convert::identity;
 use tracing::instrument;
-use widgets::settings::Threshold;
+use widgets::settings::Major;
 
 const ROUND_MASS: u32 = 1;
 
@@ -55,7 +55,7 @@ pub(crate) struct Key<'a> {
     pub(crate) ddof: u8,
     pub(crate) filter: Join,
     pub(crate) sort: Option<Sort>,
-    pub(crate) threshold: &'a Threshold,
+    pub(crate) major: &'a Major,
 }
 
 impl<'a> Key<'a> {
@@ -66,7 +66,7 @@ impl<'a> Key<'a> {
             ddof: settings.mean.ddof,
             filter: settings.filter,
             sort: settings.sort,
-            threshold: &settings.threshold,
+            major: &settings.major,
         }
     }
 }
@@ -221,12 +221,12 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .as_expr()
         .struct_()
         .field_by_name(MEAN)
-        .gt(key.threshold.auto.0)])?;
+        .gt(key.major.auto.0)])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(MAJOR));
-    if key.threshold.filter {
+    if key.major.filter {
         lazy_frame = lazy_frame.filter(col(MAJOR));
     }
-    if key.threshold.sort {
+    if key.major.sort {
         lazy_frame = lazy_frame.sort(
             [MAJOR],
             SortMultipleOptions::new()

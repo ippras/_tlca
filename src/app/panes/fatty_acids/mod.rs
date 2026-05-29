@@ -3,16 +3,18 @@ use super::{Behavior, MARGIN};
 use crate::{
     app::{
         computers::fatty_acids::{
-            compute::{Computed as FattyAcidsComputed, Key as FattyAcidsKey},
             factors::{Computed as FactorsComputed, Key as FactorsKey},
             indices::{Computed as IndicesComputed, Key as IndicesKey},
+            join::{Computed as JoinComputed, Key as JoinKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
+            select::{Computed as SelectComputed, Key as SelectKey},
             sum::sum::{Computed as SumComputed, Key as SumKey},
             view::table::{Computed as TableComputed, Key as TableKey},
         },
         panes::fatty_acids::sum::expressions::Expressions,
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},
     },
+    r#const::MAJOR,
     export::ron,
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
@@ -41,7 +43,7 @@ use widgets::buttons::{ResetButton, ResizableButton};
 pub struct Pane {
     id: Option<Id>,
     frames: Vec<HashedMetaDataFrame>,
-    calculated: HashedDataFrame,
+    select: HashedDataFrame,
 }
 
 impl Pane {
@@ -49,7 +51,7 @@ impl Pane {
         Self {
             id: None,
             frames,
-            calculated: HashedDataFrame::EMPTY,
+            select: HashedDataFrame::EMPTY,
         }
     }
 
@@ -117,21 +119,29 @@ impl Pane {
         }
     }
 
-    fn init(&mut self, ui: &mut Ui, state: &mut State) {
-        self.calculated = ui.memory_mut(|memory| {
+    #[instrument(skip_all, err)]
+    fn init(&mut self, ui: &mut Ui, state: &mut State) -> PolarsResult<()> {
+        self.select = ui.memory_mut(|memory| {
+            let join = memory
+                .caches
+                .cache::<JoinComputed>()
+                .get(JoinKey::new(&self.frames, &state.settings))
+                .clone();
             memory
                 .caches
-                .cache::<FattyAcidsComputed>()
-                .get(FattyAcidsKey::new(&self.frames, &state.settings))
+                .cache::<SelectComputed>()
+                .get(SelectKey::new(&join, &state.settings))
                 .clone()
         });
+        state.settings.major.manual = self.select[MAJOR].bool()?.into_no_null_iter().collect();
+        Ok(())
     }
 
     fn top(&mut self, ui: &mut Ui, state: &mut State) -> Response {
         let mut response = ui.heading(DROP).on_hover_text("FattyAcids");
         response |= ui.heading(self.title());
         response = response
-            .on_hover_text(format!("{}/{:x}", self.id(), self.calculated.hash))
+            .on_hover_text(format!("{}/{:x}", self.id(), self.select.hash))
             .on_hover_ui(|ui| {
                 Label::new(format_list!(
                     self.frames.iter().map(|frame| frame.meta.format("."))
@@ -293,7 +303,7 @@ impl Pane {
             memory
                 .caches
                 .cache::<TableComputed>()
-                .get(TableKey::new(&self.calculated, &state.settings))
+                .get(TableKey::new(&self.select, &state.settings))
                 .clone()
         });
         _ = TableView::new(&data_frame, &mut state.settings).show(ui);
@@ -330,7 +340,7 @@ impl Pane {
                     memory
                         .caches
                         .cache::<SumComputed>()
-                        .get(SumKey::new(&self.calculated, &state.settings))
+                        .get(SumKey::new(&self.select, &state.settings))
                         .clone()
                 });
                 Expressions::new(&data_frame, &mut state.settings).show(ui);
@@ -350,7 +360,7 @@ impl Pane {
             memory
                 .caches
                 .cache::<FactorsComputed>()
-                .get(FactorsKey::new(&self.calculated, settings))
+                .get(FactorsKey::new(&self.select, settings))
                 .clone()
         });
         Factors::new(&data_frame, settings).show(ui)
@@ -369,7 +379,7 @@ impl Pane {
             memory
                 .caches
                 .cache::<IndicesComputed>()
-                .get(IndicesKey::new(&self.calculated, settings))
+                .get(IndicesKey::new(&self.select, settings))
                 .clone()
         });
         Indices::new(&data_frame, settings).show(ui)
@@ -389,7 +399,7 @@ impl Pane {
             memory
                 .caches
                 .cache::<MetricsComputed>()
-                .get(MetricsKey::new(&self.calculated, settings))
+                .get(MetricsKey::new(&self.select, settings))
                 .clone()
         });
         _ = Metrics::new(&data_frame, settings).show(ui);

@@ -1,5 +1,5 @@
 use egui::{Response, RichText, Ui, Widget};
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::PENCIL;
 
 /// Edit button widget

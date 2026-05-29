@@ -9,7 +9,7 @@ use egui_dnd::dnd;
 use egui_ext::LabeledSeparator;
 #[cfg(feature = "markdown")]
 use egui_ext::Markdown;
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
@@ -86,8 +86,8 @@ impl Settings {
             // Display
             precision: Precision::new(),
             mean: Mean::new(),
+            threshold: Threshold::builder().bookmark(0.01).build(),
 
-            reset: false,
             resizable: false,
             truncate: true,
             // Table settings
@@ -101,12 +101,13 @@ impl Settings {
             metric: Metric::HellingerDistance,
             // Expressions settings
             indices: Indices::new(),
-            expressions: Expressions::new(),
-
             stereospecific_numbers: StereospecificNumbers::Sn123,
             join: Join::Union,
-            threshold: Threshold::builder().bookmark(0.01).build(),
             sort: None,
+
+            expressions: Expressions::new(),
+
+            reset: false,
         }
     }
 }
@@ -123,6 +124,11 @@ impl Settings {
             self.mean.show(ui);
         });
 
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.threshold.show(ui, &[], self.precision.percent);
+        });
+
         self.truncate(ui);
 
         ui.separator();
@@ -132,13 +138,6 @@ impl Settings {
         self.filter(ui);
 
         self.sort(ui);
-
-        ui.labeled_separator(ui.localize("Threshold"));
-
-        ui.group(|ui| {
-            ui.set_width(ui.available_width());
-            self.threshold.show(ui, &[], self.precision.percent);
-        });
 
         ui.separator();
         ui.labeled_separator(ui.localize("Factor?PluralCategory=other"));

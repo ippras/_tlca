@@ -6,10 +6,10 @@ use crate::{
     r#const::MAJOR,
 };
 use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widget};
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::HASH;
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
-use fatty_acid_names_l10n::egui::Names;
+use fatty_acid_names::egui::Names;
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;

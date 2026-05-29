@@ -1,5 +1,5 @@
 use egui::Context;
-use egui_l20n::prelude::*;
+use egui_l10n::{ContextExt as _, Localization};
 
 /// Extension methods for [`Context`]
 pub(crate) trait ContextExt {
@@ -11,17 +11,17 @@ impl ContextExt for Context {
         self.set_localization(
             locales::EN,
             Localization::new(locales::EN)
-                .with_sources(sources::EN)
-                .with_sources(fatty_acid_expressions::sources(fatty_acid_expressions::EN))
-                .with_sources(fatty_acid_names_l10n::sources("en"))
+                .with_sources(l10n::EN)
+                .with_sources(fatty_acid_expressions::l10n::EN)
+                .with_sources(fatty_acid_names::l10n::EN)
                 .with_sources(widgets::l10n::EN),
         );
         self.set_localization(
             locales::RU,
             Localization::new(locales::RU)
-                .with_sources(sources::RU)
-                .with_sources(fatty_acid_expressions::sources(fatty_acid_expressions::EN))
-                .with_sources(fatty_acid_names_l10n::sources("ru"))
+                .with_sources(l10n::RU)
+                .with_sources(fatty_acid_expressions::l10n::RU)
+                .with_sources(fatty_acid_names::l10n::RU)
                 .with_sources(widgets::l10n::RU),
         );
         self.set_language_identifier(locales::EN)
@@ -29,26 +29,26 @@ impl ContextExt for Context {
 }
 
 mod locales {
-    use egui_l20n::{LanguageIdentifier, langid};
+    use egui_l10n::{LanguageIdentifier, langid};
 
     pub(super) const EN: LanguageIdentifier = langid!("en");
     pub(super) const RU: LanguageIdentifier = langid!("ru");
 }
 
-mod sources {
+mod l10n {
     use crate::asset;
 
     pub(super) const EN: &[&str] = &[
-        asset!("/ftl/en/aocs.org.ftl"),
-        asset!("/ftl/en/aocs.org.ext.ftl"),
+        // asset!("/ftl/en/aocs.org.ftl"),
+        // asset!("/ftl/en/aocs.org.ext.ftl"),
         asset!("/ftl/en/main.ftl"),
         asset!("/ftl/en/main.ext.ftl"),
         asset!("/ftl/en/properties.ftl"),
     ];
 
     pub(super) const RU: &[&str] = &[
-        asset!("/ftl/en/aocs.org.ftl"),
-        asset!("/ftl/en/aocs.org.ext.ftl"),
+        // asset!("/ftl/en/aocs.org.ftl"),
+        // asset!("/ftl/en/aocs.org.ext.ftl"),
         // asset!("/ftl/ru/main.ftl"),
     ];
 }

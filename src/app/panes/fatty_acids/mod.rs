@@ -21,7 +21,7 @@ use egui::{
     CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Panel, Response, RichText, ScrollArea,
     TextStyle, TextWrapMode, Ui, Widget, Window, util::hash,
 };
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
@@ -416,21 +416,21 @@ fn top(ui: &mut Ui, settings: &mut Settings) {
                             .build()
                             .ui(ui);
                         ui.separator();
-                        ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
-                            let title = self.title();
-                            if ui
-                                .button("RON")
-                                .on_hover_ui(|ui| {
-                                    ui.label(ui.localize("Save"));
-                                })
-                                .on_hover_ui(|ui| {
-                                    ui.label(&format!("{title}.fa.utca.ron"));
-                                })
-                                .clicked()
-                            {
-                                _ = self.save_ron(&title);
-                            }
-                        });
+                        // ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
+                        //     let title = self.title();
+                        //     if ui
+                        //         .button("RON")
+                        //         .on_hover_ui(|ui| {
+                        //             ui.label(ui.localize("Save"));
+                        //         })
+                        //         .on_hover_ui(|ui| {
+                        //             ui.label(&format!("{title}.fa.utca.ron"));
+                        //         })
+                        //         .clicked()
+                        //     {
+                        //         _ = self.save_ron(&title);
+                        //     }
+                        // });
                     })
                     .inner
             })

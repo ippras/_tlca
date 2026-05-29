@@ -7,7 +7,7 @@ use crate::{
 };
 use const_format::formatcp;
 use egui::{Frame, Id, Label, Margin, Response, TextStyle, TextWrapMode, Ui, Widget};
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BROWSERS, HASH};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use fatty_acid_expressions::r#const::SUM;

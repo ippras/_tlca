@@ -6,7 +6,6 @@ use crate::{
         },
         panes::MARGIN,
         states::triacylglycerols::{ID_SOURCE, State},
-        widgets::mean_and_standard_deviation::MeanAndStandardDeviation,
     },
     r#const::{MAJOR, SPECIES},
     utils::{HashedDataFrame, HashedMetaDataFrame},
@@ -16,13 +15,14 @@ use egui::{
     Sense, TextStyle, TextWrapMode, Ui, Widget,
 };
 use egui_ext::{InnerResponseExt as _, ResponseExt};
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_phosphor::regular::{HASH, LIST};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
 use lipid::prelude::*;
 use polars::prelude::*;
 use std::ops::Range;
 use tracing::instrument;
+use widgets::polars::array::Float64Array;
 
 /// Table view
 pub(super) struct TableView<'a> {
@@ -181,9 +181,17 @@ impl TableView<'_> {
                         .get(FormatKey::new(&self.target, &self.state.settings))
                         .clone()
                 });
-                MeanAndStandardDeviation::new(&data_frame, column.start, row)
-                    .with_standard_deviation(self.state.settings.mean.standard_deviation)
-                    .with_sample(true)
+                // MeanAndStandardDeviation::new(&data_frame, column.start, row)
+                //     .with_standard_deviation(self.state.settings.mean.standard_deviation)
+                //     .with_sample(true)
+                //     .show(ui)?;
+                Float64Array::builder()
+                    .series(&data_frame[column.start - 1].as_materialized_series())
+                    .row(row)
+                    .mean(self.state.settings.mean.mean)
+                    .standard_deviation(self.state.settings.mean.standard_deviation)
+                    .relative(self.state.settings.mean.kind.is_relative())
+                    .build()
                     .show(ui)?;
             }
             (row, _last) => {
@@ -220,9 +228,17 @@ impl TableView<'_> {
                     .get(FormatKey::new(&self.target, &self.state.settings))
                     .clone()
             });
-            MeanAndStandardDeviation::new(&data_frame, column.start, data_frame.height() - 1)
-                .with_standard_deviation(self.state.settings.mean.standard_deviation)
-                .with_sample(true)
+            // MeanAndStandardDeviation::new(&data_frame, column.start, data_frame.height() - 1)
+            //     .with_standard_deviation(self.state.settings.mean.standard_deviation)
+            //     .with_sample(true)
+            //     .show(ui)?;
+            Float64Array::builder()
+                .series(&data_frame[column.start - 1].as_materialized_series())
+                .row(data_frame.height() - 1)
+                .mean(self.state.settings.mean.mean)
+                .standard_deviation(self.state.settings.mean.standard_deviation)
+                .relative(self.state.settings.mean.kind.is_relative())
+                .build()
                 .show(ui)?;
         }
         Ok(())

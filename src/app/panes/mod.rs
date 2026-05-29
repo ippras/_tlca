@@ -3,7 +3,7 @@ use crate::{
     utils::HashedMetaDataFrame,
 };
 use egui::{Response, TextWrapMode, Ui, Vec2, WidgetText, vec2};
-use egui_l20n::prelude::*;
+use egui_l10n::prelude::*;
 use egui_tiles::{TileId, UiResponse};
 use polars::prelude::*;
 

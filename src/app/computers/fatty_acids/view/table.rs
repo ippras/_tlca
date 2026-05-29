@@ -20,20 +20,20 @@ pub(crate) struct Computer;
 impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
+        // println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = value(lazy_frame, key);
-        println!("unnest: {}", lazy_frame.clone().collect().unwrap());
+        // println!("unnest: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = filter(lazy_frame, key)?;
-        println!("filter_by_none: {}", lazy_frame.clone().collect().unwrap());
+        // println!("filter_by_none: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = format(lazy_frame, key)?;
-        println!(
-            "format: {}",
-            lazy_frame
-                .clone()
-                .unnest(cols(["Value_VIR-2233.2025-10-29"]), None)
-                .collect()
-                .unwrap()
-        );
+        // println!(
+        //     "format: {}",
+        //     lazy_frame
+        //         .clone()
+        //         .unnest(cols(["Value_VIR-2233.2025-10-29"]), None)
+        //         .collect()
+        //         .unwrap()
+        // );
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }

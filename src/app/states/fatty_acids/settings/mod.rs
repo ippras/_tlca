@@ -56,6 +56,7 @@ pub(crate) struct Settings {
     pub(crate) precision: Precision,
     pub(crate) threshold: Threshold,
 
+    pub(crate) reset: bool,
     #[serde(skip)]
     pub(crate) resizable: bool,
     pub(crate) truncate: bool,
@@ -86,6 +87,7 @@ impl Settings {
             precision: Precision::new(),
             mean: Mean::new(),
 
+            reset: false,
             resizable: false,
             truncate: true,
             // Table settings

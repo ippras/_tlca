@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Index, Indices, Join, Settings, StereospecificNumbers},
-    r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION, VALUE},
+    r#const::{MAJOR, MEAN, NAME, SAMPLE, STANDARD_DEVIATION, VALUE},
     utils::{HashedDataFrame, polars::eval_arr},
 };
 use const_format::formatcp;
@@ -14,7 +14,7 @@ use polars::prelude::*;
 use polars_ext::prelude::*;
 use std::num::NonZeroI8;
 use tracing::instrument;
-use widgets::settings::{Array, array::Item};
+use widgets::settings::{Array as SumArray, array::Item};
 
 pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");
 
@@ -30,7 +30,11 @@ impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         lazy_frame = values(lazy_frame, key);
+        println!("values: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = compute(lazy_frame, key)?;
+        println!("compute: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame = format(lazy_frame, key)?;
+        println!("format: {}", lazy_frame.clone().collect().unwrap());
         let data_frame = lazy_frame.collect()?;
         Ok(data_frame)
     }
@@ -47,7 +51,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
-    pub(crate) expressions: &'a Array,
+    pub(crate) expressions: &'a SumArray,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
@@ -124,12 +128,12 @@ fn values(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 //     concat(lazy_frames, Default::default())
 // }
 fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let visible = key.expressions.iter().filter(|item| item.visible);
     // Names
-    let mut exprs =
-        vec![lit(Series::from_iter(key.expressions.iter().filter_map(
-            |item| item.visible.then_some(item.name.as_str()),
-        ))
-        .with_name(PlSmallStr::from_static(INDEX)))];
+    let mut exprs = vec![lit(Series::from_iter(
+        visible.clone().map(|item| item.name.as_str()),
+    )
+    .with_name(PlSmallStr::from_static(NAME)))];
     // Values
     for name in key
         .frame
@@ -137,12 +141,11 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .iter_names()
         .filter(|name| name.starts_with(formatcp!("{VALUE}_")))
     {
-        let expr = concat_arr(
-            key.expressions
-                .iter()
-                .filter(|item| item.visible)
+        let expr = concat_list(
+            visible
+                .clone()
                 .map(|item| eval_arr(col(name.clone()), |expr| compute_item(item, expr)))
-                .collect::<PolarsResult<_>>()?,
+                .collect::<PolarsResult<Vec<_>>>()?,
         )?
         .explode(ExplodeOptions {
             empty_as_null: true,
@@ -255,4 +258,22 @@ fn compute_item(item: &Item, expr: Expr) -> Expr {
         "IodineValue" => (expr * col(FATTY_ACID).fatty_acid().iodine_value()).sum(),
         _ => unreachable!(),
     }
+}
+
+fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let schema = lazy_frame.collect_schema()?;
+    Ok(lazy_frame.with_columns(
+        schema
+            .iter_names()
+            .filter(|name| name.starts_with(formatcp!("{VALUE}_")))
+            .map(|name| {
+                Array::builder()
+                    .expr(col(name.clone()))
+                    .ddof(key.ddof)
+                    .precision(key.precision)
+                    .significant(key.significant)
+                    .build()
+            })
+            .collect::<Vec<_>>(),
+    ))
 }

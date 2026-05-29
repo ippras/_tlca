@@ -1,7 +1,7 @@
 use crate::{
     app::{
         panes::MARGIN,
-        states::fatty_acids::{ID_SOURCE, State},
+        states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
     r#const::MAJOR,
 };
@@ -22,12 +22,15 @@ const NUM_COLUMNS: usize = top::FATTY_ACID.end;
 /// Table view
 pub(crate) struct TableView<'a> {
     data_frame: &'a DataFrame,
-    state: &'a mut State,
+    settings: &'a mut Settings,
 }
 
 impl<'a> TableView<'a> {
-    pub(crate) fn new(data_frame: &'a DataFrame, state: &'a mut State) -> Self {
-        Self { data_frame, state }
+    pub(crate) fn new(data_frame: &'a DataFrame, settings: &'a mut Settings) -> Self {
+        Self {
+            data_frame,
+            settings,
+        }
     }
 }
 
@@ -35,10 +38,10 @@ impl TableView<'_> {
     #[instrument(skip(self, ui), err)]
     pub(crate) fn show(&mut self, ui: &mut Ui) -> PolarsResult<()> {
         let id_salt = Id::new(ID_SOURCE).with("Table");
-        if self.state.reset_table_state {
+        if self.settings.reset {
             let id = TableState::id(ui, Id::new(id_salt));
             TableState::reset(ui.ctx(), id);
-            self.state.reset_table_state = false;
+            self.settings.reset = false;
         }
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         // println!("self.data_frame: {:?}", self.data_frame);
@@ -49,11 +52,10 @@ impl TableView<'_> {
             .id_salt(id_salt)
             .num_rows(num_rows)
             .columns(vec![
-                Column::default()
-                    .resizable(self.state.settings.resizable);
+                Column::default().resizable(self.settings.resizable);
                 num_columns
             ])
-            .num_sticky_cols(self.state.settings.sticky_columns)
+            .num_sticky_cols(self.settings.sticky_columns)
             .headers([
                 HeaderRow {
                     height,
@@ -71,7 +73,7 @@ impl TableView<'_> {
     }
 
     fn header(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) {
-        if self.state.settings.truncate {
+        if self.settings.truncate {
             ui.style_mut().wrap_mode = Some(TextWrapMode::Truncate);
         }
         match (row, column) {
@@ -110,7 +112,7 @@ impl TableView<'_> {
             (row, top::LABEL) => {
                 let text = self.data_frame[LABEL].str()?.get(row).display().to_string();
                 let mut label = Label::new(text);
-                if self.state.settings.truncate {
+                if self.settings.truncate {
                     label = label.truncate();
                 }
                 label.ui(ui);
@@ -131,7 +133,7 @@ impl TableView<'_> {
                     .display()
                     .to_string();
                 let mut label = Label::new(text);
-                if self.state.settings.truncate {
+                if self.settings.truncate {
                     label = label.truncate();
                 }
                 let response = label.ui(ui);
@@ -143,9 +145,9 @@ impl TableView<'_> {
                 Float64Array::builder()
                     .series(&self.data_frame[column.start - 1].as_materialized_series())
                     .row(row)
-                    .mean(self.state.settings.mean.mean)
-                    .standard_deviation(self.state.settings.mean.standard_deviation)
-                    .relative(self.state.settings.mean.kind.is_relative())
+                    .mean(self.settings.mean.mean)
+                    .standard_deviation(self.settings.mean.standard_deviation)
+                    .relative(self.settings.mean.kind.is_relative())
                     .build()
                     .show(ui)?;
             }

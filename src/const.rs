@@ -12,11 +12,12 @@ pub(crate) const NON_BREAKING_HYPHEN: &str = "‑";
 pub(crate) const NO_BREAK_SPACE: &str = " ";
 
 pub(crate) const COMPOSITION: &str = "Composition";
+pub(crate) const MAJOR: &str = "Major";
 pub(crate) const MEAN: &str = "Mean";
+pub(crate) const NAME: &str = "Name";
 pub(crate) const SAMPLE: &str = "Sample";
 pub(crate) const SPECIES: &str = "Species";
 pub(crate) const STANDARD_DEVIATION: &str = "StandardDeviation";
-pub(crate) const MAJOR: &str = "Major";
 pub(crate) const VALUE: &str = "Value";
 
 pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");

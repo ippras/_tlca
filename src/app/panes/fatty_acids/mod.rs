@@ -10,6 +10,7 @@ use crate::{
             sum::sum::{Computed as SumComputed, Key as SumKey},
             view::table::{Computed as TableComputed, Key as TableKey},
         },
+        panes::fatty_acids::sum::expressions::Expressions,
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},
     },
     export::ron,
@@ -149,7 +150,7 @@ impl Pane {
             .button(RichText::new(ARROWS_CLOCKWISE).heading())
             .clicked()
         {
-            state.reset_table_state = true;
+            state.settings.reset = true;
         }
         // Resize
         ui.toggle_value(
@@ -192,7 +193,7 @@ impl Pane {
                 ui.label(ui.localize("Factors"));
             });
 
-            // Fatti acid expressions
+            // Fatty acid expressions
             ui.toggle_value(
                 &mut state.windows.open_expressions_sum,
                 (
@@ -294,7 +295,7 @@ impl Pane {
                 .get(TableKey::new(&self.calculated, &state.settings))
                 .clone()
         });
-        _ = TableView::new(&data_frame, state).show(ui);
+        _ = TableView::new(&data_frame, &mut state.settings).show(ui);
     }
 }
 
@@ -304,16 +305,34 @@ impl Pane {
         self.factors(ui, state);
         self.indices(ui, state);
         self.metrics(ui, state);
-        self.window_expressions_sum(ui, state);
+        self.expressions_sum(ui, state);
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!("{SLIDERS_HORIZONTAL} Settings"))
             .id(ui.auto_id_with(ID_SOURCE).with("Settings"))
-            .default_pos(ui.next_widget_position())
+            .constrain_to(ui.clip_rect())
             .open(&mut state.windows.open_settings)
             .show(ui.ctx(), |ui| {
                 state.settings.show(ui);
+            });
+    }
+
+    fn expressions_sum(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} {SUM} expressions"))
+            .id(ui.auto_id_with(ID_SOURCE).with("Expressions").with(SUM))
+            .constrain_to(ui.clip_rect())
+            .open(&mut state.windows.open_expressions_sum)
+            .show(ui.ctx(), |ui| {
+                top(ui, &mut state.settings);
+                let data_frame = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<SumComputed>()
+                        .get(SumKey::new(&self.calculated, &state.settings))
+                        .clone()
+                });
+                Expressions::new(&data_frame, &mut state.settings).show(ui);
             });
     }
 
@@ -334,28 +353,6 @@ impl Pane {
                 .clone()
         });
         Factors::new(&data_frame, settings).show(ui)
-    }
-
-    fn window_expressions_sum(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SIGMA} Indices"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
-            .open(&mut state.windows.open_expressions_sum)
-            .show(ui.ctx(), |ui| {
-                self.expressions_sum_content(ui, &state.settings)
-            });
-    }
-
-    #[instrument(skip_all, err)]
-    fn expressions_sum_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let data_frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<SumComputed>()
-                .get(SumKey::new(&self.calculated, settings))
-                .clone()
-        });
-        println!("data_frame: {data_frame}");
-        Indices::new(&data_frame, settings).show(ui)
     }
 
     fn indices(&mut self, ui: &mut Ui, state: &mut State) {
@@ -397,6 +394,31 @@ impl Pane {
         _ = Metrics::new(&data_frame, settings).show(ui);
         Ok(())
     }
+}
+
+fn top(ui: &mut Ui, settings: &mut Settings) {
+    Panel::top(ui.auto_id_with("Top")).show_inside(ui, |ui| {
+        MenuBar::new()
+            .ui(ui, |ui| {
+                ScrollArea::horizontal()
+                    .show(ui, |ui| {
+                        ui.set_height(ui.text_style_height(&TextStyle::Heading) + 4.0 * MARGIN.y);
+                        ui.visuals_mut().button_frame = false;
+                        widgets::buttons::ResetButton::builder()
+                            .selected(&mut settings.reset)
+                            .build()
+                            .ui(ui);
+                        ui.separator();
+                        widgets::buttons::ResizableButton::builder()
+                            .selected(&mut settings.resizable)
+                            .build()
+                            .ui(ui);
+                        ui.separator();
+                    })
+                    .inner
+            })
+            .inner;
+    });
 }
 
 mod factors;

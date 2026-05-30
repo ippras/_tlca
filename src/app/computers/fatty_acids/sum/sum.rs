@@ -1,5 +1,5 @@
 use crate::{
-    app::states::fatty_acids::settings::{Index, Indices, Join, Settings, StereospecificNumbers},
+    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers},
     r#const::{MAJOR, MEAN, NAME, SAMPLE, STANDARD_DEVIATION, VALUE},
     utils::HashedDataFrame,
 };

@@ -4,7 +4,6 @@ use crate::{
     app::{
         computers::fatty_acids::{
             factors::{Computed as FactorsComputed, Key as FactorsKey},
-            indices::{Computed as IndicesComputed, Key as IndicesKey},
             join::{Computed as JoinComputed, Key as JoinKey},
             metrics::{Computed as MetricsComputed, Key as MetricsKey},
             select::{Computed as SelectComputed, Key as SelectKey},
@@ -296,7 +295,6 @@ impl Pane {
     fn windows(&mut self, ui: &mut Ui, state: &mut State) {
         self.settings(ui, state);
         self.factors(ui, state);
-        self.indices(ui, state);
         self.metrics(ui, state);
         self.expressions_sum(ui, state);
     }
@@ -346,25 +344,6 @@ impl Pane {
                 .clone()
         });
         Factors::new(&data_frame, settings).show(ui)
-    }
-
-    fn indices(&mut self, ui: &mut Ui, state: &mut State) {
-        Window::new(format!("{SIGMA} Indices"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Indices"))
-            .open(&mut state.windows.open_indices)
-            .show(ui.ctx(), |ui| self.indices_content(ui, &state.settings));
-    }
-
-    #[instrument(skip_all, err)]
-    fn indices_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let data_frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<IndicesComputed>()
-                .get(IndicesKey::new(&self.select, settings))
-                .clone()
-        });
-        Indices::new(&data_frame, settings).show(ui)
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {

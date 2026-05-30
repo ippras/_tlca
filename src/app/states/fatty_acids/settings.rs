@@ -74,8 +74,8 @@ pub(crate) struct Settings {
     pub(crate) stereospecific_numbers: StereospecificNumbers,
 
     // Expressions settings
-    pub(crate) indices: Indices,
     pub(crate) expressions: Expressions,
+    pub(crate) threshold: bool,
 }
 
 impl Settings {
@@ -97,13 +97,14 @@ impl Settings {
             // Metrics settings
             chaddock: true,
             metric: Metric::HellingerDistance,
+
             // Expressions settings
-            indices: Indices::new(),
             stereospecific_numbers: StereospecificNumbers::Sn123,
             join: Join::Union,
             sort: Sort::new(),
 
             expressions: Expressions::new(),
+            threshold: false,
 
             reset: false,
         }
@@ -430,107 +431,7 @@ impl Factor {
     }
 }
 
-/// Indices
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) struct Indices(Vec<Index>);
-
-impl Indices {
-    pub(crate) fn new() -> Self {
-        Self(vec![
-            Index::new("Saturated"),
-            Index::new("Monounsaturated"),
-            Index::new("Polyunsaturated"),
-            Index::new("Unsaturated"),
-            Index::new("Unsaturated-9"),
-            Index::new("Unsaturated-6"),
-            Index::new("Unsaturated-3"),
-            Index::new("Unsaturated9"),
-            Index::new("Trans"),
-            Index::new("EicosapentaenoicAndDocosahexaenoic"),
-            Index::new("FishLipidQuality"),
-            Index::new("HealthPromotingIndex"),
-            Index::new("HypocholesterolemicToHypercholesterolemic"),
-            Index::new("IndexOfAtherogenicity"),
-            Index::new("IndexOfThrombogenicity"),
-            Index::new("LinoleicToAlphaLinolenic"),
-            Index::new("Polyunsaturated-6ToPolyunsaturated-3"),
-            Index::new("PolyunsaturatedToSaturated"),
-            Index::new("UnsaturationIndex"),
-        ])
-    }
-}
-
-impl Deref for Indices {
-    type Target = Vec<Index>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Indices {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Indices {
-    fn show(&mut self, ui: &mut Ui) {
-        let mut visible_all = None;
-        let response = dnd(ui, ui.auto_id_with("Indices")).show(
-            self.iter_mut(),
-            |ui, index, handle, _state| {
-                ui.horizontal(|ui| {
-                    let visible = index.visible;
-                    handle.ui(ui, |ui| {
-                        ui.label(DOTS_SIX_VERTICAL);
-                    });
-                    ui.checkbox(&mut index.visible, "");
-                    let mut label = RichText::new(&index.name);
-                    if !visible {
-                        label = label.weak();
-                    }
-                    let response = ui.label(label);
-                    Popup::context_menu(&response)
-                        .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
-                        .show(|ui| {
-                            if ui.button("Show all").clicked() {
-                                visible_all = Some(true);
-                            }
-                            if ui.button("Hide all").clicked() {
-                                visible_all = Some(false);
-                            }
-                        });
-                });
-            },
-        );
-        if response.is_drag_finished() {
-            response.update_vec(self.as_mut_slice());
-        }
-        if let Some(visible) = visible_all {
-            for index in &mut self.0 {
-                index.visible = visible;
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) struct Index {
-    pub(crate) name: String,
-    pub(crate) visible: bool,
-}
-
-impl Index {
-    fn new(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-            visible: true,
-        }
-    }
-}
-
-/// Filter
+/// Join
 #[derive(Clone, Copy, Debug, Default, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) enum Join {
     #[default]
@@ -564,29 +465,6 @@ impl Join {
         }
     }
 }
-
-// /// Sort
-// #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
-// pub(crate) enum Sort {
-//     Key,
-//     Value,
-// }
-
-// impl Sort {
-//     pub(crate) fn text(&self) -> &'static str {
-//         match self {
-//             Self::Key => "Sort_Key",
-//             Self::Value => "Sort_Value",
-//         }
-//     }
-
-//     pub(crate) fn hover_text(&self) -> &'static str {
-//         match self {
-//             Self::Key => "Sort_Key.hover",
-//             Self::Value => "Sort_Value.hover",
-//         }
-//     }
-// }
 
 /// Metric
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]

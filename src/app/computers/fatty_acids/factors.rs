@@ -1,7 +1,7 @@
 use crate::{
     app::states::fatty_acids::settings::{Factor, Settings, StereospecificNumbers},
     r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION},
-    utils::{HashedDataFrame, polars::sum_arr},
+    utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -85,8 +85,13 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         let mut factor = match key.factor {
             Factor::Selectivity => {
                 let is_unsaturated = col(FATTY_ACID).fatty_acid().is_unsaturated(None);
-                let unsaturated_mag2 = sum_arr(mag2.clone().filter(is_unsaturated.clone()))?;
-                let unsaturated_tag = sum_arr(tag.clone().filter(is_unsaturated))?;
+                let unsaturated_mag2 =
+                    eval_arr(mag2.clone().filter(is_unsaturated.clone()), |element| {
+                        Ok(element.sum())
+                    })?;
+                let unsaturated_tag = eval_arr(tag.clone().filter(is_unsaturated), |element| {
+                    Ok(element.sum())
+                })?;
                 (mag2 * unsaturated_tag) / (tag * unsaturated_mag2)
                 // col(FATTY_ACID).fatty_acid().selectivity_factor(mag2, tag)
             }

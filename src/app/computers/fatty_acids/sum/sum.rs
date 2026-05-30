@@ -1,7 +1,7 @@
 use crate::{
     app::states::fatty_acids::settings::{Index, Indices, Join, Settings, StereospecificNumbers},
     r#const::{MAJOR, MEAN, NAME, SAMPLE, STANDARD_DEVIATION, VALUE},
-    utils::{HashedDataFrame, polars::eval_arr},
+    utils::HashedDataFrame,
 };
 use const_format::formatcp;
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -9,7 +9,6 @@ use fatty_acid_expressions::r#const::sum::{
     CFA, D9, D12, EPA_AND_DHA, LCFA, MCFA, MUFA, NUFA, O3, O6, O9, PUFA, SCFA, SFA, TFA, UFA, VLCFA,
 };
 use lipid::prelude::*;
-use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use polars_ext::prelude::*;
 use std::num::NonZeroI8;
@@ -131,7 +130,7 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         let expr = concat_list(
             visible
                 .clone()
-                .map(|item| eval_arr(col(name.clone()), |expr| compute_item(item, expr)))
+                .map(|item| eval_arr(col(name.clone()), |expr| Ok(compute_item(item, expr))))
                 .collect::<PolarsResult<Vec<_>>>()?,
         )?
         .explode(ExplodeOptions {

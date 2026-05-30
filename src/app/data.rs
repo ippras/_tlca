@@ -1,5 +1,5 @@
 use crate::utils::HashedMetaDataFrame;
-use egui::{Frame, Id, Label, MenuBar, RichText, ScrollArea, TopBottomPanel, Ui};
+use egui::{Frame, Id, Label, MenuBar, Panel, RichText, ScrollArea, Ui};
 use egui_dnd::dnd;
 use egui_phosphor::regular::{CHECK, DOTS_SIX_VERTICAL, INTERSECT_THREE, PLUS, TRASH};
 use metadata::egui::MetadataWidget;
@@ -17,7 +17,7 @@ impl Data {
     pub fn show(&mut self, ui: &mut Ui) {
         ui.visuals_mut().collapsing_header_frame = true;
         ui.collapsing(RichText::new("FattyAcids").heading(), |ui| {
-            TopBottomPanel::top(
+            Panel::top(
                 ui.auto_id_with("LeftPane")
                     .with("TopPane")
                     .with("FattyAcids"),
@@ -36,7 +36,7 @@ impl Data {
             });
         });
         ui.collapsing(RichText::new("Triacylglycerols").heading(), |ui| {
-            TopBottomPanel::top(
+            Panel::top(
                 ui.auto_id_with("LeftPane")
                     .with("TopPane")
                     .with("Triacylglycerols"),

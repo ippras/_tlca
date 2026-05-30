@@ -3,8 +3,6 @@ pub use self::{
     spawn::spawn,
 };
 
-pub(crate) mod polars;
-
 mod hash;
 mod layout_job;
 mod spawn;

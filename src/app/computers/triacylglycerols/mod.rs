@@ -11,11 +11,12 @@ use crate::{
         },
     },
     r#const::{COMPOSITION, MAJOR, MEAN, SAMPLE, SPECIES, STANDARD_DEVIATION, VALUE},
-    utils::{HashedDataFrame, HashedMetaDataFrame, polars::eval_arr},
+    utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
+use polars_ext::expr::array::eval_arr;
 use std::convert::identity;
 use tracing::instrument;
 use widgets::settings::{Major, Sort};
@@ -170,7 +171,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     for frame in key.frames {
         let name = frame.meta.format(".").to_string();
         // TODO SAMPLE
-        let array = eval_arr(col(&name), |expr| expr.sum())?;
+        let array = eval_arr(col(&name), |expr| Ok(expr.sum()))?;
         aggs.push(
             as_struct(vec![
                 array.clone().arr().mean().alias(MEAN),

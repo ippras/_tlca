@@ -1,7 +1,7 @@
 use crate::{
     app::states::fatty_acids::settings::{Index, Indices, Join, Settings, StereospecificNumbers},
     r#const::{MAJOR, MEAN, SAMPLE, STANDARD_DEVIATION},
-    utils::{HashedDataFrame, polars::eval_arr},
+    utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
@@ -152,7 +152,7 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .map(|index| {
                     let array =
                         eval_arr(col(name.clone()).struct_().field_by_name(SAMPLE), |expr| {
-                            compute_index(index, expr)
+                            Ok(compute_index(index, expr))
                         })?;
                     Ok(as_struct(vec![
                         array

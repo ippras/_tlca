@@ -99,16 +99,16 @@ impl App {
 
 // Panels
 impl App {
-    fn panels(&mut self, ctx: &Context, state: &mut State) {
-        self.top_panel(ctx, state);
-        self.bottom_panel(ctx);
-        self.left_panel(ctx, state);
-        self.central_panel(ctx);
+    fn panels(&mut self, ui: &mut Ui, state: &mut State) {
+        self.top_panel(ui, state);
+        self.bottom_panel(ui);
+        self.left_panel(ui, state);
+        self.central_panel(ui);
     }
 
     // Bottom panel
-    fn bottom_panel(&mut self, ctx: &Context) {
-        Panel::bottom("BottomPanel").show(ctx, |ui| {
+    fn bottom_panel(&mut self, ui: &mut Ui) {
+        Panel::bottom("BottomPanel").show_inside(ui, |ui| {
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 Sides::new().show(
                     ui,
@@ -124,10 +124,10 @@ impl App {
     }
 
     // Central panel
-    fn central_panel(&mut self, ctx: &Context) {
+    fn central_panel(&mut self, ui: &mut Ui) {
         CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.global_style()).inner_margin(0))
-            .show(ctx, |ui| {
+            .frame(Frame::central_panel(&ui.global_style()).inner_margin(0))
+            .show_inside(ui, |ui| {
                 let mut behavior = Behavior { close: None };
                 self.tree.ui(&mut behavior, ui);
                 if let Some(id) = behavior.close {
@@ -137,19 +137,17 @@ impl App {
     }
 
     // Left panel
-    fn left_panel(&mut self, ctx: &Context, state: &mut State) {
-        Panel::left("LeftPanel").resizable(true).show_animated(
-            ctx,
-            state.settings.left_panel,
-            |ui| {
+    fn left_panel(&mut self, ui: &mut Ui, state: &mut State) {
+        Panel::left("LeftPanel")
+            .resizable(true)
+            .show_animated_inside(ui, state.settings.left_panel, |ui| {
                 self.data.show(ui);
-            },
-        );
+            });
     }
 
     // Top panel
-    fn top_panel(&mut self, ctx: &Context, state: &mut State) {
-        Panel::top("TopPanel").show(ctx, |ui| {
+    fn top_panel(&mut self, ui: &mut Ui, state: &mut State) {
+        Panel::top("TopPanel").show_inside(ui, |ui| {
             MenuBar::new().ui(ui, |ui| {
                 ScrollArea::horizontal().show(ui, |ui| {
                     // Left panel

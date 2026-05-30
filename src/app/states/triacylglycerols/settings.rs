@@ -1,13 +1,10 @@
-use crate::app::{
-    MAX_PRECISION,
-    states::{
-        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS},
-        triacylglycerols::{
-            ID_SOURCE,
-            composition::{
-                COMPOSITIONS, Composition, SPECIES_MONO, SPECIES_POSITIONAL, SPECIES_STEREO,
-                TYPE_MONO, TYPE_POSITIONAL, UNSATURATION_MONO,
-            },
+use crate::app::states::{
+    fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS},
+    triacylglycerols::{
+        ID_SOURCE,
+        composition::{
+            COMPOSITIONS, Composition, SPECIES_MONO, SPECIES_POSITIONAL, SPECIES_STEREO, TYPE_MONO,
+            TYPE_POSITIONAL, UNSATURATION_MONO,
         },
     },
 };

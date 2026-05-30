@@ -292,11 +292,19 @@ impl Widget for Github {
 #[instrument(skip(ui), err)]
 fn preset(ui: &mut Ui, input: &str) -> Result<()> {
     let url = Url::parse(input)?;
-    let (name, date) = parse(&url)?;
-    if ui.button(format!("{name} {date}")).clicked() {
-        load(ui.ctx(), url);
-    }
-    Ok(())
+    let id = Id::new(&url);
+    ui.horizontal(|ui| {
+        let (name, date) = parse(&url)?;
+        if ui.button((name, date)).clicked() {
+            ui.data_mut(|data| data.insert_temp(id, true));
+            load(ui.ctx(), url);
+        }
+        if ui.data_mut(|data| *data.get_temp_mut_or_default::<bool>(id)) {
+            ui.spinner();
+        }
+        Ok(())
+    })
+    .inner
 }
 
 /// Parse preset url
@@ -321,6 +329,7 @@ fn load(ctx: &Context, url: Url) {
         if let Ok(frame) = try_load(&url).await {
             trace!(?frame);
             ctx.data_mut(|data| data.insert_temp(Id::new("Data"), vec![frame]));
+            ctx.data_mut(|data| data.remove_temp::<bool>(Id::new(&url)));
         }
     });
 }

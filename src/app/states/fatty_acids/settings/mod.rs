@@ -1,7 +1,5 @@
-use crate::{
-    app::{MAX_PRECISION, states::fatty_acids::ID_SOURCE},
-    r#const::markdown::*,
-};
+use crate::{app::states::fatty_acids::ID_SOURCE, r#const::markdown::*};
+use const_format::formatcp;
 use egui::{
     ComboBox, Id, Key, Popup, PopupCloseBehavior, RichText, Slider, Ui, Widget, WidgetText,
 };
@@ -11,8 +9,8 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
+use fatty_acid_expressions::r#const::{EXPRESSION, PREFIX as FAE};
 use lipid::prelude::*;
-use polars_utils::format_list_truncated;
 use serde::{Deserialize, Serialize};
 use std::{
     ops::{Deref, DerefMut},
@@ -156,11 +154,13 @@ impl Settings {
         );
 
         // Expressions
-        ui.collapsing(RichText::new(ui.localize("Expressions")).heading(), |ui| {
-            self.expressions.show(ui);
-        });
-
-        self.expressions(ui);
+        ui.collapsing(
+            RichText::new(ui.localize(formatcp!("{FAE}_{EXPRESSION}?PluralCategory=other")))
+                .heading(),
+            |ui| {
+                self.expressions.show(ui);
+            },
+        );
     }
 
     /// Truncate
@@ -361,27 +361,6 @@ impl Settings {
             response.on_hover_ui(|ui| {
                 ui.label(ui.localize("Chaddock.hover"));
             });
-        });
-    }
-
-    /// Expressions
-    fn expressions(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Indices")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Indices.hover"));
-            });
-            let selected_text = format_list_truncated!(
-                self.indices
-                    .0
-                    .iter()
-                    .filter(|index| index.visible)
-                    .map(|index| ui.localize(&format!("Indices_{}", index.name))),
-                1
-            );
-            ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                .selected_text(selected_text)
-                .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
-                .show_ui(ui, |ui| self.indices.show(ui));
         });
     }
 }

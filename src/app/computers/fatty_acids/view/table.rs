@@ -69,19 +69,27 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
         lazy_frame = match key.sort.by {
             By::Key if key.major => lazy_frame.sort_by_exprs(
                 [col(MAJOR), col(LABEL)],
-                sort_options.with_order_descending_multi([true, key.sort.order.is_descending()]),
+                sort_options
+                    .with_order_descending_multi([true, key.sort.order.is_descending()])
+                    .with_nulls_last(key.sort.order.is_descending()),
             ),
             By::Value if key.major => lazy_frame.sort_by_exprs(
                 [col(MAJOR), col(VALUE_)],
-                sort_options.with_order_descending_multi([true, key.sort.order.is_descending()]),
+                sort_options
+                    .with_order_descending_multi([true, key.sort.order.is_descending()])
+                    .with_nulls_last(key.sort.order.is_descending()),
             ),
             By::Key => lazy_frame.sort_by_exprs(
                 [col(LABEL)],
-                sort_options.with_order_descending(key.sort.order.is_descending()),
+                sort_options
+                    .with_order_descending(key.sort.order.is_descending())
+                    .with_nulls_last(key.sort.order.is_descending()),
             ),
             By::Value => lazy_frame.sort_by_exprs(
                 [col(VALUE_)],
-                sort_options.with_order_descending(key.sort.order.is_descending()),
+                sort_options
+                    .with_order_descending(key.sort.order.is_descending())
+                    .with_nulls_last(key.sort.order.is_descending()),
             ),
         };
     }

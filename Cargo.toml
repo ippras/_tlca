@@ -71,6 +71,7 @@ egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "0.4"
 fatty_acid_expressions = { git = "https://github.com/ippras/fatty_acid_expressions" }
 fatty_acid_names = { git = "https://github.com/ippras/fatty_acid_names" }
 lipid = { git = "https://github.com/ippras/lipid", branch = "bf6a425" }
+maplit = "*"
 metadata = { git = "https://github.com/ippras/metadata", branch = "bf6a425", features = [
     "egui",
     "polars",
@@ -82,8 +83,6 @@ widgets = { git = "https://github.com/ippras/widgets", branch = "0.6", features 
     "fatty_acids",
     "polars",
 ] }
-
-maplit = "*"
 
 # linfa = "0.7.1"
 # linfa-hierarchical = "0.7.1"

@@ -19,6 +19,7 @@ use crate::{
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use anyhow::Result;
+use const_format::formatcp;
 use egui::{
     CentralPanel, CursorIcon, Frame, Id, Label, MenuBar, Panel, Response, RichText, ScrollArea,
     TextStyle, TextWrapMode, Ui, Widget, Window, util::hash,
@@ -28,15 +29,15 @@ use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
-use fatty_acid_expressions::r#const::SUM;
+use fatty_acid_expressions::r#const::{PREFIX as FAE, SUM};
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
 use polars_ext::list::format_list_truncated;
-use polars_utils::{format_list, format_list_truncated};
+use polars_utils::format_list;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, from_fn};
 use tracing::instrument;
-use widgets::buttons::{ResetButton, ResizableButton};
+use widgets::buttons::{MetadataButton, ResetButton, ResizableButton, SettingsButton};
 
 /// Fatty acids pane
 #[derive(Default, Deserialize, Serialize)]
@@ -156,31 +157,23 @@ impl Pane {
             })
             .on_hover_cursor(CursorIcon::Grab);
         ui.separator();
-        // Reset
-        if ui
-            .button(RichText::new(ARROWS_CLOCKWISE).heading())
-            .clicked()
-        {
-            state.settings.reset = true;
-        }
-        // Resize
-        ui.toggle_value(
-            &mut state.settings.resizable,
-            RichText::new(ARROWS_HORIZONTAL).heading(),
-        )
-        .on_hover_text("ResizeTableColumns");
-        // Edit metadata
-        ui.add_enabled(self.frames.len() == 1, |ui: &mut Ui| {
-            ui.toggle_value(&mut state.settings.editable, RichText::new(TAG).heading())
-                .on_hover_text("EditMetadata")
-        });
+        ResetButton::builder()
+            .selected(&mut state.settings.reset)
+            .build()
+            .ui(ui);
+        ResizableButton::builder()
+            .selected(&mut state.settings.resizable)
+            .build()
+            .ui(ui);
+        // MetadataButton::builder()
+        //     .selected(&mut state.windows.open_metadata)
+        //     .build()
+        //     .ui(ui);
         ui.separator();
-        // Settings
-        ui.toggle_value(
-            &mut state.windows.open_settings,
-            RichText::new(GEAR).heading(),
-        )
-        .on_hover_text("ShowSettings");
+        SettingsButton::builder()
+            .selected(&mut state.windows.open_settings)
+            .build()
+            .ui(ui);
         ui.separator();
         self.sum_button(ui, state);
         ui.separator();
@@ -209,24 +202,13 @@ impl Pane {
                 &mut state.windows.open_expressions_sum,
                 (
                     RichText::new(SIGMA).heading(),
-                    RichText::new(ui.localize(SUM)).heading(),
+                    RichText::new(ui.localize(formatcp!("{FAE}_{SUM}"))).heading(),
                 ),
             )
             .on_hover_ui(|ui| {
-                ui.label(ui.localize(SUM));
+                ui.label(ui.localize(formatcp!("{FAE}_{SUM}")));
             });
 
-            // Indices
-            ui.toggle_value(
-                &mut state.windows.open_indices,
-                (
-                    RichText::new(SIGMA).heading(),
-                    RichText::new(ui.localize("Indices")).heading(),
-                ),
-            )
-            .on_hover_ui(|ui| {
-                ui.label(ui.localize("Indices"));
-            });
             // Metrics
             ui.toggle_value(
                 &mut state.windows.open_metrics,

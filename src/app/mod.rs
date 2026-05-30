@@ -38,8 +38,6 @@ use std::{borrow::BorrowMut, fmt::Write, str, sync::LazyLock};
 use tracing::{error, info, instrument, trace};
 
 const ID_SOURCE: &str = "TLCA";
-/// IEEE 754-2008
-const MAX_PRECISION: usize = 16;
 pub(super) const ICON_SIZE: f32 = 32.0;
 
 fn custom_style(ctx: &Context) {
@@ -173,50 +171,6 @@ impl App {
                         .build()
                         .ui(ui);
                     ui.separator();
-                    // if ui
-                    //     .button(RichText::new(SQUARE_SPLIT_VERTICAL).size(ICON_SIZE))
-                    //     .on_hover_text("Vertical")
-                    //     .clicked()
-                    // {
-                    //     if let Some(id) = self.tree.root {
-                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                    //             container.set_kind(ContainerKind::Vertical);
-                    //         }
-                    //     }
-                    // }
-                    // if ui
-                    //     .button(RichText::new(SQUARE_SPLIT_HORIZONTAL).size(ICON_SIZE))
-                    //     .on_hover_text("Horizontal")
-                    //     .clicked()
-                    // {
-                    //     if let Some(id) = self.tree.root {
-                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                    //             container.set_kind(ContainerKind::Horizontal);
-                    //         }
-                    //     }
-                    // }
-                    // if ui
-                    //     .button(RichText::new(GRID_FOUR).size(ICON_SIZE))
-                    //     .on_hover_text("Grid")
-                    //     .clicked()
-                    // {
-                    //     if let Some(id) = self.tree.root {
-                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                    //             container.set_kind(ContainerKind::Grid);
-                    //         }
-                    //     }
-                    // }
-                    // if ui
-                    //     .button(RichText::new(TABS).size(ICON_SIZE))
-                    //     .on_hover_text("Tabs")
-                    //     .clicked()
-                    // {
-                    //     if let Some(id) = self.tree.root {
-                    //         if let Some(Tile::Container(container)) = self.tree.tiles.get_mut(id) {
-                    //             container.set_kind(ContainerKind::Tabs);
-                    //         }
-                    //     }
-                    // }
                     self.layouts(ui, state);
                     ui.separator();
                     // Presets

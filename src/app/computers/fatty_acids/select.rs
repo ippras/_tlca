@@ -65,7 +65,7 @@ fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
         .keep()])
 }
 
-/// Major
+/// Major column
 fn major(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let major = if key.major.is_auto {
         // Берем среднее значение массива, так как иначе пришлось бы сравнивать все повторности попарно

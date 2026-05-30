@@ -20,7 +20,7 @@ use std::{
 };
 use widgets::{
     fatty_acids::settings::Expressions,
-    settings::{Major, Mean, Precision},
+    settings::{Major, Mean, Precision, Sort},
 };
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -71,7 +71,8 @@ pub(crate) struct Settings {
     pub(crate) metric: Metric,
     //
     pub(crate) join: Join,
-    pub(crate) sort: Option<Sort>,
+    pub(crate) sort: Sort,
+
     pub(crate) stereospecific_numbers: StereospecificNumbers,
 
     // Expressions settings
@@ -102,7 +103,7 @@ impl Settings {
             indices: Indices::new(),
             stereospecific_numbers: StereospecificNumbers::Sn123,
             join: Join::Union,
-            sort: None,
+            sort: Sort::new(),
 
             expressions: Expressions::new(),
 
@@ -128,15 +129,18 @@ impl Settings {
             self.major.show(ui, &[], self.precision.percent);
         });
 
+        ui.group(|ui| {
+            ui.set_width(ui.available_width());
+            self.sort.show(ui);
+        });
+
         self.truncate(ui);
 
         ui.separator();
         ui.labeled_separator(ui.localize("Parameters"));
 
         self.stereospecific_numbers(ui);
-        self.filter(ui);
-
-        self.sort(ui);
+        self.join(ui);
 
         ui.separator();
         ui.labeled_separator(ui.localize("Factor?PluralCategory=other"));
@@ -198,8 +202,8 @@ impl Settings {
         });
     }
 
-    /// Filter
-    fn filter(&mut self, ui: &mut Ui) {
+    /// Join
+    fn join(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label(ui.localize("Filter")).on_hover_ui(|ui| {
                 ui.label(ui.localize("Filter.hover"));
@@ -237,44 +241,46 @@ impl Settings {
         });
     }
 
-    /// Sort
-    fn sort(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Sort.hover"));
-            });
-            let mut checked = self.sort.is_some();
-            if ui.checkbox(&mut checked, ()).changed() {
-                self.sort = if checked { Some(Sort::Key) } else { None };
-            }
-            ui.add_enabled_ui(checked, |ui| {
-                let text = match self.sort {
-                    Some(sort) => WidgetText::from(ui.localize(sort.text())),
-                    None => WidgetText::from(""),
-                };
-                let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                    .selected_text(text)
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.sort,
-                            Some(Sort::Key),
-                            ui.localize(Sort::Key.text()),
-                        )
-                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
-                        ui.selectable_value(
-                            &mut self.sort,
-                            Some(Sort::Value),
-                            ui.localize(Sort::Value.text()),
-                        )
-                        .on_hover_text(ui.localize(Sort::Value.hover_text()));
-                    })
-                    .response;
-                if let Some(sort) = self.sort {
-                    response.on_hover_localized(sort.hover_text());
-                }
-            });
-        });
-    }
+    // /// Sort
+    // fn sort(&mut self, ui: &mut Ui) {
+    //     ui.horizontal(|ui| {
+    //         ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
+    //             ui.label(ui.localize("Sort.hover"));
+    //         });
+    //         let mut checked = self.sort.is_some();
+    //         if ui.checkbox(&mut checked, ()).changed() {
+    //             self.sort = if checked { Some(Sort::Key) } else { None };
+    //         }
+    //         ui.add_enabled_ui(checked, |ui| {
+    //             let text = match self.sort {
+    //                 Some(sort) => WidgetText::from(ui.localize(sort.text())),
+    //                 None => WidgetText::from(""),
+    //             };
+    //             let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+    //                 .selected_text(text)
+    //                 .show_ui(ui, |ui| {
+    //                     ui.selectable_value(
+    //                         &mut self.sort,
+    //                         Some(Sort::Key),
+    //                         ui.localize(Sort::Key.text()),
+    //                     )
+    //                     .on_hover_text(ui.localize(Sort::Key.hover_text()));
+    //                     ui.selectable_value(
+    //                         &mut self.sort,
+    //                         Some(Sort::Value),
+    //                         ui.localize(Sort::Value.text()),
+    //                     )
+    //                     .on_hover_text(ui.localize(Sort::Value.hover_text()));
+    //                 })
+    //                 .response;
+    //             if let Some(sort) = self.sort {
+    //                 response.on_hover_ui(|ui| {
+    //                     ui.label(ui.localize(sort.hover_text()));
+    //                 });
+    //             }
+    //         });
+    //     });
+    // }
 
     /// Factors
     fn factors(&mut self, ui: &mut Ui) {
@@ -309,8 +315,9 @@ impl Settings {
                 });
         });
         ui.horizontal(|ui| {
-            ui.label(ui.localize("NormalizeFactor"))
-                .on_hover_localized("NormalizeFactor.hover");
+            ui.label(ui.localize("NormalizeFactor")).on_hover_ui(|ui| {
+                ui.label(ui.localize("NormalizeFactor.hover"));
+            });
             ui.checkbox(&mut self.normalize_factor, ());
         });
     }
@@ -579,28 +586,28 @@ impl Join {
     }
 }
 
-/// Sort
-#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
-pub(crate) enum Sort {
-    Key,
-    Value,
-}
+// /// Sort
+// #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+// pub(crate) enum Sort {
+//     Key,
+//     Value,
+// }
 
-impl Sort {
-    pub(crate) fn text(&self) -> &'static str {
-        match self {
-            Self::Key => "Sort_Key",
-            Self::Value => "Sort_Value",
-        }
-    }
+// impl Sort {
+//     pub(crate) fn text(&self) -> &'static str {
+//         match self {
+//             Self::Key => "Sort_Key",
+//             Self::Value => "Sort_Value",
+//         }
+//     }
 
-    pub(crate) fn hover_text(&self) -> &'static str {
-        match self {
-            Self::Key => "Sort_Key.hover",
-            Self::Value => "Sort_Value.hover",
-        }
-    }
-}
+//     pub(crate) fn hover_text(&self) -> &'static str {
+//         match self {
+//             Self::Key => "Sort_Key.hover",
+//             Self::Value => "Sort_Value.hover",
+//         }
+//     }
+// }
 
 /// Metric
 #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]

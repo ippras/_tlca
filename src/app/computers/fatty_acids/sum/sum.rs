@@ -29,8 +29,6 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<Value> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        lazy_frame = values(lazy_frame, key);
-        println!("values: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = compute(lazy_frame, key)?;
         println!("compute: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = format(lazy_frame, key)?;
@@ -52,10 +50,9 @@ pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
     pub(crate) expressions: &'a SumArray,
+    pub(crate) percent: bool,
     pub(crate) precision: usize,
     pub(crate) significant: bool,
-    pub(crate) stereospecific_numbers: StereospecificNumbers,
-    pub(crate) threshold: OrderedFloat<f64>,
 }
 
 impl<'a> Key<'a> {
@@ -64,25 +61,15 @@ impl<'a> Key<'a> {
             frame,
             ddof: settings.mean.ddof,
             expressions: &settings.expressions.sum,
+            percent: settings.precision.percent,
             precision: settings.precision.precision,
             significant: settings.precision.significant,
-            stereospecific_numbers: settings.stereospecific_numbers,
-            threshold: settings.major.auto,
         }
     }
 }
 
 /// Sum expressions value
 type Value = DataFrame;
-
-/// Value
-fn values(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    lazy_frame.with_columns([col(VALUE_)
-        .struct_()
-        .field_by_name(key.stereospecific_numbers.id())
-        .name()
-        .keep()])
-}
 
 /// Compute
 // fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
@@ -158,47 +145,6 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 }
 
 fn compute_item(item: &Item, expr: Expr) -> Expr {
-    // "Saturated" => col(FATTY_ACID).fatty_acid().sum_saturated(expr),
-    // "Monounsaturated" => col(FATTY_ACID).fatty_acid().sum_monounsaturated(expr),
-    // "Polyunsaturated" => col(FATTY_ACID).fatty_acid().sum_polyunsaturated(expr),
-    // "Unsaturated" => col(FATTY_ACID).fatty_acid().sum_unsaturated(expr, None),
-    // "Unsaturated-9" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .sum_unsaturated(expr, NonZeroI8::new(-9)),
-    // "Unsaturated-6" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .sum_unsaturated(expr, NonZeroI8::new(-6)),
-    // "Unsaturated-3" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .sum_unsaturated(expr, NonZeroI8::new(-3)),
-    // "Unsaturated9" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .sum_unsaturated(expr, NonZeroI8::new(9)),
-    // "Trans" => col(FATTY_ACID).fatty_acid().sum_trans(expr),
-    // "EicosapentaenoicAndDocosahexaenoic" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .eicosapentaenoic_and_docosahexaenoic(expr),
-    // "FishLipidQuality" => col(FATTY_ACID).fatty_acid().fish_lipid_quality(expr),
-    // "HealthPromotingIndex" => col(FATTY_ACID).fatty_acid().health_promoting_index(expr),
-    // "HypocholesterolemicToHypercholesterolemic" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .hypocholesterolemic_to_hypercholesterolemic(expr),
-    // "IndexOfAtherogenicity" => col(FATTY_ACID).fatty_acid().index_of_atherogenicity(expr),
-    // "IndexOfThrombogenicity" => col(FATTY_ACID).fatty_acid().index_of_thrombogenicity(expr),
-    // "LinoleicToAlphaLinolenic" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .linoleic_to_alpha_linolenic(expr),
-    // "Polyunsaturated-6ToPolyunsaturated-3" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .polyunsaturated_6_to_polyunsaturated_3(expr),
-    // "PolyunsaturatedToSaturated" => col(FATTY_ACID)
-    //     .fatty_acid()
-    //     .polyunsaturated_to_saturated(expr),
-    // "UnsaturationIndex" => col(FATTY_ACID).fatty_acid().unsaturation_index(expr),
-    // name => {
-    //     println!("name: {name}");
-    //     lit(NULL)
-    // }
     match &*item.name {
         EPA_AND_DHA => col(FATTY_ACID)
             .fatty_acid()
@@ -270,6 +216,7 @@ fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 Array::builder()
                     .expr(col(name.clone()))
                     .ddof(key.ddof)
+                    .percent(key.percent)
                     .precision(key.precision)
                     .significant(key.significant)
                     .build()

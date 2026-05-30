@@ -1,7 +1,7 @@
 use crate::app::{
     MAX_PRECISION,
     states::{
-        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS, Sort},
+        fatty_acids::settings::{Join, METRICS, Metric, SEPARATORS},
         triacylglycerols::{
             ID_SOURCE,
             composition::{
@@ -21,7 +21,7 @@ use egui_l10n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
-use widgets::settings::{Major, Mean, Precision};
+use widgets::settings::{Major, Mean, Precision, Sort};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
@@ -48,7 +48,7 @@ pub struct Settings {
     pub composition: Composition,
     pub filter: Join,
     pub metric: Metric,
-    pub sort: Option<Sort>,
+    pub sort: Sort,
 }
 
 impl Settings {
@@ -72,7 +72,7 @@ impl Settings {
             composition: SPECIES_STEREO,
             filter: Join::Union,
             metric: Metric::HellingerDistance,
-            sort: None,
+            sort: Sort::new(),
         }
     }
 }
@@ -96,7 +96,7 @@ impl Settings {
         ui.labeled_separator(ui.localize("Parameters"));
         self.composition(ui);
         self.filter(ui);
-        self.sort(ui);
+        self.sort.show(ui);
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
@@ -217,103 +217,46 @@ impl Settings {
         });
     }
 
-    // /// Auto threshold
-    // fn threshold_auto(&mut self, ui: &mut Ui) {
+    // /// Sort
+    // fn sort(&mut self, ui: &mut Ui) {
     //     ui.horizontal(|ui| {
-    //         ui.label(ui.localize("Threshold_Auto")).on_hover_ui(|ui| {
-    //             ui.label(ui.localize("Threshold_Auto.hover"));
+    //         ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
+    //             ui.label(ui.localize("Sort.hover"));
     //         });
-    //         let number_formatter = ui.style().number_formatter.clone();
-    //         let mut threshold = self.threshold.auto.0;
-    //         let response = Slider::new(&mut threshold, 0.0..=1.0)
-    //             .custom_formatter(|mut value, decimals| {
-    //                 if self.percent {
-    //                     value *= 100.0;
-    //                 }
-    //                 number_formatter.format(value, decimals)
-    //             })
-    //             .custom_parser(|value| {
-    //                 let mut value = value.parse().ok()?;
-    //                 if self.percent {
-    //                     value /= 100.0;
-    //                 }
-    //                 Some(value)
-    //             })
-    //             .logarithmic(true)
-    //             .update_while_editing(false)
-    //             .ui(ui);
-    //         if (response.drag_stopped() || response.lost_focus())
-    //             && !ui.input(|input| input.key_pressed(Key::Escape))
-    //         {
-    //             self.threshold.auto.0 = threshold;
-    //             self.threshold.is_auto = true;
+    //         let mut checked = self.sort.is_some();
+    //         if ui.checkbox(&mut checked, ()).changed() {
+    //             self.sort = if checked { Some(Sort::Key) } else { None };
     //         }
-    //         if ui
-    //             .button((BOOKMARK, if self.percent { "1.0%" } else { "0.01" }))
-    //             .clicked()
-    //         {
-    //             self.threshold.auto.0 = 0.01;
-    //             self.threshold.is_auto = true;
-    //         };
+    //         ui.add_enabled_ui(checked, |ui| {
+    //             let text = match self.sort {
+    //                 Some(sort) => WidgetText::from(ui.localize(sort.text())),
+    //                 None => WidgetText::from(""),
+    //             };
+    //             let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
+    //                 .selected_text(text)
+    //                 .show_ui(ui, |ui| {
+    //                     ui.selectable_value(
+    //                         &mut self.sort,
+    //                         Some(Sort::Key),
+    //                         ui.localize(Sort::Key.text()),
+    //                     )
+    //                     .on_hover_text(ui.localize(Sort::Key.hover_text()));
+    //                     ui.selectable_value(
+    //                         &mut self.sort,
+    //                         Some(Sort::Value),
+    //                         ui.localize(Sort::Value.text()),
+    //                     )
+    //                     .on_hover_text(ui.localize(Sort::Value.hover_text()));
+    //                 })
+    //                 .response;
+    //             if let Some(sort) = self.sort {
+    //                 response.on_hover_ui(|ui| {
+    //                     ui.label(ui.localize(sort.hover_text()));
+    //                 });
+    //             }
+    //         });
     //     });
     // }
-
-    // /// Threshold sort
-    // fn threshold_sort(&mut self, ui: &mut Ui) {
-    //     ui.horizontal(|ui| {
-    //         ui.label(ui.localize("Threshold_Sort"))
-    //             .on_hover_localized("Threshold_Sort.hover");
-    //         ui.checkbox(&mut self.threshold.sort, ());
-    //     });
-    // }
-
-    // /// Threshold filter
-    // fn threshold_filter(&mut self, ui: &mut Ui) {
-    //     ui.horizontal(|ui| {
-    //         ui.label(ui.localize("Threshold_Filter"))
-    //             .on_hover_localized("Threshold_Filter.hover");
-    //         ui.checkbox(&mut self.threshold.filter, ());
-    //     });
-    // }
-
-    /// Sort
-    fn sort(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.label(ui.localize("Sort")).on_hover_ui(|ui| {
-                ui.label(ui.localize("Sort.hover"));
-            });
-            let mut checked = self.sort.is_some();
-            if ui.checkbox(&mut checked, ()).changed() {
-                self.sort = if checked { Some(Sort::Key) } else { None };
-            }
-            ui.add_enabled_ui(checked, |ui| {
-                let text = match self.sort {
-                    Some(sort) => WidgetText::from(ui.localize(sort.text())),
-                    None => WidgetText::from(""),
-                };
-                let response = ComboBox::from_id_salt(ui.auto_id_with(*ID_SALT))
-                    .selected_text(text)
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.sort,
-                            Some(Sort::Key),
-                            ui.localize(Sort::Key.text()),
-                        )
-                        .on_hover_text(ui.localize(Sort::Key.hover_text()));
-                        ui.selectable_value(
-                            &mut self.sort,
-                            Some(Sort::Value),
-                            ui.localize(Sort::Value.text()),
-                        )
-                        .on_hover_text(ui.localize(Sort::Value.hover_text()));
-                    })
-                    .response;
-                if let Some(sort) = self.sort {
-                    response.on_hover_localized(sort.hover_text());
-                }
-            });
-        });
-    }
 
     /// Metric
     fn metric(&mut self, ui: &mut Ui) {

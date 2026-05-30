@@ -183,7 +183,9 @@ impl Pane {
                 let name = self.frames[0].meta.format(".");
                 if ui
                     .button((FLOPPY_DISK, "RON"))
-                    .on_hover_localized("Save")
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize("Save"));
+                    })
                     .on_hover_ui(|ui| {
                         ui.label(format!("{name}.tag.utca.ron"));
                     })

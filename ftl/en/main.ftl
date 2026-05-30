@@ -72,12 +72,7 @@ Precision = Precision
     .hover = Number of decimal pieces.
 Truncate = Truncate
     .hover = Truncate header text.
-Sort = Sort
-    .hover = Sort rows by.
-Sort_Key = Key
-    .hover = Sort by key.
-Sort_Value = Value
-    .hover = Sort by value.
+
 Parameters = Parameters
 Chaddock = Chaddock
     .hover = Chaddock scale.

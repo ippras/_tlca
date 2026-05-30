@@ -1,6 +1,6 @@
 use crate::{
     app::states::{
-        fatty_acids::settings::{Join, Sort},
+        fatty_acids::settings::Join,
         triacylglycerols::{
             composition::{
                 Composition, ECN_MONO, ECN_STEREO, MASS_MONO, MASS_STEREO, SPECIES_MONO,
@@ -18,7 +18,7 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use std::convert::identity;
 use tracing::instrument;
-use widgets::settings::Major;
+use widgets::settings::{Major, Sort};
 
 const ROUND_MASS: u32 = 1;
 
@@ -54,7 +54,7 @@ pub(crate) struct Key<'a> {
     pub(crate) composition: Composition,
     pub(crate) ddof: u8,
     pub(crate) filter: Join,
-    pub(crate) sort: Option<Sort>,
+    pub(crate) sort: Sort,
     pub(crate) major: &'a Major,
 }
 
@@ -264,28 +264,29 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Sort
 fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    if let Some(sort) = key.sort {
-        match sort {
-            Sort::Key => {
-                println!("GGG!!! Sort0: {}", lazy_frame.clone().collect().unwrap());
-                lazy_frame = lazy_frame.sort_by_exprs(
-                    // [col(COMPOSITION).over([col(THRESHOLD)])],
-                    [col(COMPOSITION)],
-                    SortMultipleOptions::new().with_maintain_order(true),
-                );
-            }
-            Sort::Value => {
-                lazy_frame = lazy_frame.sort_by_exprs(
-                    [all().exclude_cols([COMPOSITION, SPECIES, MAJOR]).as_expr()],
-                    // .over([col(THRESHOLD)])],
-                    SortMultipleOptions::new()
-                        .with_maintain_order(true)
-                        .with_order_descending(true)
-                        .with_nulls_last(true),
-                );
-            }
-        }
-    }
+    // TODO:
+    // if let Some(sort) = key.sort {
+    //     match sort {
+    //         Sort::Key => {
+    //             println!("GGG!!! Sort0: {}", lazy_frame.clone().collect().unwrap());
+    //             lazy_frame = lazy_frame.sort_by_exprs(
+    //                 // [col(COMPOSITION).over([col(THRESHOLD)])],
+    //                 [col(COMPOSITION)],
+    //                 SortMultipleOptions::new().with_maintain_order(true),
+    //             );
+    //         }
+    //         Sort::Value => {
+    //             lazy_frame = lazy_frame.sort_by_exprs(
+    //                 [all().exclude_cols([COMPOSITION, SPECIES, MAJOR]).as_expr()],
+    //                 // .over([col(THRESHOLD)])],
+    //                 SortMultipleOptions::new()
+    //                     .with_maintain_order(true)
+    //                     .with_order_descending(true)
+    //                     .with_nulls_last(true),
+    //             );
+    //         }
+    //     }
+    // }
     lazy_frame
 }
 

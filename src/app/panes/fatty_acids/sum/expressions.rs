@@ -83,7 +83,9 @@ impl<'a> Expressions<'a> {
         match (row, column) {
             // Top
             (0, top::INDEX) => {
-                ui.heading(HASH).on_hover_localized(INDEX);
+                ui.heading(HASH).on_hover_ui(|ui| {
+                    ui.label(ui.localize(INDEX));
+                });
             }
             (0, top::NAME) => {
                 ui.heading(ui.localize(formatcp!("{EXPRESSION}")))

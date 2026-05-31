@@ -75,7 +75,7 @@ pub(crate) struct Settings {
 
     // Expressions settings
     pub(crate) expressions: Expressions,
-    pub(crate) hsf: HighlightSortFilter,
+    pub(crate) highlight_sort_filter: HighlightSortFilter,
 
     pub(crate) reset: bool,
 }
@@ -106,7 +106,7 @@ impl Settings {
             sort: Sort::new(),
 
             expressions: Expressions::new(),
-            hsf: HighlightSortFilter::new(),
+            highlight_sort_filter: HighlightSortFilter::new(),
 
             reset: false,
         }
@@ -162,12 +162,14 @@ impl Settings {
                 .heading(),
             |ui| {
                 self.expressions.show(ui);
-                ui.group(|ui| {
-                    ui.set_width(ui.available_width());
-                    ui.label("Zero");
-                    ui.separator();
-                    self.hsf.show(ui);
+                ui.separator();
+                ui.horizontal(|ui| {
+                    // ui.label(ui.localize("Predicate"));
+                    // ui.label(ui.localize("Zero"));
+                    ui.label("Predicate");
+                    ui.label("Non zero");
                 });
+                self.highlight_sort_filter.show(ui);
             },
         );
     }

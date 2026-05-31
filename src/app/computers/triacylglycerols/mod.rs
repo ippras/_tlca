@@ -224,10 +224,10 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .field_by_name(MEAN)
         .gt(key.major.auto.0)])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(MAJOR));
-    if key.major.filter {
+    if key.major.highlight_sort_filter.filter {
         lazy_frame = lazy_frame.filter(col(MAJOR));
     }
-    if key.major.sort {
+    if key.major.highlight_sort_filter.sort {
         lazy_frame = lazy_frame.sort(
             [MAJOR],
             SortMultipleOptions::new()

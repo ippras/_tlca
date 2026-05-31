@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
-    r#const::MAJOR,
+    r#const::{HIGHLIGHT, MAJOR},
 };
 use egui::{Context, Frame, Id, Label, Margin, TextStyle, TextWrapMode, Ui, Widget};
 use egui_l10n::prelude::*;
@@ -46,7 +46,7 @@ impl TableView<'_> {
         let height = ui.text_style_height(&TextStyle::Heading) + 2.0 * MARGIN.y;
         // println!("self.data_frame: {:?}", self.data_frame);
         let num_rows = self.data_frame.height() as u64;
-        let value = self.data_frame.width() - 3;
+        let value = self.data_frame.width() - 4;
         let num_columns = NUM_COLUMNS + value;
         Table::new()
             .id_salt(id_salt)
@@ -100,9 +100,7 @@ impl TableView<'_> {
     }
 
     fn body(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) -> PolarsResult<()> {
-        if let Some(filter) = self.data_frame[MAJOR].bool()?.get(row)
-            && !filter
-        {
+        if let Some(false) = self.data_frame[HIGHLIGHT].bool()?.get(row) {
             ui.multiply_opacity(ui.visuals().disabled_alpha());
         }
         match (row, column) {

@@ -54,7 +54,7 @@ impl<'a> Key<'a> {
             precision: settings.precision.precision,
             significant: settings.precision.significant,
             sort: settings.sort,
-            major: settings.major.sort,
+            major: settings.major.highlight_sort_filter.sort,
         }
     }
 }

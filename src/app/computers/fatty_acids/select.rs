@@ -1,6 +1,6 @@
 use crate::{
     app::states::fatty_acids::settings::{Settings, StereospecificNumbers},
-    r#const::{MAJOR, VALUE_},
+    r#const::{HIGHLIGHT, MAJOR, VALUE_},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -22,8 +22,7 @@ impl Computer {
         println!("lazy_frame: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = select(lazy_frame, key);
         lazy_frame = major(lazy_frame, key)?;
-        lazy_frame = filter(lazy_frame, key);
-        lazy_frame = sort(lazy_frame, key);
+        lazy_frame = highlight_sort_filter(lazy_frame, key);
         let data_frame = lazy_frame.collect()?;
         HashedDataFrame::new(data_frame)
     }
@@ -83,23 +82,23 @@ fn major(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     Ok(lazy_frame)
 }
 
-/// Filter minors
-fn filter(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    if key.major.filter {
+/// Major column
+fn highlight_sort_filter(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    if key.major.highlight_sort_filter.filter {
         lazy_frame = lazy_frame.filter(col(MAJOR));
-    }
-    lazy_frame
-}
-
-/// Sort by major
-fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    if key.major.sort {
+    } else if key.major.highlight_sort_filter.sort {
         lazy_frame = lazy_frame.sort_by_exprs(
             [col(MAJOR)],
-            SortMultipleOptions::default()
+            SortMultipleOptions::new()
                 .with_maintain_order(true)
                 .with_order_reversed(),
         );
     }
+    let highlight = if key.major.highlight_sort_filter.highlight {
+        col(MAJOR)
+    } else {
+        lit(true)
+    };
+    lazy_frame = lazy_frame.with_column(highlight.alias(HIGHLIGHT));
     lazy_frame
 }

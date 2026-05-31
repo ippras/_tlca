@@ -28,7 +28,9 @@ use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
-use fatty_acid_expressions::r#const::{PREFIX as FAE, SUM};
+use fatty_acid_expressions::r#const::{
+    BIODIESEL, EXPRESSION, METABOLIC, NUTRITIONAL, PREFIX as FAE, RATIO, SUM,
+};
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
 use polars_ext::list::format_list_truncated;
@@ -197,15 +199,91 @@ impl Pane {
             });
 
             // Fatty acid expressions
-            ui.toggle_value(
-                &mut state.windows.open_expressions_sum,
+            ui.menu_button(
                 (
                     RichText::new(SIGMA).heading(),
-                    RichText::new(ui.localize(formatcp!("{FAE}_{SUM}"))).heading(),
+                    RichText::new(
+                        ui.localize(formatcp!("{FAE}_{EXPRESSION}?PluralCategory=other")),
+                    )
+                    .heading(),
                 ),
+                |ui| {
+                    // Sum
+                    ui.toggle_value(
+                        &mut state.windows.open_expressions_sum,
+                        (
+                            RichText::new(SIGMA).heading(),
+                            RichText::new(ui.localize(formatcp!("{FAE}_{SUM}"))).heading(),
+                        ),
+                    )
+                    .on_hover_ui(|ui| {
+                        ui.label(ui.localize(formatcp!("{FAE}_{SUM}")));
+                    });
+                    // Ratio
+                    ui.menu_button(
+                        (
+                            RichText::new(SIGMA).heading(),
+                            RichText::new(
+                                ui.localize(formatcp!("{FAE}_{RATIO}?PluralCategory=other")),
+                            )
+                            .heading(),
+                        ),
+                        |ui| {
+                            // Biodiesel
+                            ui.toggle_value(
+                                &mut state.windows.open_expressions_ratio_biodiesel,
+                                (
+                                    RichText::new(SIGMA).heading(),
+                                    RichText::new(
+                                        ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}")),
+                                    )
+                                    .heading(),
+                                ),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}")));
+                            });
+                            // Metabolic
+                            ui.toggle_value(
+                                &mut state.windows.open_expressions_ratio_metabolic,
+                                (
+                                    RichText::new(SIGMA).heading(),
+                                    RichText::new(
+                                        ui.localize(formatcp!("{FAE}_{RATIO}_{METABOLIC}")),
+                                    )
+                                    .heading(),
+                                ),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{METABOLIC}")));
+                            });
+                            // Nutritional
+                            ui.toggle_value(
+                                &mut state.windows.open_expressions_ratio_nutritional,
+                                (
+                                    RichText::new(SIGMA).heading(),
+                                    RichText::new(
+                                        ui.localize(formatcp!("{FAE}_{RATIO}_{NUTRITIONAL}")),
+                                    )
+                                    .heading(),
+                                ),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{NUTRITIONAL}")));
+                            });
+                        },
+                    )
+                    .response
+                    .on_hover_ui(|ui| {
+                        ui.label(
+                            ui.localize(formatcp!("{FAE}_{RATIO}.hover?PluralCategory=other")),
+                        );
+                    });
+                },
             )
+            .response
             .on_hover_ui(|ui| {
-                ui.label(ui.localize(formatcp!("{FAE}_{SUM}")));
+                ui.label(ui.localize(formatcp!("{FAE}_{EXPRESSION}.hover?PluralCategory=other")));
             });
 
             // Metrics
@@ -297,6 +375,9 @@ impl Pane {
         self.factors(ui, state);
         self.metrics(ui, state);
         self.expressions_sum(ui, state);
+        self.expressions_ratio_biodiesel(ui, state);
+        self.expressions_ratio_metabolic(ui, state);
+        self.expressions_ratio_nutritional(ui, state);
     }
 
     fn settings(&mut self, ui: &mut Ui, state: &mut State) {
@@ -309,9 +390,79 @@ impl Pane {
             });
     }
 
+    fn expressions_ratio_biodiesel(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!(
+            "{SIGMA} {RATIO} {}",
+            ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}"))
+                .to_lowercase()
+        ))
+        .id(ui
+            .auto_id_with(ID_SOURCE)
+            .with(EXPRESSION)
+            .with(RATIO)
+            .with(BIODIESEL))
+        .constrain_to(ui.clip_rect())
+        .open(&mut state.windows.open_expressions_ratio_biodiesel)
+        .show(ui.ctx(), |ui| {
+            top(ui, &mut state.settings);
+            let data_frame = ui.memory_mut(|memory| {
+                memory
+                    .caches
+                    .cache::<SumComputed>()
+                    .get(SumKey::new(&self.select, &state.settings))
+                    .clone()
+            });
+            Expressions::new(&data_frame, &mut state.settings).show(ui);
+        });
+    }
+
+    fn expressions_ratio_metabolic(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} {SUM} expressions"))
+            .id(ui
+                .auto_id_with(ID_SOURCE)
+                .with(EXPRESSION)
+                .with(RATIO)
+                .with(METABOLIC))
+            .constrain_to(ui.clip_rect())
+            .open(&mut state.windows.open_expressions_ratio_metabolic)
+            .show(ui.ctx(), |ui| {
+                top(ui, &mut state.settings);
+                let data_frame = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<SumComputed>()
+                        .get(SumKey::new(&self.select, &state.settings))
+                        .clone()
+                });
+                Expressions::new(&data_frame, &mut state.settings).show(ui);
+            });
+    }
+
+    fn expressions_ratio_nutritional(&mut self, ui: &mut Ui, state: &mut State) {
+        Window::new(format!("{SIGMA} {SUM} expressions"))
+            .id(ui
+                .auto_id_with(ID_SOURCE)
+                .with(EXPRESSION)
+                .with(RATIO)
+                .with(NUTRITIONAL))
+            .constrain_to(ui.clip_rect())
+            .open(&mut state.windows.open_expressions_ratio_nutritional)
+            .show(ui.ctx(), |ui| {
+                top(ui, &mut state.settings);
+                let data_frame = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<SumComputed>()
+                        .get(SumKey::new(&self.select, &state.settings))
+                        .clone()
+                });
+                Expressions::new(&data_frame, &mut state.settings).show(ui);
+            });
+    }
+
     fn expressions_sum(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!("{SIGMA} {SUM} expressions"))
-            .id(ui.auto_id_with(ID_SOURCE).with("Expressions").with(SUM))
+            .id(ui.auto_id_with(ID_SOURCE).with(EXPRESSION).with(SUM))
             .constrain_to(ui.clip_rect())
             .open(&mut state.windows.open_expressions_sum)
             .show(ui.ctx(), |ui| {

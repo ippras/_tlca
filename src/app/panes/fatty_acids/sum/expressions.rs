@@ -102,7 +102,7 @@ impl<'a> Expressions<'a> {
 
     #[instrument(skip(self, ui), err)]
     fn body(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) -> PolarsResult<()> {
-        if let Some(true) = self.data_frame[HIGHLIGHT].bool()?.get(row) {
+        if let Some(false) = self.data_frame[HIGHLIGHT].bool()?.get(row) {
             ui.visuals_mut().override_text_color = Some(ui.visuals().weak_text_color());
         }
         match (row, column) {

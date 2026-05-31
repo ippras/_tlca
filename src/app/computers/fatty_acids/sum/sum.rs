@@ -30,7 +30,7 @@ impl Computer {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         lazy_frame = compute(lazy_frame, key)?;
         println!("compute: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = threshold(lazy_frame, key)?;
+        lazy_frame = highlight_sort_filter(lazy_frame, key)?;
         println!("threshold: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = format(lazy_frame, key)?;
         println!("format: {}", lazy_frame.clone().collect().unwrap());
@@ -52,7 +52,7 @@ pub(crate) struct Key<'a> {
     pub(crate) ddof: u8,
     pub(crate) expressions: &'a SumArray,
     pub(crate) precision: Precision,
-    pub(crate) hsf: HighlightSortFilter,
+    pub(crate) highlight_sort_filter: HighlightSortFilter,
 }
 
 impl<'a> Key<'a> {
@@ -62,7 +62,7 @@ impl<'a> Key<'a> {
             ddof: settings.msd.ddof,
             expressions: &settings.expressions.sum,
             precision: settings.precision,
-            hsf: settings.hsf,
+            highlight_sort_filter: settings.highlight_sort_filter,
         }
     }
 }
@@ -205,11 +205,11 @@ fn compute_item(item: &Item, expr: Expr) -> Expr {
     }
 }
 
-fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+fn highlight_sort_filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let predicate = any_horizontal([col(VALUE_).arr().agg(element().gt(0.0).any(true))])?;
-    if key.hsf.filter {
+    if key.highlight_sort_filter.filter {
         lazy_frame = lazy_frame.filter(predicate.clone());
-    } else if key.hsf.sort {
+    } else if key.highlight_sort_filter.sort {
         lazy_frame = lazy_frame.sort_by_exprs(
             [predicate.clone()],
             SortMultipleOptions::new()
@@ -217,11 +217,14 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .with_order_descending(true),
         );
     }
-    if key.hsf.highlight {
-        lazy_frame = lazy_frame.with_column(predicate.not().alias(HIGHLIGHT));
-    } else {
-        lazy_frame = lazy_frame.with_column(lit(false).alias(HIGHLIGHT));
-    }
+    lazy_frame = lazy_frame.with_column(
+        if key.highlight_sort_filter.highlight {
+            predicate
+        } else {
+            lit(true)
+        }
+        .alias(HIGHLIGHT),
+    );
     Ok(lazy_frame)
 }
 

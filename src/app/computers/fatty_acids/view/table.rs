@@ -49,7 +49,7 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: settings.mean.ddof,
+            ddof: settings.msd.ddof,
             percent: settings.precision.percent,
             precision: settings.precision.precision,
             significant: settings.precision.significant,

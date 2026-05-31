@@ -1,6 +1,6 @@
 use crate::{
-    app::states::fatty_acids::settings::{Join, Settings, StereospecificNumbers},
-    r#const::{MAJOR, MEAN, NAME, SAMPLE, STANDARD_DEVIATION, VALUE},
+    app::states::fatty_acids::settings::Settings,
+    r#const::{HIGHLIGHT, NAME, VALUE},
     utils::HashedDataFrame,
 };
 use const_format::formatcp;
@@ -13,7 +13,7 @@ use polars::prelude::*;
 use polars_ext::prelude::*;
 use std::num::NonZeroI8;
 use tracing::instrument;
-use widgets::settings::{Array as SumArray, array::Item};
+use widgets::settings::{Array as SumArray, HighlightSortFilter, Precision, array::Item};
 
 pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");
 
@@ -30,6 +30,8 @@ impl Computer {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         lazy_frame = compute(lazy_frame, key)?;
         println!("compute: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame = threshold(lazy_frame, key)?;
+        println!("threshold: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = format(lazy_frame, key)?;
         println!("format: {}", lazy_frame.clone().collect().unwrap());
         let data_frame = lazy_frame.collect()?;
@@ -49,20 +51,18 @@ pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
     pub(crate) expressions: &'a SumArray,
-    pub(crate) percent: bool,
-    pub(crate) precision: usize,
-    pub(crate) significant: bool,
+    pub(crate) precision: Precision,
+    pub(crate) hsf: HighlightSortFilter,
 }
 
 impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: settings.mean.ddof,
+            ddof: settings.msd.ddof,
             expressions: &settings.expressions.sum,
-            percent: settings.precision.percent,
-            precision: settings.precision.precision,
-            significant: settings.precision.significant,
+            precision: settings.precision,
+            hsf: settings.hsf,
         }
     }
 }
@@ -205,6 +205,26 @@ fn compute_item(item: &Item, expr: Expr) -> Expr {
     }
 }
 
+fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let predicate = any_horizontal([col(VALUE_).arr().agg(element().gt(0.0).any(true))])?;
+    if key.hsf.filter {
+        lazy_frame = lazy_frame.filter(predicate.clone());
+    } else if key.hsf.sort {
+        lazy_frame = lazy_frame.sort_by_exprs(
+            [predicate.clone()],
+            SortMultipleOptions::new()
+                .with_maintain_order(true)
+                .with_order_descending(true),
+        );
+    }
+    if key.hsf.highlight {
+        lazy_frame = lazy_frame.with_column(predicate.not().alias(HIGHLIGHT));
+    } else {
+        lazy_frame = lazy_frame.with_column(lit(false).alias(HIGHLIGHT));
+    }
+    Ok(lazy_frame)
+}
+
 fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let schema = lazy_frame.collect_schema()?;
     Ok(lazy_frame.with_columns(
@@ -215,9 +235,9 @@ fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 Array::builder()
                     .expr(col(name.clone()))
                     .ddof(key.ddof)
-                    .percent(key.percent)
-                    .precision(key.precision)
-                    .significant(key.significant)
+                    .percent(key.precision.percent)
+                    .precision(key.precision.precision)
+                    .significant(key.precision.significant)
                     .build()
             })
             .collect::<Vec<_>>(),

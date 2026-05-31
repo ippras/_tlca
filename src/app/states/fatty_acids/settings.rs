@@ -17,8 +17,9 @@ use std::{
     sync::LazyLock,
 };
 use widgets::{
+    Show,
     fatty_acids::settings::Expressions,
-    settings::{Major, Mean, Precision, Sort},
+    settings::{HighlightSortFilter, Major, Mean, Precision, Sort, ThresholdZero},
 };
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -49,11 +50,10 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
-    pub(crate) mean: Mean,
+    pub(crate) msd: Mean,
     pub(crate) precision: Precision,
     pub(crate) major: Major,
 
-    pub(crate) reset: bool,
     #[serde(skip)]
     pub(crate) resizable: bool,
     pub(crate) truncate: bool,
@@ -75,7 +75,9 @@ pub(crate) struct Settings {
 
     // Expressions settings
     pub(crate) expressions: Expressions,
-    pub(crate) threshold: bool,
+    pub(crate) hsf: HighlightSortFilter,
+
+    pub(crate) reset: bool,
 }
 
 impl Settings {
@@ -83,7 +85,7 @@ impl Settings {
         Self {
             // Display
             precision: Precision::new(),
-            mean: Mean::new(),
+            msd: Mean::new(),
             major: Major::builder().bookmark(0.01).build(),
 
             resizable: false,
@@ -104,7 +106,7 @@ impl Settings {
             sort: Sort::new(),
 
             expressions: Expressions::new(),
-            threshold: false,
+            hsf: HighlightSortFilter::new(),
 
             reset: false,
         }
@@ -120,7 +122,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.mean.show(ui);
+            self.msd.show(ui);
         });
 
         ui.group(|ui| {
@@ -160,6 +162,12 @@ impl Settings {
                 .heading(),
             |ui| {
                 self.expressions.show(ui);
+                ui.group(|ui| {
+                    ui.set_width(ui.available_width());
+                    ui.label("Zero");
+                    ui.separator();
+                    self.hsf.show(ui);
+                });
             },
         );
     }

@@ -145,9 +145,9 @@ impl TableView<'_> {
                 Float64Array::builder()
                     .series(&self.data_frame[column.start - 1].as_materialized_series())
                     .row(row)
-                    .mean(self.settings.mean.mean)
-                    .standard_deviation(self.settings.mean.standard_deviation)
-                    .relative(self.settings.mean.kind.is_relative())
+                    .mean(self.settings.msd.mean)
+                    .standard_deviation(self.settings.msd.standard_deviation)
+                    .relative(self.settings.msd.kind.is_relative())
                     .build()
                     .show(ui)?;
             }

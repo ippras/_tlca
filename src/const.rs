@@ -11,6 +11,7 @@ pub(crate) const EM_DASH: &str = "—";
 pub(crate) const NON_BREAKING_HYPHEN: &str = "‑";
 pub(crate) const NO_BREAK_SPACE: &str = " ";
 
+pub(crate) const HIGHLIGHT: &str = "Highlight";
 pub(crate) const COMPOSITION: &str = "Composition";
 pub(crate) const MAJOR: &str = "Major";
 pub(crate) const MEAN: &str = "Mean";

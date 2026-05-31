@@ -3,7 +3,7 @@ use crate::{
         panes::MARGIN,
         states::fatty_acids::{ID_SOURCE, settings::Settings},
     },
-    r#const::NAME,
+    r#const::{HIGHLIGHT, NAME},
 };
 use const_format::formatcp;
 use egui::{Frame, Id, Label, Margin, Response, TextStyle, TextWrapMode, Ui, Widget};
@@ -102,6 +102,9 @@ impl<'a> Expressions<'a> {
 
     #[instrument(skip(self, ui), err)]
     fn body(&mut self, ui: &mut Ui, row: usize, column: Range<usize>) -> PolarsResult<()> {
+        if let Some(true) = self.data_frame[HIGHLIGHT].bool()?.get(row) {
+            ui.visuals_mut().override_text_color = Some(ui.visuals().weak_text_color());
+        }
         match (row, column) {
             (row, top::INDEX) => {
                 ui.label(row.to_string());
@@ -115,12 +118,10 @@ impl<'a> Expressions<'a> {
                 #[cfg(feature = "markdown")]
                 if let Some(name) = name {
                     Popup::menu(&response).show(|ui| {
-                        // let t = ui.localize(asset(ui, name));
-                        // println!("localize: {t}");
                         ui.markdown(&ui.localize(&format!("{name}.markdown")));
                     });
                 }
-                //
+                // settings
                 let text = name.map(|name| ui.localize(name)).display().to_string();
                 let mut label = Label::new(text);
                 if self.settings.truncate {
@@ -132,43 +133,12 @@ impl<'a> Expressions<'a> {
                 Float64Array::builder()
                     .series(self.data_frame[column.start - 1].as_materialized_series())
                     .row(row)
-                    .mean(self.settings.mean.mean)
-                    .standard_deviation(self.settings.mean.standard_deviation)
-                    .relative(self.settings.mean.kind.is_relative())
+                    .mean(self.settings.msd.mean)
+                    .standard_deviation(self.settings.msd.standard_deviation)
+                    .relative(self.settings.msd.kind.is_relative())
                     .build()
                     .show(ui)?;
             }
-            // (row, top::STEREOSPECIFIC_NUMBERS123) => {
-            //     Float64Array::builder()
-            //         .series(self.data_frame[STEREOSPECIFIC_NUMBERS123].as_materialized_series())
-            //         .row(row)
-            //         .mean(self.settings.mean.mean)
-            //         .standard_deviation(self.settings.mean.standard_deviation)
-            //         .relative(self.settings.mean.kind.is_relative())
-            //         .build()
-            //         .show(ui)?;
-            // }
-            // (row, top::STEREOSPECIFIC_NUMBERS13) => {
-            //     Float64Array::builder()
-            //         .series(self.data_frame[STEREOSPECIFIC_NUMBERS13].as_materialized_series())
-            //         .row(row)
-            //         .mean(self.settings.mean.mean)
-            //         .standard_deviation(self.settings.mean.standard_deviation)
-            //         .relative(self.settings.mean.kind.is_relative())
-            //         .build()
-            //         .show(ui)?;
-            // }
-            // (row, top::STEREOSPECIFIC_NUMBERS2) => {
-            //     Float64Array::builder()
-            //         .series(self.data_frame[STEREOSPECIFIC_NUMBERS2].as_materialized_series())
-            //         .row(row)
-            //         .mean(self.settings.mean.mean)
-            //         .standard_deviation(self.settings.mean.standard_deviation)
-            //         .relative(self.settings.mean.kind.is_relative())
-            //         .build()
-            //         .show(ui)?;
-            // }
-            _ => unreachable!(),
         }
         Ok(())
     }

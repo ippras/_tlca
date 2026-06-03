@@ -8,6 +8,7 @@ use lipid::prelude::*;
 use ordered_float::OrderedFloat;
 use polars::prelude::*;
 use polars_ext::prelude::*;
+use std::convert::identity;
 
 /// Factors computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -54,7 +55,7 @@ impl<'a> Key<'a> {
             ddof: 1,
             factor: settings.factor,
             normalize_factor: settings.normalize_factor,
-            percent: settings.precision.percent,
+            percent: settings.precision.percent.is_some_and(identity),
             precision: settings.precision.precision,
             significant: settings.precision.significant,
             stereospecific_numbers: settings.stereospecific_numbers,

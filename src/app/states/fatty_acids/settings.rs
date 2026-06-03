@@ -13,13 +13,16 @@ use fatty_acid_expressions::r#const::{EXPRESSION, PREFIX as FAE};
 use lipid::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
+    convert::identity,
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
 use widgets::{
     Show,
     fatty_acids::settings::Expressions,
-    settings::{HighlightSortFilter, Major, Mean, Precision, Sort, ThresholdZero},
+    settings::{
+        HighlightSortFilter, Major, MeanAndStandardDeviation, Order, Precision, Sort, ThresholdZero,
+    },
 };
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -50,7 +53,7 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
-    pub(crate) msd: Mean,
+    pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
     pub(crate) precision: Precision,
     pub(crate) major: Major,
 
@@ -70,6 +73,7 @@ pub(crate) struct Settings {
     //
     pub(crate) join: Join,
     pub(crate) sort: Sort,
+    pub(crate) order: Order,
 
     pub(crate) stereospecific_numbers: StereospecificNumbers,
 
@@ -84,8 +88,8 @@ impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             // Display
-            precision: Precision::new(),
-            msd: Mean::new(),
+            precision: Precision::builder().percent(true).build(),
+            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
             major: Major::builder().bookmark(0.01).build(),
 
             resizable: false,
@@ -104,6 +108,7 @@ impl Settings {
             stereospecific_numbers: StereospecificNumbers::Sn123,
             join: Join::Union,
             sort: Sort::new(),
+            order: Order::new(),
 
             expressions: Expressions::new(),
             highlight_sort_filter: HighlightSortFilter::new(),
@@ -122,17 +127,19 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.msd.show(ui);
+            self.mean_and_standard_deviation.show(ui);
         });
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.major.show(ui, &[], self.precision.percent);
+            self.major
+                .show(ui, &[], self.precision.percent.is_some_and(identity));
         });
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
             self.sort.show(ui);
+            self.order.show(ui);
         });
 
         self.truncate(ui);

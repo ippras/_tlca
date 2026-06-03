@@ -188,9 +188,20 @@ impl TableView<'_> {
                 Float64Array::builder()
                     .series(&data_frame[column.start - 1].as_materialized_series())
                     .row(row)
-                    .mean(self.state.settings.mean.mean)
-                    .standard_deviation(self.state.settings.mean.standard_deviation)
-                    .relative(self.state.settings.mean.kind.is_relative())
+                    .mean(self.state.settings.mean_and_standard_deviation.mean)
+                    .standard_deviation(
+                        self.state
+                            .settings
+                            .mean_and_standard_deviation
+                            .standard_deviation,
+                    )
+                    .relative(
+                        self.state
+                            .settings
+                            .mean_and_standard_deviation
+                            .kind
+                            .is_relative(),
+                    )
                     .build()
                     .show(ui)?;
             }
@@ -235,9 +246,20 @@ impl TableView<'_> {
             Float64Array::builder()
                 .series(&data_frame[column.start - 1].as_materialized_series())
                 .row(data_frame.height() - 1)
-                .mean(self.state.settings.mean.mean)
-                .standard_deviation(self.state.settings.mean.standard_deviation)
-                .relative(self.state.settings.mean.kind.is_relative())
+                .mean(self.state.settings.mean_and_standard_deviation.mean)
+                .standard_deviation(
+                    self.state
+                        .settings
+                        .mean_and_standard_deviation
+                        .standard_deviation,
+                )
+                .relative(
+                    self.state
+                        .settings
+                        .mean_and_standard_deviation
+                        .kind
+                        .is_relative(),
+                )
                 .build()
                 .show(ui)?;
         }

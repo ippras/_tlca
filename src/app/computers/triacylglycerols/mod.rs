@@ -64,7 +64,7 @@ impl<'a> Key<'a> {
         Self {
             frames,
             composition: settings.composition,
-            ddof: settings.mean.ddof,
+            ddof: settings.mean_and_standard_deviation.ddof,
             filter: settings.filter,
             sort: settings.sort,
             major: &settings.major,

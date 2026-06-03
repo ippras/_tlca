@@ -1,6 +1,6 @@
 use crate::{
     app::states::{fatty_acids::settings::Metric, triacylglycerols::settings::Settings},
-    r#const::{COMPOSITION, MEAN, SPECIES, MAJOR},
+    r#const::{COMPOSITION, MAJOR, MEAN, SPECIES},
     utils::HashedDataFrame,
 };
 use egui::util::cache::{ComputerMut, FrameCache};
@@ -20,9 +20,8 @@ impl Computer {
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
         // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = lazy_frame.select([all()
-            .exclude_cols([COMPOSITION, SPECIES, MAJOR])
-            .as_expr()]);
+        lazy_frame =
+            lazy_frame.select([all().exclude_cols([COMPOSITION, SPECIES, MAJOR]).as_expr()]);
         let schema = lazy_frame.collect_schema()?;
         // Метрики сравниваем по среднему, потому как сравнивать повторности
         // пришлось бы попарно все пары.
@@ -65,13 +64,7 @@ impl Computer {
                 .alias(left))
             })
             .collect::<PolarsResult<Vec<_>>>()?;
-        lazy_frame = lazy_frame.select(exprs).explode(
-            all(),
-            ExplodeOptions {
-                empty_as_null: true,
-                keep_nulls: true,
-            },
-        );
+        lazy_frame = lazy_frame.select(exprs).explode(all());
         // lazy_frame = lazy_frame
         //     .select([
         //         nth(2)

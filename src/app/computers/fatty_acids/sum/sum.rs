@@ -11,7 +11,7 @@ use fatty_acid_expressions::r#const::sum::{
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
-use std::num::NonZeroI8;
+use std::{convert::identity, num::NonZeroI8};
 use tracing::instrument;
 use widgets::settings::{Array as SumArray, HighlightSortFilter, Precision, array::Item};
 
@@ -59,7 +59,7 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &'a Settings) -> Self {
         Self {
             frame,
-            ddof: settings.msd.ddof,
+            ddof: settings.mean_and_standard_deviation.ddof,
             expressions: &settings.expressions.sum,
             precision: settings.precision,
             highlight_sort_filter: settings.highlight_sort_filter,
@@ -133,10 +133,7 @@ fn compute(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 .map(|item| eval_arr(col(name.clone()), |expr| Ok(compute_item(item, expr))))
                 .collect::<PolarsResult<Vec<_>>>()?,
         )?
-        .explode(ExplodeOptions {
-            empty_as_null: true,
-            keep_nulls: true,
-        })
+        .explode()
         .alias(name.clone());
         exprs.push(expr);
     }
@@ -238,7 +235,7 @@ fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 Array::builder()
                     .expr(col(name.clone()))
                     .ddof(key.ddof)
-                    .percent(key.precision.percent)
+                    .percent(key.precision.percent.is_some_and(identity))
                     .precision(key.precision.precision)
                     .significant(key.precision.significant)
                     .build()

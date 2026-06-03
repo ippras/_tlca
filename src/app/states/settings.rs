@@ -1,5 +1,5 @@
 use egui::{ComboBox, Grid, Id, Sense, Ui};
-use egui_l10n::UiExt as _;
+use egui_l10n::ContextExt as _;
 use egui_tiles::ContainerKind;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};

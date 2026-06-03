@@ -18,7 +18,7 @@ use egui_l10n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
 use std::{convert::identity, sync::LazyLock};
-use widgets::settings::{Major, Mean, Precision, Sort};
+use widgets::settings::{Major, MeanAndStandardDeviation, Precision, Sort};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
@@ -26,7 +26,7 @@ const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct Settings {
     pub precision: Precision,
-    pub mean: Mean,
+    pub mean_and_standard_deviation: MeanAndStandardDeviation,
     pub major: Major,
 
     #[serde(skip)]
@@ -52,7 +52,7 @@ impl Settings {
     pub fn new() -> Self {
         Self {
             precision: Precision::new(),
-            mean: Mean::new(),
+            mean_and_standard_deviation: MeanAndStandardDeviation::new(),
             major: Major::new(),
 
             resizable: false,
@@ -83,7 +83,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.mean.show(ui);
+            self.mean_and_standard_deviation.show(ui);
         });
 
         self.truncate(ui);

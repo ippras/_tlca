@@ -14,6 +14,8 @@ use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
+use std::convert::identity;
+use widgets::settings::Precision;
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -53,8 +55,8 @@ impl<'a> Key<'a> {
         Self {
             frame,
             composition: settings.composition,
-            ddof: 1,
-            percent: settings.precision.percent,
+            ddof: settings.mean_and_standard_deviation.ddof,
+            percent: settings.precision.percent.is_some_and(identity),
             precision: settings.precision.precision,
             significant: settings.precision.significant,
         }
@@ -184,16 +186,16 @@ fn species(key: Key) -> PolarsResult<Expr> {
                             .clone()
                             .stereospecific_number1()
                             .fatty_acid()
-                            .display(),
+                            .delta(),
                         triacylglycerol
                             .clone()
                             .stereospecific_number2()
                             .fatty_acid()
-                            .display(),
+                            .delta(),
                         triacylglycerol
                             .stereospecific_number3()
                             .fatty_acid()
-                            .display(),
+                            .delta(),
                     ],
                 )?
                 .alias(TRIACYLGLYCEROL)

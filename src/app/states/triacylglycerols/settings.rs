@@ -17,7 +17,7 @@ use egui_ext::Markdown;
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
-use std::sync::LazyLock;
+use std::{convert::identity, sync::LazyLock};
 use widgets::settings::{Major, Mean, Precision, Sort};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
@@ -97,7 +97,8 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.major.show(ui, &[], self.precision.percent);
+            self.major
+                .show(ui, &[], self.precision.percent.is_some_and(identity));
         });
 
         // Metrics

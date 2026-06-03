@@ -1,8 +1,9 @@
 use crate::{
     app::states::fatty_acids::settings::{Join, Metric, Settings, StereospecificNumbers},
-    r#const::{MAJOR, MEAN},
+    r#const::{MAJOR, MEAN, VALUE},
     utils::HashedDataFrame,
 };
+use const_format::formatcp;
 use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::prelude::*;
 use ordered_float::OrderedFloat;
@@ -22,11 +23,13 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = unnest(lazy_frame, key);
+        println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = filter(lazy_frame, key)?;
-        // println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
+        // println!("Metrics 2: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = compute(lazy_frame, key)?;
-        // println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
+        // println!("Metrics 3: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame.collect()
     }
 }
@@ -54,7 +57,7 @@ impl<'a> Key<'a> {
     pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
         Self {
             frame,
-            ddof: 1,
+            ddof: settings.mean_and_standard_deviation.ddof,
             filter: settings.join,
             metric: settings.metric,
             precision: settings.precision.precision,
@@ -91,6 +94,13 @@ fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Compute
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    // Values
+    for name in key
+        .frame
+        .schema()
+        .iter_names()
+        .filter(|name| name.starts_with(formatcp!("{VALUE}_")))
+    {}
     let names = key.frame.schema().iter_names();
     let mut exprs = Vec::with_capacity(names.len());
     for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | MAJOR)) {

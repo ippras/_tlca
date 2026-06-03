@@ -3,10 +3,10 @@ use super::{Behavior, MARGIN};
 use crate::{
     app::{
         computers::fatty_acids::{
-            factors::{Computed as FactorsComputed, Key as FactorsKey},
+            // factors::{Computed as FactorsComputed, Key as FactorsKey},
             join::{Computed as JoinComputed, Key as JoinKey},
-            metrics::{Computed as MetricsComputed, Key as MetricsKey},
             select::{Computed as SelectComputed, Key as SelectKey},
+            sum::metrics::{Computed as MetricsComputed, Key as MetricsKey},
             sum::sum::{Computed as SumComputed, Key as SumKey},
             view::table::{Computed as TableComputed, Key as TableKey},
         },
@@ -487,14 +487,15 @@ impl Pane {
 
     #[instrument(skip_all, err)]
     fn factors_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let data_frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<FactorsComputed>()
-                .get(FactorsKey::new(&self.select, settings))
-                .clone()
-        });
-        Factors::new(&data_frame, settings).show(ui)
+        // let data_frame = ui.memory_mut(|memory| {
+        //     memory
+        //         .caches
+        //         .cache::<FactorsComputed>()
+        //         .get(FactorsKey::new(&self.select, settings))
+        //         .clone()
+        // });
+        // Factors::new(&data_frame, settings).show(ui)
+        Ok(())
     }
 
     fn metrics(&mut self, ui: &mut Ui, state: &mut State) {

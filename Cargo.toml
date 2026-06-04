@@ -76,6 +76,7 @@ metadata = { git = "https://github.com/ippras/metadata", branch = "0.52", featur
     "egui",
     "polars",
 ] }
+metrics = { git = "https://github.com/ippras/metrics" }
 polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "0.52", features = [
     "array",
 ] }

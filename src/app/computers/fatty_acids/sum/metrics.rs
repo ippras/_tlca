@@ -200,6 +200,36 @@ fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 //     // }
 // }
 
+// The default credentials for the cameras are : Username:root Passwors:pass
+
+fn baroni_urbani_buser_similarity(x: Expr, y: Expr) -> Expr {
+    let min_xy = min(x.clone(), y.clone());
+    let max_xy = max(x.clone(), y.clone());
+
+    let sum_min = min_xy.clone().sum();
+    let sum_max = max_xy.clone().sum();
+
+    let sqrt = (sum_min.clone() * (x.max() - max_xy).sum()).sqrt();
+
+    (sum_min + sqrt.clone()) / (sum_max + sqrt)
+}
+
+fn bray_curtis_similarity(x: Expr, y: Expr) -> Expr {
+    let n = x.clone().count();
+    let mean_x = x.clone().mean();
+    let mean_y = y.clone().mean();
+    let sum_min = min(x, y).sum();
+
+    (lit(2) / (n * (mean_x + mean_y))) * sum_min
+}
+
+fn canberra_distance(x: Expr, y: Expr) -> Expr {
+    let num = (x.clone() - y.clone()).abs();
+    let den = x.abs() + y.abs();
+
+    (num / den).sum()
+}
+
 fn overlap_distance(a: Expr, b: Expr) -> Expr {
     lit(1) - min(a.clone(), b.clone()).sum() / min(a.sum(), b.sum())
 }
@@ -257,10 +287,10 @@ fn jensen_shannon_distance(mut a: Expr, mut b: Expr) -> Expr {
         / lit(SQRT_LN_2)
 }
 
-fn max(a: Expr, b: Expr) -> Expr {
-    ternary_expr(a.clone().gt_eq(b.clone()), a, b)
+fn max(x: Expr, y: Expr) -> Expr {
+    ternary_expr(x.clone().gt_eq(y.clone()), x, y)
 }
 
-fn min(a: Expr, b: Expr) -> Expr {
-    ternary_expr(a.clone().lt_eq(b.clone()), a, b)
+fn min(x: Expr, y: Expr) -> Expr {
+    ternary_expr(x.clone().lt_eq(y.clone()), x, y)
 }

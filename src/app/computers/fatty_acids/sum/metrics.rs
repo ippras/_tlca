@@ -23,12 +23,12 @@ impl Computer {
     #[instrument(skip(self), err)]
     fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
         let mut lazy_frame = key.frame.data_frame.clone().lazy();
-        println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = unnest(lazy_frame, key);
-        println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
-        lazy_frame = filter(lazy_frame, key)?;
+        // lazy_frame = unnest(lazy_frame, key);
+        // lazy_frame = filter(lazy_frame, key)?;
         // println!("Metrics 2: {}", lazy_frame.clone().collect().unwrap());
+        println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame = compute(lazy_frame, key)?;
+        println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
         // println!("Metrics 3: {}", lazy_frame.clone().collect().unwrap());
         lazy_frame.collect()
     }
@@ -71,36 +71,62 @@ impl<'a> Key<'a> {
 /// Metrics value
 type Value = DataFrame;
 
-/// Unnest
-fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    lazy_frame.with_columns([all()
-        .exclude_cols([LABEL, FATTY_ACID, MAJOR])
-        .as_expr()
-        .struct_()
-        .field_by_name(key.stereospecific_numbers.id())
-        .name()
-        .keep()])
-}
+// /// Unnest
+// fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+//     lazy_frame.with_columns([all()
+//         .exclude_cols([LABEL, FATTY_ACID, MAJOR])
+//         .as_expr()
+//         .struct_()
+//         .field_by_name(key.stereospecific_numbers.id())
+//         .name()
+//         .keep()])
+// }
 
-/// Filter
-fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
-    Ok(lazy_frame.filter(match key.filter {
-        Join::Intersection => all_horizontal([expr.is_not_null()])?,
-        Join::Union => any_horizontal([expr.is_not_null()])?,
-        Join::Difference => any_horizontal([expr.is_null()])?,
-    }))
-}
+// /// Filter
+// fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+//     let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
+//     Ok(lazy_frame.filter(match key.filter {
+//         Join::Intersection => all_horizontal([expr.is_not_null()])?,
+//         Join::Union => any_horizontal([expr.is_not_null()])?,
+//         Join::Difference => any_horizontal([expr.is_null()])?,
+//     }))
+// }
 
 /// Compute
 fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    // let mut exprs = Vec::with_capacity(names.len());
     // Values
     for name in key
         .frame
         .schema()
         .iter_names()
         .filter(|name| name.starts_with(formatcp!("{VALUE}_")))
-    {}
+    {
+        // Метрики сравниваем по среднему, потому как сравнивать повторности
+        // пришлось бы попарно все пары.
+        let left = col(name.as_str())
+            .struct_()
+            .field_by_name(MEAN)
+            .fill_null(0);
+        let right = col(formatcp!("{VALUE}_"))
+            .struct_()
+            .field_by_name(MEAN)
+            .fill_null(0);
+        let metric = match key.metric {
+            // Similarity between two discrete probability distributions
+            Metric::HellingerDistance => hellinger_distance(left, right),
+            Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+            Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
+            // Distance between two points
+            Metric::ChebyshevDistance => chebyshev_distance(left, right),
+            Metric::EuclideanDistance => euclidean_distance(left, right),
+            Metric::ManhattanDistance => manhattan_distance(left, right),
+            // Distance between two series
+            Metric::CosineDistance => cosine_distance(left, right),
+            Metric::JaccardDistance => jaccard_distance(left, right),
+            Metric::OverlapDistance => overlap_distance(left, right),
+        };
+    }
     let names = key.frame.schema().iter_names();
     let mut exprs = Vec::with_capacity(names.len());
     for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | MAJOR)) {

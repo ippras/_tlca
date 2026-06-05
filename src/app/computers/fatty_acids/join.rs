@@ -7,9 +7,14 @@ use crate::{
     utils::{HashedDataFrame, HashedMetaDataFrame},
 };
 use egui::util::cache::{ComputerMut, FrameCache};
+use itertools::Itertools;
 use lipid::prelude::*;
+use metadata::Metadata;
 use polars::prelude::*;
-use std::sync::LazyLock;
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    sync::LazyLock,
+};
 use tracing::instrument;
 use widgets::settings::Major;
 
@@ -86,6 +91,7 @@ type Value = HashedDataFrame;
 
 /// Join
 fn join(key: Key) -> PolarsResult<LazyFrame> {
+    let names = names(key);
     let compute = |frame: &HashedMetaDataFrame| -> PolarsResult<LazyFrame> {
         Ok(frame.data.data_frame.clone().lazy().select([
             col(LABEL),
@@ -95,7 +101,7 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
                 col(STEREOSPECIFIC_NUMBERS13),
                 col(STEREOSPECIFIC_NUMBERS2),
             ])
-            .alias(format!("{VALUE}_{}", frame.meta.format("."))),
+            .alias(format!("{VALUE}_{}", &names[&frame.meta])),
         ]))
     };
     let mut lazy_frame = compute(&key.frames[0])?;
@@ -112,6 +118,26 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
         );
     }
     Ok(lazy_frame)
+}
+
+fn names(key: Key<'_>) -> HashMap<&Metadata, String> {
+    let mut names = HashMap::new();
+    for frame in key.frames {
+        match names.entry(frame.meta.display().build().to_string()) {
+            Entry::Occupied(occupied) => {
+                let meta: &Metadata = occupied.remove();
+                names.insert(meta.display().date(true).build().to_string(), meta);
+                names.insert(
+                    frame.meta.display().date(true).build().to_string(),
+                    &frame.meta,
+                );
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert(&frame.meta);
+            }
+        }
+    }
+    names.into_iter().map(|(key, value)| (value, key)).collect()
 }
 
 /// Filter

@@ -1,2 +1,2 @@
-pub mod metrics;
+pub mod distances;
 pub mod sum;

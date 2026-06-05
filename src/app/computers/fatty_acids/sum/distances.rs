@@ -1,0 +1,328 @@
+use crate::{
+    app::states::fatty_acids::settings::{Join, Metric, Settings, StereospecificNumbers},
+    r#const::{MAJOR, MEAN, NAME, VALUE, VALUE_},
+    utils::HashedDataFrame,
+};
+use const_format::formatcp;
+use egui::util::cache::{ComputerMut, FrameCache};
+use lipid::prelude::*;
+use metrics::r#const::distances::data_analysis::{
+    COSINE_SIMILARITY, HELLINGER_DISTANCE, JACCARD_SIMILARITY,
+};
+use ordered_float::OrderedFloat;
+use polars::prelude::*;
+use polars_ext::prelude::*;
+use std::f64::consts::{E, FRAC_1_SQRT_2};
+use tracing::instrument;
+
+/// Metrics computed
+pub(crate) type Computed = FrameCache<Value, Computer>;
+
+/// Metrics computer
+#[derive(Default)]
+pub(crate) struct Computer;
+
+impl Computer {
+    #[instrument(skip(self), err)]
+    fn try_compute(&mut self, key: Key) -> PolarsResult<DataFrame> {
+        let mut lazy_frame = key.frame.data_frame.clone().lazy();
+        // lazy_frame = unnest(lazy_frame, key);
+        // lazy_frame = filter(lazy_frame, key)?;
+        // println!("Metrics 2: {}", lazy_frame.clone().collect().unwrap());
+        println!("Metrics 0: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame = compute(lazy_frame, key)?;
+        println!("Metrics 1: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame = format(lazy_frame, key);
+        println!("Metrics 2: {}", lazy_frame.clone().collect().unwrap());
+        lazy_frame.collect()
+    }
+}
+
+impl ComputerMut<Key<'_>, Value> for Computer {
+    fn compute(&mut self, key: Key) -> Value {
+        self.try_compute(key).unwrap()
+    }
+}
+
+/// Metrics key
+#[derive(Clone, Copy, Debug, Hash)]
+pub(crate) struct Key<'a> {
+    pub(crate) frame: &'a HashedDataFrame,
+    pub(crate) ddof: u8,
+    pub(crate) distance: Metric,
+    pub(crate) precision: usize,
+    pub(crate) significant: bool,
+    pub(crate) stereospecific_numbers: StereospecificNumbers,
+    pub(crate) threshold: OrderedFloat<f64>,
+}
+
+impl<'a> Key<'a> {
+    pub(crate) fn new(frame: &'a HashedDataFrame, settings: &Settings) -> Self {
+        Self {
+            frame,
+            ddof: settings.mean_and_standard_deviation.ddof,
+            distance: settings.metric,
+            precision: settings.precision.precision,
+            significant: settings.precision.significant,
+            stereospecific_numbers: settings.stereospecific_numbers,
+            threshold: settings.major.auto,
+        }
+    }
+}
+
+/// Metrics value
+type Value = DataFrame;
+
+// /// Unnest
+// fn unnest(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+//     lazy_frame.with_columns([all()
+//         .exclude_cols([LABEL, FATTY_ACID, MAJOR])
+//         .as_expr()
+//         .struct_()
+//         .field_by_name(key.stereospecific_numbers.id())
+//         .name()
+//         .keep()])
+// }
+
+// /// Filter
+// fn filter(lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+//     let expr = all().exclude_cols([LABEL, FATTY_ACID, MAJOR]).as_expr();
+//     Ok(lazy_frame.filter(match key.filter {
+//         Join::Intersection => all_horizontal([expr.is_not_null()])?,
+//         Join::Union => any_horizontal([expr.is_not_null()])?,
+//         Join::Difference => any_horizontal([expr.is_null()])?,
+//     }))
+// }
+
+/// Compute
+fn compute(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
+    let distances = &vec![HELLINGER_DISTANCE, COSINE_SIMILARITY, JACCARD_SIMILARITY];
+    // let visible = key.expressions.iter().filter(|item| item.visible);
+    let visible = distances.iter().cloned();
+    let names = key
+        .frame
+        .fields()
+        .into_iter()
+        .map(|field| field.name.into_string())
+        .filter(|name| name.starts_with(formatcp!("{VALUE}_")));
+    // Names
+    let mut exprs = vec![lit(
+        Series::from_iter(names.clone()).with_name(PlSmallStr::from_static(NAME))
+    )];
+    // Values
+    for name in names {
+        // Метрики сравниваем по среднему, потому как сравнивать повторности
+        // пришлось бы попарно все пары.
+        let left = col(name.clone()).arr().mean().fill_null(0);
+        let right = col(VALUE_).arr().mean().fill_null(0);
+        // let expr = concat_list(
+        //     visible
+        //         .clone()
+        //         .map(|name| compute_item(name, left.clone(), right.clone()))
+        //         .collect::<Vec<_>>(),
+        // )?
+        // .explode()
+        // .alias(name.clone());
+        let expr = concat_list([compute_item(
+            HELLINGER_DISTANCE,
+            left.clone(),
+            right.clone(),
+        )])?
+        .explode()
+        .alias(name);
+        exprs.push(expr);
+    }
+    // let names = key.frame.schema().iter_names();
+    // let mut exprs = Vec::with_capacity(names.len());
+    // for name in names.filter(|name| !matches!(name.as_str(), LABEL | FATTY_ACID | MAJOR)) {
+    //     // Метрики сравниваем по среднему, потому как сравнивать повторности
+    //     // пришлось бы попарно все пары.
+    //     let left = col(name.as_str())
+    //         .struct_()
+    //         .field_by_name(MEAN)
+    //         .fill_null(0);
+    //     let right = all()
+    //         .exclude_cols([LABEL, FATTY_ACID, MAJOR])
+    //         .as_expr()
+    //         .struct_()
+    //         .field_by_name(MEAN)
+    //         .fill_null(0);
+    //     let metric = match key.distance {
+    //         // Similarity between two discrete probability distributions
+    //         Metric::HellingerDistance => hellinger_distance(left, right),
+    //         Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+    //         Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
+    //         // Distance between two points
+    //         Metric::ChebyshevDistance => chebyshev_distance(left, right),
+    //         Metric::EuclideanDistance => euclidean_distance(left, right),
+    //         Metric::ManhattanDistance => manhattan_distance(left, right),
+    //         // Distance between two series
+    //         Metric::CosineDistance => cosine_distance(left, right),
+    //         Metric::JaccardDistance => jaccard_distance(left, right),
+    //         Metric::OverlapDistance => overlap_distance(left, right),
+    //     };
+    //     exprs.push(
+    //         concat_arr(vec![metric.precision(key.precision, key.significant)])?.alias(name.clone()),
+    //     );
+    // }
+    lazy_frame = lazy_frame.select(exprs);
+    Ok(lazy_frame)
+}
+
+// let distance = match key.distance {
+//     // Similarity between two discrete probability distributions
+//     Metric::HellingerDistance => hellinger_distance(left, right),
+//     Metric::JensenShannonDistance => jensen_shannon_distance(left, right),
+//     Metric::BhattacharyyaDistance => bhattacharyya_distance(left, right),
+//     // Distance between two points
+//     Metric::ChebyshevDistance => chebyshev_distance(left, right),
+//     Metric::EuclideanDistance => euclidean_distance(left, right),
+//     Metric::ManhattanDistance => manhattan_distance(left, right),
+//     // Distance between two series
+//     Metric::CosineDistance => cosine_similarity(left, right),
+//     Metric::JaccardDistance => jaccard_similarity(left, right),
+//     Metric::OverlapDistance => overlap_distance(left, right),
+// };
+fn compute_item(name: &str, left: Expr, right: Expr) -> Expr {
+    match name {
+        HELLINGER_DISTANCE => hellinger_distance(left, right),
+        COSINE_SIMILARITY => cosine_similarity(left, right),
+        JACCARD_SIMILARITY => jaccard_similarity(left, right),
+        _ => unreachable!(),
+    }
+}
+
+fn format(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
+    lazy_frame.with_column(col(VALUE_).precision(key.precision, key.significant))
+}
+
+// fn hierarchical_cluster(data_frame: DataFrame) {
+// use linfa::{Dataset, DatasetBase, dataset::Records, traits::Transformer as _};
+// use linfa_hierarchical::HierarchicalCluster;
+// use linfa_kernel::{Kernel, KernelMethod};
+//
+//     // let dataset = linfa_datasets::iris();
+//     let array = data_frame
+//         .to_ndarray::<Float64Type>(IndexOrder::default())
+//         .unwrap();
+//     let dataset = Dataset::new(array, Default::default());
+//     // Dataset::new(data, targets)
+//     //     .map_targets(|x| *x as usize)
+//     //     .with_feature_names(feature_names);
+//     // let t = DatasetBase::from(data_frame.to_ndarray(IndexOrder::default()).unwrap());
+//     let kernel = Kernel::params()
+//         .method(KernelMethod::Gaussian(1.0))
+//         .transform(array);
+//     // let kernel = HierarchicalCluster::default()
+//     //     .num_clusters(3)
+//     //     .transform(kernel)
+//     //     .unwrap();
+//     // for (id, target) in kernel
+//     //     .targets()
+//     //     .iter()
+//     //     .zip(dataset.into().targets().into_iter())
+//     // {
+//     //     let name = match *target {
+//     //         0 => "setosa",
+//     //         1 => "versicolor",
+//     //         2 => "virginica",
+//     //         _ => unreachable!(),
+//     //     };
+//     //     print!("({id} {name}) ");
+//     // }
+// }
+
+// The default credentials for the cameras are : Username:root Passwors:pass
+
+fn baroni_urbani_buser_similarity(x: Expr, y: Expr) -> Expr {
+    let min_xy = min(x.clone(), y.clone());
+    let max_xy = max(x.clone(), y.clone());
+
+    let sum_min = min_xy.clone().sum();
+    let sum_max = max_xy.clone().sum();
+
+    let sqrt = (sum_min.clone() * (x.max() - max_xy).sum()).sqrt();
+
+    (sum_min + sqrt.clone()) / (sum_max + sqrt)
+}
+
+fn bray_curtis_similarity(x: Expr, y: Expr) -> Expr {
+    let n = x.clone().count();
+    let mean_x = x.clone().mean();
+    let mean_y = y.clone().mean();
+    let sum_min = min(x, y).sum();
+
+    (lit(2) / (n * (mean_x + mean_y))) * sum_min
+}
+
+fn canberra_distance(x: Expr, y: Expr) -> Expr {
+    let num = (x.clone() - y.clone()).abs();
+    let den = x.abs() + y.abs();
+
+    (num / den).sum()
+}
+
+fn overlap_distance(a: Expr, b: Expr) -> Expr {
+    lit(1) - min(a.clone(), b.clone()).sum() / min(a.sum(), b.sum())
+}
+
+fn sørensen_coefficient(a: Expr, b: Expr) -> Expr {
+    lit(1) - lit(2) * min(a.clone(), b.clone()).sum() / (a.sum() + b.sum())
+}
+
+fn bhattacharyya_distance(a: Expr, b: Expr) -> Expr {
+    -(a * b).sqrt().sum().log(lit(E))
+}
+
+fn hellinger_distance(a: Expr, b: Expr) -> Expr {
+    lit(FRAC_1_SQRT_2) * (a.sqrt() - b.sqrt()).pow(2).sum().sqrt()
+}
+
+fn euclidean_distance(a: Expr, b: Expr) -> Expr {
+    (a - b).pow(2).sum().sqrt()
+}
+
+fn chebyshev_distance(a: Expr, b: Expr) -> Expr {
+    (a - b).abs().max()
+}
+
+fn manhattan_distance(a: Expr, b: Expr) -> Expr {
+    (a - b).abs().sum()
+}
+
+fn cosine_similarity(a: Expr, b: Expr) -> Expr {
+    lit(1) - (a.clone() * b.clone()).sum() / (a.pow(2).sum().sqrt() * b.pow(2).sum().sqrt())
+}
+
+fn bray_curtis_dissimilarity(a: Expr, b: Expr) -> Expr {
+    (a.clone() - b.clone()).abs().sum() / (a + b).sum()
+}
+
+fn jaccard_similarity(a: Expr, b: Expr) -> Expr {
+    // Ok(lit(1) - min_horizontal([a.clone(), b.clone()])?.sum() / max_horizontal([a, b])?.sum())
+    lit(1) - min(a.clone(), b.clone()).sum() / max(a, b).sum()
+}
+
+fn jensen_shannon_distance(mut a: Expr, mut b: Expr) -> Expr {
+    pub const SQRT_LN_2: f64 = 0.83255461115769768820626950400765053927898406982421875_f64;
+
+    fn kullback_leibler_divergence(a: Expr, b: Expr) -> Expr {
+        (a.clone() * (a / b).log(lit(E))).fill_nan(0).sum()
+    }
+
+    a = a.clone() / a.sum();
+    b = b.clone() / b.sum();
+    let m = (a.clone() + b.clone()) / lit(2);
+    (lit(0.5) * kullback_leibler_divergence(a, m.clone())
+        + lit(0.5) * kullback_leibler_divergence(b, m))
+    .sqrt()
+        / lit(SQRT_LN_2)
+}
+
+fn max(x: Expr, y: Expr) -> Expr {
+    ternary_expr(x.clone().gt_eq(y.clone()), x, y)
+}
+
+fn min(x: Expr, y: Expr) -> Expr {
+    ternary_expr(x.clone().lt_eq(y.clone()), x, y)
+}

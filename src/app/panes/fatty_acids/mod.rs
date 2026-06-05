@@ -1,16 +1,17 @@
-use self::{factors::Factors, indices::Indices, metrics::Metrics, view::table::TableView};
+use self::view::table::TableView;
 use super::{Behavior, MARGIN};
 use crate::{
     app::{
         computers::fatty_acids::{
-            // factors::{Computed as FactorsComputed, Key as FactorsKey},
             join::{Computed as JoinComputed, Key as JoinKey},
             select::{Computed as SelectComputed, Key as SelectKey},
-            sum::metrics::{Computed as MetricsComputed, Key as MetricsKey},
-            sum::sum::{Computed as SumComputed, Key as SumKey},
+            sum::{
+                distances::{Computed as MetricsComputed, Key as MetricsKey},
+                sum::{Computed as SumComputed, Key as SumKey},
+            },
             view::table::{Computed as TableComputed, Key as TableKey},
         },
-        panes::fatty_acids::sum::expressions::Expressions,
+        panes::fatty_acids::sum::{expressions::Expressions, metrics::Metrics},
         states::fatty_acids::{ID_SOURCE, State, settings::Settings},
     },
     r#const::MAJOR,
@@ -503,20 +504,16 @@ impl Pane {
             .id(ui.auto_id_with(ID_SOURCE).with("Metrics"))
             .default_pos(ui.next_widget_position())
             .open(&mut state.windows.open_metrics)
-            .show(ui.ctx(), |ui| self.metrics_content(ui, &state.settings));
-    }
-
-    #[instrument(skip_all, err)]
-    fn metrics_content(&mut self, ui: &mut Ui, settings: &Settings) -> PolarsResult<()> {
-        let data_frame = ui.memory_mut(|memory| {
-            memory
-                .caches
-                .cache::<MetricsComputed>()
-                .get(MetricsKey::new(&self.select, settings))
-                .clone()
-        });
-        _ = Metrics::new(&data_frame, settings).show(ui);
-        Ok(())
+            .show(ui.ctx(), |ui| {
+                let data_frame = ui.memory_mut(|memory| {
+                    memory
+                        .caches
+                        .cache::<MetricsComputed>()
+                        .get(MetricsKey::new(&self.select, &state.settings))
+                        .clone()
+                });
+                Metrics::new(&data_frame, &mut state.settings).show(ui);
+            });
     }
 }
 
@@ -582,6 +579,5 @@ fn top(ui: &mut Ui, settings: &mut Settings) {
 
 mod factors;
 mod indices;
-mod metrics;
 mod sum;
 mod view;

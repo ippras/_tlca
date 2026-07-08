@@ -30,7 +30,7 @@ use egui_phosphor::regular::{
 };
 use egui_tiles::{TileId, UiResponse};
 use meofa::r#const::{
-    EXPRESSION, PREFIX as MEOFA, RATIO, SUM,
+    EXPRESSION, RATIO, SUM,
     ratio::{BIODIESEL, METABOLIC, NUTRITIONAL},
 };
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
@@ -210,10 +210,8 @@ impl Pane {
             ui.menu_button(
                 (
                     RichText::new(SIGMA).heading(),
-                    RichText::new(
-                        ui.localize(formatcp!("{MEOFA}_{EXPRESSION}?PluralCategory=other")),
-                    )
-                    .heading(),
+                    RichText::new(ui.localize(formatcp!("{EXPRESSION}?PluralCategory=other")))
+                        .heading(),
                 ),
                 |ui| {
                     // Sum
@@ -221,20 +219,18 @@ impl Pane {
                         &mut state.windows.open_expressions_sum,
                         (
                             RichText::new(SIGMA).heading(),
-                            RichText::new(ui.localize(formatcp!("{MEOFA}_{SUM}"))).heading(),
+                            RichText::new(ui.localize(SUM)).heading(),
                         ),
                     )
                     .on_hover_ui(|ui| {
-                        ui.label(ui.localize(formatcp!("{MEOFA}_{SUM}")));
+                        ui.label(ui.localize(SUM));
                     });
                     // Ratio
                     ui.menu_button(
                         (
                             RichText::new(SIGMA).heading(),
-                            RichText::new(
-                                ui.localize(formatcp!("{MEOFA}_{RATIO}?PluralCategory=other")),
-                            )
-                            .heading(),
+                            RichText::new(ui.localize(formatcp!("{RATIO}?PluralCategory=other")))
+                                .heading(),
                         ),
                         |ui| {
                             // Biodiesel
@@ -242,56 +238,45 @@ impl Pane {
                                 &mut state.windows.open_expressions_ratio_biodiesel,
                                 (
                                     RichText::new(SIGMA).heading(),
-                                    RichText::new(
-                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}")),
-                                    )
-                                    .heading(),
+                                    RichText::new(ui.localize(BIODIESEL)).heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}")));
+                                ui.label(ui.localize(BIODIESEL));
                             });
                             // Metabolic
                             ui.toggle_value(
                                 &mut state.windows.open_expressions_ratio_metabolic,
                                 (
                                     RichText::new(SIGMA).heading(),
-                                    RichText::new(
-                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{METABOLIC}")),
-                                    )
-                                    .heading(),
+                                    RichText::new(ui.localize(METABOLIC)).heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{METABOLIC}")));
+                                ui.label(ui.localize(METABOLIC));
                             });
                             // Nutritional
                             ui.toggle_value(
                                 &mut state.windows.open_expressions_ratio_nutritional,
                                 (
                                     RichText::new(SIGMA).heading(),
-                                    RichText::new(
-                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{NUTRITIONAL}")),
-                                    )
-                                    .heading(),
+                                    RichText::new(ui.localize(NUTRITIONAL)).heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{NUTRITIONAL}")));
+                                ui.label(ui.localize(NUTRITIONAL));
                             });
                         },
                     )
                     .response
                     .on_hover_ui(|ui| {
-                        ui.label(
-                            ui.localize(formatcp!("{MEOFA}_{RATIO}.hover?PluralCategory=other")),
-                        );
+                        ui.label(ui.localize(formatcp!("{RATIO}.hover?PluralCategory=other")));
                     });
                 },
             )
             .response
             .on_hover_ui(|ui| {
-                ui.label(ui.localize(formatcp!("{MEOFA}_{EXPRESSION}.hover?PluralCategory=other")));
+                ui.label(ui.localize(formatcp!("{EXPRESSION}.hover?PluralCategory=other")));
             });
 
             // Metrics
@@ -401,8 +386,7 @@ impl Pane {
     fn expressions_ratio_biodiesel(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!(
             "{SIGMA} {RATIO} {}",
-            ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}"))
-                .to_lowercase()
+            ui.localize(BIODIESEL).to_lowercase()
         ))
         .id(ui
             .auto_id_with(ID_SOURCE)

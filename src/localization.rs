@@ -36,19 +36,19 @@ mod locales {
 }
 
 mod l10n {
-    use crate::asset;
+    use egui_l10n::ftl;
 
     pub(super) const EN: &[&str] = &[
-        // asset!("/ftl/en/aocs.org.ftl"),
-        // asset!("/ftl/en/aocs.org.ext.ftl"),
-        asset!("/ftl/en/main.ftl"),
-        asset!("/ftl/en/main.ext.ftl"),
-        asset!("/ftl/en/properties.ftl"),
+        // ftl!("en/aocs.org.ftl"),
+        // ftl!("en/aocs.org.ext.ftl"),
+        ftl!("en/main.ftl"),
+        ftl!("en/main.ext.ftl"),
+        ftl!("en/properties.ftl"),
     ];
 
     pub(super) const RU: &[&str] = &[
-        // asset!("/ftl/en/aocs.org.ftl"),
-        // asset!("/ftl/en/aocs.org.ext.ftl"),
-        // asset!("/ftl/ru/main.ftl"),
+        // ftl!("en/aocs.org.ftl"),
+        // ftl!("en/aocs.org.ext.ftl"),
+        // ftl!("ru/main.ftl"),
     ];
 }

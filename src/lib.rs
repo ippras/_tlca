@@ -24,7 +24,11 @@ mod test {
     use anyhow::Result;
     use lipid::prelude::*;
     use maplit::btreemap;
-    use metadata::{AUTHORS, DATE, DESCRIPTION, Metadata, NAME, VERSION, polars::MetaDataFrame};
+    use metadata::{
+        Metadata,
+        r#const::{AUTHORS, DATE, DESCRIPTION, NAME, VERSION},
+        polars::MetaDataFrame,
+    };
     use polars::prelude::*;
     use ron::{extensions::Extensions, ser::PrettyConfig};
 
@@ -189,7 +193,7 @@ mod test {
         .collect()?;
         println!("data_frame: {data}");
         let path = Path::new("_output")
-            .join(meta.format(".").to_string())
+            .join(meta.format().date(Some(".")).build().to_string())
             .with_added_extension("tag.ron");
         let mut file = File::create(&path)?;
         let frame = HashedMetaDataFrame::new(meta, HashedDataFrame::new(data)?);

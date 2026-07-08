@@ -15,7 +15,7 @@ use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
 use std::convert::identity;
-use widgets::settings::Precision;
+use widgets::settings::PrecisionAndSignificant;
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -56,9 +56,9 @@ impl<'a> Key<'a> {
             frame,
             composition: settings.composition,
             ddof: settings.mean_and_standard_deviation.ddof,
-            percent: settings.precision.percent.is_some_and(identity),
-            precision: settings.precision.precision,
-            significant: settings.precision.significant,
+            percent: *settings.percent,
+            precision: settings.precision_and_significant.precision,
+            significant: settings.precision_and_significant.significant,
         }
     }
 }

@@ -9,20 +9,20 @@ use egui_ext::LabeledSeparator;
 use egui_ext::Markdown;
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BOOKMARK, DOTS_SIX_VERTICAL, EXCLUDE, INTERSECT, UNITE};
-use fatty_acid_expressions::r#const::{EXPRESSION, PREFIX as FAE};
 use lipid::prelude::*;
+use meofa::{
+    r#const::{EXPRESSION, PREFIX as MEOFA},
+    egui::settings::Expressions,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     convert::identity,
     ops::{Deref, DerefMut},
     sync::LazyLock,
 };
-use widgets::{
-    Show,
-    fatty_acids::settings::Expressions,
-    settings::{
-        HighlightSortFilter, Major, MeanAndStandardDeviation, Order, Precision, Sort, ThresholdZero,
-    },
+use widgets::settings::{
+    HighlightSortFilter, MeanAndStandardDeviation, Order, Percent, PrecisionAndSignificant, Sort,
+    ThresholdVariant, ThresholdZero,
 };
 
 pub(crate) const METRICS: [Metric; 9] = [
@@ -53,9 +53,10 @@ const STEREOSPECIFIC_NUMBERS: [StereospecificNumbers; 3] = [
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub(crate) struct Settings {
     // Display
+    pub(crate) precision_and_significant: PrecisionAndSignificant,
+    pub(crate) percent: Percent,
     pub(crate) mean_and_standard_deviation: MeanAndStandardDeviation,
-    pub(crate) precision: Precision,
-    pub(crate) major: Major,
+    pub(crate) major: ThresholdVariant,
 
     #[serde(skip)]
     pub(crate) resizable: bool,
@@ -88,9 +89,10 @@ impl Settings {
     pub(crate) fn new() -> Self {
         Self {
             // Display
-            precision: Precision::builder().percent(true).build(),
+            precision_and_significant: PrecisionAndSignificant::builder().build(),
+            percent: Percent::new(),
             mean_and_standard_deviation: MeanAndStandardDeviation::new(),
-            major: Major::builder().bookmark(0.01).build(),
+            major: ThresholdVariant::builder().bookmark(0.01).build(),
 
             resizable: false,
             truncate: true,
@@ -111,7 +113,7 @@ impl Settings {
             order: Order::new(),
 
             expressions: Expressions::new(),
-            highlight_sort_filter: HighlightSortFilter::new(),
+            highlight_sort_filter: HighlightSortFilter::default(),
 
             reset: false,
         }
@@ -122,7 +124,7 @@ impl Settings {
     pub(crate) fn show(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.precision.show(ui);
+            self.precision_and_significant.show(ui);
         });
 
         ui.group(|ui| {
@@ -132,8 +134,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.major
-                .show(ui, &[], self.precision.percent.is_some_and(identity));
+            self.major.show(ui, &[], *self.percent);
         });
 
         ui.group(|ui| {
@@ -165,7 +166,7 @@ impl Settings {
 
         // Expressions
         ui.collapsing(
-            RichText::new(ui.localize(formatcp!("{FAE}_{EXPRESSION}?PluralCategory=other")))
+            RichText::new(ui.localize(formatcp!("{MEOFA}_{EXPRESSION}?PluralCategory=other")))
                 .heading(),
             |ui| {
                 self.expressions.show(ui);
@@ -176,7 +177,7 @@ impl Settings {
                     ui.label("Predicate");
                     ui.label("Non zero");
                 });
-                self.highlight_sort_filter.show(ui);
+                // self.highlight_sort_filter.show(ui);
             },
         );
     }

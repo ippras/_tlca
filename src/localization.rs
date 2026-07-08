@@ -12,7 +12,7 @@ impl ContextExt for Context {
             locales::EN,
             Localization::new(locales::EN)
                 .with_sources(l10n::EN)
-                .with_sources(fatty_acid_expressions::l10n::EN)
+                .with_sources(meofa::l10n::EN)
                 .with_sources(fatty_acid_names::l10n::EN)
                 .with_sources(widgets::l10n::EN),
         );
@@ -20,7 +20,7 @@ impl ContextExt for Context {
             locales::RU,
             Localization::new(locales::RU)
                 .with_sources(l10n::RU)
-                .with_sources(fatty_acid_expressions::l10n::RU)
+                .with_sources(meofa::l10n::RU)
                 .with_sources(fatty_acid_names::l10n::RU)
                 .with_sources(widgets::l10n::RU),
         );

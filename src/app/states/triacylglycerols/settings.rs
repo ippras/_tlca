@@ -18,16 +18,19 @@ use egui_l10n::prelude::*;
 use egui_phosphor::regular::BOOKMARK;
 use serde::{Deserialize, Serialize};
 use std::{convert::identity, sync::LazyLock};
-use widgets::settings::{Major, MeanAndStandardDeviation, Precision, Sort};
+use widgets::settings::{
+    MeanAndStandardDeviation, Percent, PrecisionAndSignificant, Sort, ThresholdVariant,
+};
 
 const ID_SALT: LazyLock<Id> = LazyLock::new(|| Id::new(ID_SOURCE).with("Settings"));
 
 /// Settings
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct Settings {
-    pub precision: Precision,
+    pub precision_and_significant: PrecisionAndSignificant,
+    pub percent: Percent,
     pub mean_and_standard_deviation: MeanAndStandardDeviation,
-    pub major: Major,
+    pub major: ThresholdVariant,
 
     #[serde(skip)]
     pub resizable: bool,
@@ -51,9 +54,10 @@ pub struct Settings {
 impl Settings {
     pub fn new() -> Self {
         Self {
-            precision: Precision::new(),
+            precision_and_significant: PrecisionAndSignificant::new(),
+            percent: Percent::new(),
             mean_and_standard_deviation: MeanAndStandardDeviation::new(),
-            major: Major::new(),
+            major: ThresholdVariant::new(),
 
             resizable: false,
             truncate: true,
@@ -78,7 +82,7 @@ impl Settings {
     pub fn show(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.precision.show(ui);
+            self.precision_and_significant.show(ui);
         });
 
         ui.group(|ui| {
@@ -97,8 +101,7 @@ impl Settings {
 
         ui.group(|ui| {
             ui.set_width(ui.available_width());
-            self.major
-                .show(ui, &[], self.precision.percent.is_some_and(identity));
+            self.major.show(ui, &[], *self.percent);
         });
 
         // Metrics

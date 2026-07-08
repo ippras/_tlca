@@ -29,8 +29,9 @@ use egui_phosphor::regular::{
     ARROWS_CLOCKWISE, ARROWS_HORIZONTAL, DROP, FLOPPY_DISK, GEAR, SIGMA, SLIDERS_HORIZONTAL, TAG, X,
 };
 use egui_tiles::{TileId, UiResponse};
-use fatty_acid_expressions::r#const::{
-    BIODIESEL, EXPRESSION, METABOLIC, NUTRITIONAL, PREFIX as FAE, RATIO, SUM,
+use meofa::r#const::{
+    EXPRESSION, PREFIX as MEOFA, RATIO, SUM,
+    ratio::{BIODIESEL, METABOLIC, NUTRITIONAL},
 };
 use metadata::{egui::MetadataWidget, polars::MetaDataFrame};
 use polars::prelude::*;
@@ -59,8 +60,12 @@ impl Pane {
     }
 
     pub(super) fn title(&self) -> String {
-        format_list_truncated::<2>(self.frames.iter().map(|frame| frame.meta.format(".")))
-            .to_string()
+        format_list_truncated::<2>(
+            self.frames
+                .iter()
+                .map(|frame| frame.meta.format().date(Some(".")).build()),
+        )
+        .to_string()
     }
 
     fn id(&self) -> impl Display {
@@ -147,7 +152,9 @@ impl Pane {
             .on_hover_text(format!("{}/{:x}", self.id(), self.select.hash))
             .on_hover_ui(|ui| {
                 Label::new(format_list!(
-                    self.frames.iter().map(|frame| frame.meta.format("."))
+                    self.frames
+                        .iter()
+                        .map(|frame| frame.meta.format().date(Some(".")).build())
                 ))
                 .wrap_mode(TextWrapMode::Extend)
                 .ui(ui);
@@ -204,7 +211,7 @@ impl Pane {
                 (
                     RichText::new(SIGMA).heading(),
                     RichText::new(
-                        ui.localize(formatcp!("{FAE}_{EXPRESSION}?PluralCategory=other")),
+                        ui.localize(formatcp!("{MEOFA}_{EXPRESSION}?PluralCategory=other")),
                     )
                     .heading(),
                 ),
@@ -214,18 +221,18 @@ impl Pane {
                         &mut state.windows.open_expressions_sum,
                         (
                             RichText::new(SIGMA).heading(),
-                            RichText::new(ui.localize(formatcp!("{FAE}_{SUM}"))).heading(),
+                            RichText::new(ui.localize(formatcp!("{MEOFA}_{SUM}"))).heading(),
                         ),
                     )
                     .on_hover_ui(|ui| {
-                        ui.label(ui.localize(formatcp!("{FAE}_{SUM}")));
+                        ui.label(ui.localize(formatcp!("{MEOFA}_{SUM}")));
                     });
                     // Ratio
                     ui.menu_button(
                         (
                             RichText::new(SIGMA).heading(),
                             RichText::new(
-                                ui.localize(formatcp!("{FAE}_{RATIO}?PluralCategory=other")),
+                                ui.localize(formatcp!("{MEOFA}_{RATIO}?PluralCategory=other")),
                             )
                             .heading(),
                         ),
@@ -236,13 +243,13 @@ impl Pane {
                                 (
                                     RichText::new(SIGMA).heading(),
                                     RichText::new(
-                                        ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}")),
+                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}")),
                                     )
                                     .heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}")));
+                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}")));
                             });
                             // Metabolic
                             ui.toggle_value(
@@ -250,13 +257,13 @@ impl Pane {
                                 (
                                     RichText::new(SIGMA).heading(),
                                     RichText::new(
-                                        ui.localize(formatcp!("{FAE}_{RATIO}_{METABOLIC}")),
+                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{METABOLIC}")),
                                     )
                                     .heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{METABOLIC}")));
+                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{METABOLIC}")));
                             });
                             // Nutritional
                             ui.toggle_value(
@@ -264,27 +271,27 @@ impl Pane {
                                 (
                                     RichText::new(SIGMA).heading(),
                                     RichText::new(
-                                        ui.localize(formatcp!("{FAE}_{RATIO}_{NUTRITIONAL}")),
+                                        ui.localize(formatcp!("{MEOFA}_{RATIO}_{NUTRITIONAL}")),
                                     )
                                     .heading(),
                                 ),
                             )
                             .on_hover_ui(|ui| {
-                                ui.label(ui.localize(formatcp!("{FAE}_{RATIO}_{NUTRITIONAL}")));
+                                ui.label(ui.localize(formatcp!("{MEOFA}_{RATIO}_{NUTRITIONAL}")));
                             });
                         },
                     )
                     .response
                     .on_hover_ui(|ui| {
                         ui.label(
-                            ui.localize(formatcp!("{FAE}_{RATIO}.hover?PluralCategory=other")),
+                            ui.localize(formatcp!("{MEOFA}_{RATIO}.hover?PluralCategory=other")),
                         );
                     });
                 },
             )
             .response
             .on_hover_ui(|ui| {
-                ui.label(ui.localize(formatcp!("{FAE}_{EXPRESSION}.hover?PluralCategory=other")));
+                ui.label(ui.localize(formatcp!("{MEOFA}_{EXPRESSION}.hover?PluralCategory=other")));
             });
 
             // Metrics
@@ -394,7 +401,7 @@ impl Pane {
     fn expressions_ratio_biodiesel(&mut self, ui: &mut Ui, state: &mut State) {
         Window::new(format!(
             "{SIGMA} {RATIO} {}",
-            ui.localize(formatcp!("{FAE}_{RATIO}_{BIODIESEL}"))
+            ui.localize(formatcp!("{MEOFA}_{RATIO}_{BIODIESEL}"))
                 .to_lowercase()
         ))
         .id(ui

@@ -19,7 +19,7 @@ use polars::prelude::*;
 use polars_ext::expr::array::eval_arr;
 use std::convert::identity;
 use tracing::instrument;
-use widgets::settings::{Major, Sort};
+use widgets::settings::{HighlightSortFilter, Sort, ThresholdVariant};
 
 const ROUND_MASS: u32 = 1;
 
@@ -56,7 +56,7 @@ pub(crate) struct Key<'a> {
     pub(crate) ddof: u8,
     pub(crate) filter: Join,
     pub(crate) sort: Sort,
-    pub(crate) major: &'a Major,
+    pub(crate) major: &'a ThresholdVariant,
 }
 
 impl<'a> Key<'a> {
@@ -90,7 +90,7 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
         Ok(frame.data.data_frame.clone().lazy().select([
             col(LABEL),
             col(TRIACYLGLYCEROL),
-            col(VALUE).alias(frame.meta.format(".").to_string()),
+            col(VALUE).alias(frame.meta.format().date(Some(".")).build().to_string()),
         ]))
     };
     let mut lazy_frame = compute(&key.frames[0])?;
@@ -169,7 +169,7 @@ fn compose(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .alias(SPECIES),
     ];
     for frame in key.frames {
-        let name = frame.meta.format(".").to_string();
+        let name = frame.meta.format().date(Some(".")).build().to_string();
         // TODO SAMPLE
         let array = eval_arr(col(&name), |expr| Ok(expr.sum()))?;
         aggs.push(
@@ -224,16 +224,19 @@ fn threshold(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
         .field_by_name(MEAN)
         .gt(key.major.auto.0)])?;
     lazy_frame = lazy_frame.with_column(predicate.alias(MAJOR));
-    if key.major.highlight_sort_filter.filter {
-        lazy_frame = lazy_frame.filter(col(MAJOR));
-    }
-    if key.major.highlight_sort_filter.sort {
-        lazy_frame = lazy_frame.sort(
-            [MAJOR],
-            SortMultipleOptions::new()
-                .with_maintain_order(true)
-                .with_order_descending(true),
-        );
+    match key.major.action {
+        HighlightSortFilter::Highlight => {}
+        HighlightSortFilter::Sort => {
+            lazy_frame = lazy_frame.sort(
+                [MAJOR],
+                SortMultipleOptions::new()
+                    .with_maintain_order(true)
+                    .with_order_descending(true),
+            );
+        }
+        HighlightSortFilter::Filter => {
+            lazy_frame = lazy_frame.filter(col(MAJOR));
+        }
     }
     Ok(lazy_frame)
 }

@@ -181,7 +181,7 @@ impl Widget for Presets {
 }
 
 fn preset(ui: &mut Ui, frame: &HashedMetaDataFrame) {
-    let title = frame.meta.format(" ");
+    let title = frame.meta.format().date(Some(" ")).build();
     if ui.button(format!("{DATABASE} {title}")).clicked() {
         ui.data_mut(|data| data.insert_temp(Id::new("Data"), vec![frame.clone()]));
     }

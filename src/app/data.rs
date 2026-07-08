@@ -141,7 +141,7 @@ impl VecAndHashSet {
                         self.selected.remove(frame);
                     }
                 }
-                let text = frame.meta.format(" ").to_string();
+                let text = frame.meta.format().date(Some(" ")).build().to_string();
                 ui.add(Label::new(text).truncate())
                     .on_hover_ui(|ui| MetadataWidget::new(&frame.meta).show(ui));
             });

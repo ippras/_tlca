@@ -10,7 +10,9 @@ use egui::util::cache::{ComputerMut, FrameCache};
 use lipid::r#const::LABEL;
 use polars::prelude::*;
 use polars_ext::prelude::*;
-use widgets::settings::{Order, Precision, Sort, sort::SortKind};
+use widgets::settings::{
+    HighlightSortFilter, Order, PrecisionAndSignificant, Sort, sort::SortKind,
+};
 
 /// Table computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -45,7 +47,7 @@ pub(crate) struct Key<'a> {
     pub(crate) significant: bool,
     pub(crate) order: Order,
     pub(crate) sort: Sort,
-    pub(crate) major: bool,
+    pub(crate) sort_major: bool,
 }
 
 impl<'a> Key<'a> {
@@ -53,12 +55,12 @@ impl<'a> Key<'a> {
         Self {
             frame,
             ddof: settings.mean_and_standard_deviation.ddof,
-            percent: settings.precision.percent.is_some_and(identity),
-            precision: settings.precision.precision,
-            significant: settings.precision.significant,
-            sort: settings.sort,
+            sort_major: settings.major.action == HighlightSortFilter::Sort,
             order: settings.order,
-            major: settings.major.highlight_sort_filter.sort,
+            percent: *settings.percent,
+            precision: settings.precision_and_significant.precision,
+            significant: settings.precision_and_significant.significant,
+            sort: settings.sort,
         }
     }
 }
@@ -71,13 +73,13 @@ fn sort(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
     if key.sort.checked {
         let sort_options = SortMultipleOptions::default().with_maintain_order(true);
         lazy_frame = match key.sort.kind {
-            SortKind::Key if key.major => lazy_frame.sort_by_exprs(
+            SortKind::Key if key.sort_major => lazy_frame.sort_by_exprs(
                 [col(MAJOR), col(LABEL)],
                 sort_options
                     .with_order_descending_multi([true, key.order.kind.is_descending()])
                     .with_nulls_last(key.order.kind.is_descending()),
             ),
-            SortKind::Value if key.major => lazy_frame.sort_by_exprs(
+            SortKind::Value if key.sort_major => lazy_frame.sort_by_exprs(
                 [col(MAJOR), col(VALUE_)],
                 sort_options
                     .with_order_descending_multi([true, key.order.kind.is_descending()])

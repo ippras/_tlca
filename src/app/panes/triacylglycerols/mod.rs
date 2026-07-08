@@ -180,7 +180,7 @@ impl Pane {
     fn save_button(&self, ui: &mut Ui, state: &State) {
         ui.add_enabled_ui(self.frames.len() == 1, |ui| {
             ui.menu_button(RichText::new(FLOPPY_DISK).heading(), |ui| {
-                let name = self.frames[0].meta.format(".");
+                let name = self.frames[0].meta.format().date(Some(".")).build();
                 if ui
                     .button((FLOPPY_DISK, "RON"))
                     .on_hover_ui(|ui| {

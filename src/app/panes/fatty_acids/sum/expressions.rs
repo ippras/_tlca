@@ -10,10 +10,10 @@ use egui::{Frame, Id, Label, Margin, Response, TextStyle, TextWrapMode, Ui, Widg
 use egui_l10n::prelude::*;
 use egui_phosphor::regular::{BROWSERS, HASH};
 use egui_table::{CellInfo, Column, HeaderCellInfo, HeaderRow, Table, TableDelegate, TableState};
-use fatty_acid_expressions::r#const::SUM;
 use lipid::r#const::{
     INDEX, STEREOSPECIFIC_NUMBERS2, STEREOSPECIFIC_NUMBERS13, STEREOSPECIFIC_NUMBERS123,
 };
+use meofa::r#const::SUM;
 use polars::prelude::*;
 use polars_ext::prelude::*;
 use std::ops::Range;

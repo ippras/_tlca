@@ -16,7 +16,7 @@ use std::{
     sync::LazyLock,
 };
 use tracing::instrument;
-use widgets::settings::Major;
+use widgets::settings::ThresholdVariant;
 
 /// Input schema
 pub(crate) const INPUT_SCHEMA: LazyLock<SchemaRef> = LazyLock::new(|| {
@@ -73,7 +73,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 pub(crate) struct Key<'a> {
     pub(crate) frames: &'a [HashedMetaDataFrame],
     pub(crate) join: Join,
-    pub(crate) major: &'a Major,
+    pub(crate) major: &'a ThresholdVariant,
 }
 
 impl<'a> Key<'a> {
@@ -123,12 +123,12 @@ fn join(key: Key) -> PolarsResult<LazyFrame> {
 fn names(key: Key<'_>) -> HashMap<&Metadata, String> {
     let mut names = HashMap::new();
     for frame in key.frames {
-        match names.entry(frame.meta.display().build().to_string()) {
+        match names.entry(frame.meta.format().build().to_string()) {
             Entry::Occupied(occupied) => {
                 let meta: &Metadata = occupied.remove();
-                names.insert(meta.display().date(true).build().to_string(), meta);
+                names.insert(meta.format().date(None).build().to_string(), meta);
                 names.insert(
-                    frame.meta.display().date(true).build().to_string(),
+                    frame.meta.format().date(None).build().to_string(),
                     &frame.meta,
                 );
             }

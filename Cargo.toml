@@ -69,9 +69,11 @@ egui_l10n = { git = "https://github.com/ippras/egui_l10n", branch = "0.6", featu
     "macros",
 ] }
 egui_tiles_ext = { git = "https://github.com/kgv/egui_tiles_ext", branch = "0.4" }
-fatty_acid_expressions = { git = "https://github.com/ippras/fatty_acid_expressions" }
 fatty_acid_names = { git = "https://github.com/ippras/fatty_acid_names" }
 lipid = { git = "https://github.com/ippras/lipid", branch = "0.52" }
+meofa = { package = "mathematical_expressions_of_fatty_acids", git = "https://github.com/ippras/mathematical_expressions_of_fatty_acids", features = [
+    "serde",
+] }
 metadata = { git = "https://github.com/ippras/metadata", branch = "0.52", features = [
     "egui",
     "polars",
@@ -81,7 +83,6 @@ polars_ext = { git = "https://github.com/kgv/polars_ext", branch = "0.52", featu
     "array",
 ] }
 widgets = { git = "https://github.com/ippras/widgets", branch = "0.52", features = [
-    "fatty_acids",
     "polars",
 ] }
 

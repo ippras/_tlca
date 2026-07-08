@@ -6,7 +6,7 @@ use crate::{
 use egui::util::cache::{ComputerMut, FrameCache};
 use polars::prelude::*;
 use tracing::instrument;
-use widgets::settings::Major;
+use widgets::settings::{HighlightSortFilter, ThresholdVariant, threshold::Kind};
 
 /// Select computed
 pub(crate) type Computed = FrameCache<Value, Computer>;
@@ -38,7 +38,7 @@ impl ComputerMut<Key<'_>, Value> for Computer {
 #[derive(Clone, Copy, Debug, Hash)]
 pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
-    pub(crate) major: &'a Major,
+    pub(crate) major: &'a ThresholdVariant,
     pub(crate) stereospecific_numbers: StereospecificNumbers,
 }
 
@@ -66,17 +66,20 @@ fn select(lazy_frame: LazyFrame, key: Key) -> LazyFrame {
 
 /// Major column
 fn major(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
-    let major = if key.major.is_auto {
-        // Берем среднее значение массива, так как иначе пришлось бы сравнивать все повторности попарно
-        // Значение в любом из столбцов больше или равно major
-        any_horizontal([col(VALUE_)
-            .arr()
-            .mean()
-            .fill_null(0)
-            .gt_eq(key.major.auto.0)])?
-    } else {
-        lit(true)
-        // lit(Series::from_iter(&key.major.manual))
+    let major = match key.major.kind {
+        Kind::Auto => {
+            // Берем среднее значение массива, так как иначе пришлось бы сравнивать все повторности попарно
+            // Значение в любом из столбцов больше или равно major
+            any_horizontal([col(VALUE_)
+                .arr()
+                .mean()
+                .fill_null(0)
+                .gt_eq(key.major.auto.0)])?
+        }
+        Kind::Manual => {
+            // lit(Series::from_iter(&key.major.manual))
+            lit(true)
+        }
     };
     lazy_frame = lazy_frame.with_column(major.alias(MAJOR));
     Ok(lazy_frame)
@@ -84,21 +87,25 @@ fn major(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
 
 /// Major column
 fn highlight_sort_filter(mut lazy_frame: LazyFrame, key: Key) -> LazyFrame {
-    if key.major.highlight_sort_filter.filter {
-        lazy_frame = lazy_frame.filter(col(MAJOR));
-    } else if key.major.highlight_sort_filter.sort {
-        lazy_frame = lazy_frame.sort_by_exprs(
-            [col(MAJOR)],
-            SortMultipleOptions::new()
-                .with_maintain_order(true)
-                .with_order_reversed(),
-        );
+    match key.major.action {
+        HighlightSortFilter::Highlight => {
+            lazy_frame = lazy_frame.with_column(col(MAJOR).alias(HIGHLIGHT));
+        }
+        HighlightSortFilter::Sort => {
+            lazy_frame = lazy_frame
+                .sort_by_exprs(
+                    [col(MAJOR)],
+                    SortMultipleOptions::new()
+                        .with_maintain_order(true)
+                        .with_order_reversed(),
+                )
+                .with_column(lit(true).alias(HIGHLIGHT));
+        }
+        HighlightSortFilter::Filter => {
+            lazy_frame = lazy_frame
+                .filter(col(MAJOR))
+                .with_column(lit(true).alias(HIGHLIGHT));
+        }
     }
-    let highlight = if key.major.highlight_sort_filter.highlight {
-        col(MAJOR)
-    } else {
-        lit(true)
-    };
-    lazy_frame = lazy_frame.with_column(highlight.alias(HIGHLIGHT));
     lazy_frame
 }

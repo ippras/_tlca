@@ -5,15 +5,17 @@ use crate::{
 };
 use const_format::formatcp;
 use egui::util::cache::{ComputerMut, FrameCache};
-use fatty_acid_expressions::r#const::sum::{
+use lipid::prelude::*;
+use meofa::r#const::sum::{
     CFA, D9, D12, EPA_AND_DHA, LCFA, MCFA, MUFA, NUFA, O3, O6, O9, PUFA, SCFA, SFA, TFA, UFA, VLCFA,
 };
-use lipid::prelude::*;
 use polars::prelude::*;
 use polars_ext::prelude::*;
-use std::{convert::identity, num::NonZeroI8};
+use std::num::NonZeroI8;
 use tracing::instrument;
-use widgets::settings::{Array as SumArray, HighlightSortFilter, Precision, array::Item};
+use widgets::settings::{
+    Array as SumArray, HighlightSortFilter, PrecisionAndSignificant, array::Item,
+};
 
 pub(crate) const VALUE_: &str = formatcp!("^{VALUE}_.+$");
 
@@ -51,8 +53,9 @@ pub(crate) struct Key<'a> {
     pub(crate) frame: &'a HashedDataFrame,
     pub(crate) ddof: u8,
     pub(crate) expressions: &'a SumArray,
-    pub(crate) precision: Precision,
     pub(crate) highlight_sort_filter: HighlightSortFilter,
+    pub(crate) percent: bool,
+    pub(crate) precision_and_significant: &'a PrecisionAndSignificant,
 }
 
 impl<'a> Key<'a> {
@@ -61,8 +64,9 @@ impl<'a> Key<'a> {
             frame,
             ddof: settings.mean_and_standard_deviation.ddof,
             expressions: &settings.expressions.sum,
-            precision: settings.precision,
             highlight_sort_filter: settings.highlight_sort_filter,
+            percent: *settings.percent,
+            precision_and_significant: &settings.precision_and_significant,
         }
     }
 }
@@ -204,24 +208,34 @@ fn compute_item(item: &Item, expr: Expr) -> Expr {
 
 fn highlight_sort_filter(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
     let predicate = any_horizontal([col(VALUE_).arr().agg(element().gt(0.0).any(true))])?;
-    if key.highlight_sort_filter.filter {
-        lazy_frame = lazy_frame.filter(predicate.clone());
-    } else if key.highlight_sort_filter.sort {
-        lazy_frame = lazy_frame.sort_by_exprs(
-            [predicate.clone()],
-            SortMultipleOptions::new()
-                .with_maintain_order(true)
-                .with_order_descending(true),
-        );
-    }
-    lazy_frame = lazy_frame.with_column(
-        if key.highlight_sort_filter.highlight {
-            predicate
-        } else {
-            lit(true)
+    match key.highlight_sort_filter {
+        HighlightSortFilter::Highlight => {
+            lazy_frame = lazy_frame.with_column(predicate.clone().alias(HIGHLIGHT));
         }
-        .alias(HIGHLIGHT),
-    );
+        HighlightSortFilter::Sort => {
+            lazy_frame = lazy_frame
+                .sort_by_exprs(
+                    [predicate.clone()],
+                    SortMultipleOptions::new()
+                        .with_maintain_order(true)
+                        .with_order_descending(true),
+                )
+                .with_column(lit(true).alias(HIGHLIGHT));
+        }
+        HighlightSortFilter::Filter => {
+            lazy_frame = lazy_frame
+                .filter(predicate.clone())
+                .with_column(lit(true).alias(HIGHLIGHT));
+        }
+    }
+    // lazy_frame = lazy_frame.with_column(
+    //     if key.highlight_sort_filter.highlight {
+    //         predicate
+    //     } else {
+    //         lit(true)
+    //     }
+    //     .alias(HIGHLIGHT),
+    // );
     Ok(lazy_frame)
 }
 
@@ -235,9 +249,9 @@ fn format(mut lazy_frame: LazyFrame, key: Key) -> PolarsResult<LazyFrame> {
                 Array::builder()
                     .expr(col(name.clone()))
                     .ddof(key.ddof)
-                    .percent(key.precision.percent.is_some_and(identity))
-                    .precision(key.precision.precision)
-                    .significant(key.precision.significant)
+                    .percent(key.percent)
+                    .precision(key.precision_and_significant.precision)
+                    .significant(key.precision_and_significant.significant)
                     .build()
             })
             .collect::<Vec<_>>(),
